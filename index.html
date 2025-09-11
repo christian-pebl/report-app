@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report App - CSV Manager</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Working Directory Setup Modal -->
+    <div id="workingDirModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🗂️ Set Working Directory</h2>
+                <p>Choose a working directory to automatically detect and manage your CSV files and their processed versions (_STD, _24hr).</p>
+            </div>
+            <div class="modal-body">
+                <div class="benefits">
+                    <p>This will help you:</p>
+                    <ul>
+                        <li>Browse all CSV files in one place</li>
+                        <li>Detect existing processed versions</li>
+                        <li>Generate missing conversions</li>
+                        <li>Switch between file versions easily</li>
+                    </ul>
+                </div>
+                <div class="modal-actions">
+                    <button id="selectDirBtn" class="btn-primary">📁 Select Working Directory</button>
+                    <button id="skipDirBtn" class="btn-secondary">Skip for now</button>
+                    <input type="file" id="workingDirInput" webkitdirectory directory multiple hidden>
+                    <input type="file" id="csvFile" accept=".csv" hidden>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Report App</h1>
+            <p>Upload and visualize your CSV data</p>
+        </header>
+
+        <main>
+            <!-- Working Directory File Browser -->
+            <div class="file-browser" id="fileBrowser" style="display: none;">
+                <div class="file-browser-header">
+                    <h3>📁 Working Directory Files</h3>
+                    <div class="file-browser-controls">
+                        <span id="fileCount"></span>
+                        <div class="control-buttons">
+                            <button id="addFileBtn" class="btn-secondary">+ Add File</button>
+                            <button id="changeWorkingDirBtn" class="btn-secondary">Change Directory</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="file-list" id="fileList">
+                    <!-- Files will be populated here -->
+                </div>
+            </div>
+
+            <div class="file-info-compact" id="fileInfoCompact" style="display: none;">
+                <button id="fileInfoToggle" class="info-toggle">ℹ️</button>
+                <div id="fileInfoDropdown" class="info-dropdown hidden">
+                    <h3>File Information</h3>
+                    <div id="fileDetails"></div>
+                </div>
+            </div>
+
+            <div class="plot-section" id="plotSection" style="display: none;">
+                <div class="plot-controls">
+                    <h3 id="plotTitle">Time Series Plot</h3>
+                    <div class="controls">
+                        <span id="plotInfo"></span>
+                        <div class="control-buttons">
+                            <button id="toggleTableBtn" class="btn-secondary">📄 Show Table</button>
+                            <button id="confirmSavePlotBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="variable-controls" id="variableControls" style="display: none;">
+                    <h4>Select Variables to Plot:</h4>
+                    <div id="variableCheckboxes"></div>
+                </div>
+                <div class="plot-container">
+                    <canvas id="plotCanvas" width="800" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="table-section" id="tableSection" style="display: none;">
+                <div class="table-controls">
+                    <h3 id="dataTitle">CSV Data</h3>
+                    <div class="controls">
+                        <span id="recordCount"></span>
+                        <div class="control-buttons">
+                            <button id="toggleViewBtn" class="btn-secondary" style="display: none;">📊 Show Plot</button>
+                            <button id="confirmSaveBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="exportBtn" class="btn-secondary">Export Current</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="csvTable">
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
