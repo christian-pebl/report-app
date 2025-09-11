@@ -11,34 +11,47 @@
     <div id="workingDirModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🗂️ Set Working Directory</h2>
-                <p>Choose a working directory to automatically detect and manage your CSV files and their processed versions (_STD, _24hr).</p>
+                <h2>📄 Load Your CSV Files</h2>
+                <p>Select your CSV files to start analyzing your data. Files will load automatically without any confirmation dialogs.</p>
             </div>
             <div class="modal-body">
                 <div class="benefits">
-                    <p>This will help you:</p>
+                    <p><strong>What you can do:</strong></p>
                     <ul>
-                        <li>Browse all CSV files in one place</li>
-                        <li>Detect existing processed versions</li>
-                        <li>Generate missing conversions</li>
-                        <li>Switch between file versions easily</li>
+                        <li>✅ Select multiple CSV files at once</li>
+                        <li>✅ Files load instantly with no confirmation popups</li>
+                        <li>✅ Immediately view tables and create plots</li>
+                        <li>✅ Switch between different file versions easily</li>
                     </ul>
                 </div>
                 <div class="modal-actions">
-                    <button id="selectDirBtn" class="btn-primary">📁 Select Working Directory</button>
+                    <button id="selectFilesBtn" class="btn-primary">📄 Select CSV Files</button>
                     <button id="skipDirBtn" class="btn-secondary">Skip for now</button>
-                    <input type="file" id="workingDirInput" webkitdirectory directory multiple hidden>
-                    <input type="file" id="csvFile" accept=".csv" hidden>
+                    <input type="file" id="csvFilesInput" accept=".csv" multiple hidden>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Top Banner Navigation -->
+    <nav class="top-banner">
+        <div class="banner-content">
+            <div class="banner-left">
+                <h1 class="banner-title">Report App</h1>
+            </div>
+            <div class="banner-right">
+                <button class="nav-tab active" data-page="reformat">Reformat</button>
+                <button class="nav-tab" data-page="plot">Plot</button>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
-        <header>
-            <h1>Report App</h1>
-            <p>Upload and visualize your CSV data</p>
-        </header>
+        <div id="reformatPage" class="page-content active">
+            <header>
+                <h1>Reformat</h1>
+                <p>Upload and visualize your CSV data</p>
+            </header>
 
         <main>
             <!-- Working Directory File Browser -->
@@ -49,7 +62,7 @@
                         <span id="fileCount"></span>
                         <div class="control-buttons">
                             <button id="addFileBtn" class="btn-secondary">+ Add File</button>
-                            <button id="changeWorkingDirBtn" class="btn-secondary">Change Directory</button>
+                            <button id="changeWorkingDirBtn" class="btn-secondary">Load Different Files</button>
                         </div>
                     </div>
                 </div>
@@ -106,6 +119,95 @@
                 </div>
             </div>
         </main>
+        </div> <!-- End reformatPage -->
+
+        <!-- Plot Page -->
+        <div id="plotPage" class="page-content">
+            <header>
+                <h1>Data Plotting</h1>
+                <p>Create nicely formatted plots from your CSV data</p>
+            </header>
+            
+            <main>
+                <!-- 24 Hour Average DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>24 Hour Average DPM</h2>
+                        <p>Generate 24-hour average DPM (Detections Per Minute) analysis plots</p>
+                    </div>
+                    
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. Compare 24hr trend between sites for specified source</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="sourceSelect1">Select DPM Column:</label>
+                                        <select id="sourceSelect1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sitesSelect1">Select _24hr.csv Files:</label>
+                                        <select id="sitesSelect1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _24hr.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="generateSiteComparisonBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="siteComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. Compare 24hr trend between sources for specified site</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="siteSelect2">Select _24hr.csv File:</label>
+                                        <select id="siteSelect2" class="form-control">
+                                            <option value="">Select a _24hr.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _24hr.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sourcesSelect2">Select DPM Columns:</label>
+                                        <select id="sourcesSelect2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="generateSourceComparisonBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="sourceComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status info -->
+                    <div class="status-info">
+                        <h4>Directory Status</h4>
+                        <p id="availableFilesStatus">No directory selected. Please select a working directory first.</p>
+                        <p id="availableSitesStatus"></p>
+                        <p id="availableSourcesStatus"></p>
+                    </div>
+                </div>
+            </main>
+        </div> <!-- End plotPage -->
     </div>
 
     <script src="script.js"></script>
