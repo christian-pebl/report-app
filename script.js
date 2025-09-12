@@ -2886,7 +2886,7 @@ class NavigationManager {
             
             console.log('Drawing axes...');
             // Draw axes
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas);
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, displayWidth);
             
             console.log('Plotting site data...');
             // Plot data for each site
@@ -2975,7 +2975,7 @@ class NavigationManager {
         return hourlyData;
     }
 
-    drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas) {
+    drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, displayWidth = 900) {
         // PEBL brand elegant styling with improved fonts
         ctx.strokeStyle = '#DEF2F1';  // PEBL light teal for axes
         ctx.lineWidth = 1;
@@ -3328,7 +3328,7 @@ class NavigationManager {
         const maxPercentage = Math.ceil((maxDPM / 60) * 100);
         
         // Draw axes
-        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas);
+        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, displayWidth);
         
         // Plot data for each source
         plotData.forEach(sourceData => {
