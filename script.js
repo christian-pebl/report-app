@@ -122,9 +122,21 @@ class CSVManager {
             const mockFile = this.createMockFileFromCurrentData(fileName);
             fileInfo.versions.set(suffix, mockFile);
             
+            // Add the new file to working directory files for plot page
+            if (this.workingDirFiles && !this.workingDirFiles.find(f => f.name === fileName)) {
+                this.workingDirFiles.push(mockFile);
+                console.log(`Added ${fileName} to working directory files`);
+            }
+            
             // Update UI
             this.renderFileBrowser();
             this.showSuccess(`Saved ${fileName} successfully!`);
+            
+            // Update plot page if navigation manager exists
+            if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
+                navigationManager.updatePlotPageFileInfo();
+                console.log('Updated plot page file info after creating new file');
+            }
             
             // Hide buttons and clear pending conversion
             confirmSaveBtn.style.display = 'none';
@@ -517,9 +529,21 @@ class CSVManager {
             const mockFile = this.createMockFileFromCurrentData(fileName);
             fileInfo.versions.set(suffix, mockFile);
             
+            // Add the new file to working directory files for plot page
+            if (this.workingDirFiles && !this.workingDirFiles.find(f => f.name === fileName)) {
+                this.workingDirFiles.push(mockFile);
+                console.log(`Added ${fileName} to working directory files`);
+            }
+            
             // Update UI
             this.renderFileBrowser();
             this.showSuccess(`Generated and saved ${fileName}`);
+            
+            // Update plot page if navigation manager exists
+            if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
+                navigationManager.updatePlotPageFileInfo();
+                console.log('Updated plot page file info after creating new file');
+            }
             
             // Remove modal
             document.body.removeChild(modal);
@@ -1176,6 +1200,9 @@ class CSVManager {
         if (this.fileName) {
             dataTitle.textContent = this.fileName;
         }
+        
+        // Add or update processing log interface
+        this.createProcessingLogInterface();
 
         // Clear existing content
         tableHead.innerHTML = '';
@@ -1218,6 +1245,127 @@ class CSVManager {
         tableSection.scrollIntoView({ behavior: 'smooth' });
     }
 
+    createProcessingLogInterface() {
+        // Check if processing log already exists
+        let logContainer = document.getElementById('processingLogContainer');
+        
+        if (!logContainer) {
+            // Create the collapsible log interface
+            logContainer = document.createElement('div');
+            logContainer.id = 'processingLogContainer';
+            logContainer.style.cssText = `
+                margin: 10px 0;
+                border: 1px solid #d1d5db;
+                border-radius: 6px;
+                background: #f9fafb;
+            `;
+            
+            const logHeader = document.createElement('div');
+            logHeader.style.cssText = `
+                padding: 8px 12px;
+                background: #f3f4f6;
+                border-bottom: 1px solid #d1d5db;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                font-size: 0.9rem;
+                font-weight: 500;
+                color: #374151;
+            `;
+            
+            const toggleIcon = document.createElement('span');
+            toggleIcon.id = 'logToggleIcon';
+            toggleIcon.textContent = '▶';
+            toggleIcon.style.cssText = `
+                margin-right: 8px;
+                transition: transform 0.2s;
+                font-size: 0.8rem;
+            `;
+            
+            const logTitle = document.createElement('span');
+            logTitle.textContent = 'Processing Log (Click to expand/collapse)';
+            
+            logHeader.appendChild(toggleIcon);
+            logHeader.appendChild(logTitle);
+            
+            const logContent = document.createElement('div');
+            logContent.id = 'processingLogContent';
+            logContent.style.cssText = `
+                display: none;
+                padding: 12px;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: 'Courier New', monospace;
+                font-size: 0.8rem;
+                background: #ffffff;
+                color: #1f2937;
+                line-height: 1.4;
+            `;
+            
+            logHeader.addEventListener('click', () => {
+                const isHidden = logContent.style.display === 'none';
+                logContent.style.display = isHidden ? 'block' : 'none';
+                toggleIcon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+            });
+            
+            logContainer.appendChild(logHeader);
+            logContainer.appendChild(logContent);
+            
+            // Insert after the table controls but before the table wrapper
+            const tableControls = document.querySelector('.table-controls');
+            const tableWrapper = document.querySelector('.table-wrapper');
+            tableControls.parentNode.insertBefore(logContainer, tableWrapper);
+        }
+    }
+
+    addToProcessingLog(message, type = 'info') {
+        if (!this.processingLogs) {
+            this.processingLogs = [];
+        }
+        
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}`;
+        this.processingLogs.push(logEntry);
+        
+        // Update the log display
+        const logContent = document.getElementById('processingLogContent');
+        if (logContent) {
+            const logLine = document.createElement('div');
+            logLine.style.marginBottom = '2px';
+            
+            // Style based on type
+            switch (type) {
+                case 'error':
+                    logLine.style.color = '#dc2626';
+                    logLine.textContent = `❌ ${logEntry}`;
+                    break;
+                case 'success':
+                    logLine.style.color = '#059669';
+                    logLine.textContent = `✅ ${logEntry}`;
+                    break;
+                case 'warning':
+                    logLine.style.color = '#d97706';
+                    logLine.textContent = `⚠️ ${logEntry}`;
+                    break;
+                default:
+                    logLine.style.color = '#374151';
+                    logLine.textContent = `ℹ️ ${logEntry}`;
+            }
+            
+            logContent.appendChild(logLine);
+            // Auto scroll to bottom
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+    }
+
+    clearProcessingLog() {
+        this.processingLogs = [];
+        const logContent = document.getElementById('processingLogContent');
+        if (logContent) {
+            logContent.innerHTML = '';
+        }
+    }
+
     exportCSV() {
         if (this.csvData.length === 0) return;
 
@@ -1255,37 +1403,72 @@ class CSVManager {
     }
 
     convertToStdFormat() {
+        // Clear previous logs and start fresh
+        this.clearProcessingLog();
+        this.addToProcessingLog('=== STARTING STD CONVERSION ===');
+        this.addToProcessingLog(`Current filename: ${this.fileName}`);
+        this.addToProcessingLog(`Headers available: ${this.headers.length} columns`);
+        this.addToProcessingLog(`Data rows: ${this.csvData.length}`);
+        
+        console.log('=== STARTING STD CONVERSION ===');
+        console.log('Current filename:', this.fileName);
+        console.log('Headers available:', this.headers);
+        console.log('Data rows:', this.csvData.length);
+        
         if (this.csvData.length === 0) {
+            this.addToProcessingLog('❌ No data to convert', 'error');
             this.showError('No data to convert. Please upload a CSV file first.');
             return;
         }
 
         try {
+            this.addToProcessingLog('🔄 Starting STD format processing...');
+            console.log('Calling processToStdFormat...');
             const stdData = this.processToStdFormat();
+            
+            this.addToProcessingLog('✅ STD processing completed successfully', 'success');
+            this.addToProcessingLog(`Result headers: ${stdData.headers.join(', ')}`);
+            this.addToProcessingLog(`Result data rows: ${stdData.data.length}`);
+            
+            console.log('✅ STD processing completed successfully');
+            console.log('Result headers:', stdData.headers);
+            console.log('Result data rows:', stdData.data.length);
             
             // Update the current view with converted data for preview
             this.displayConvertedData(stdData);
             
-            this.showSuccess('Successfully converted to _std format! Preview the data and use the export button to download.');
+            this.showSuccess(`Successfully converted to _std format! File: ${this.fileName} - Preview the data and use the export button to download.`);
         } catch (error) {
             this.showError(`Conversion failed: ${error.message}`);
         }
     }
 
     displayConvertedData(stdData) {
+        console.log('=== DISPLAYING CONVERTED DATA ===');
+        
         // Update the internal data structure
         this.headers = stdData.headers;
         this.csvData = stdData.data;
         
-        // Update the filename display - fix duplicate _std issue
+        // Update the filename according to specification:
+        // "If the original file has a '_raw' suffix then directly replace this with _std"
+        console.log('Original filename:', this.fileName);
+        
         if (this.fileName.toLowerCase().includes('_raw')) {
+            // Replace _raw with _std
             this.fileName = this.fileName.replace(/_raw/gi, '_std');
+            console.log('Replaced _raw with _std:', this.fileName);
         } else if (!this.fileName.toLowerCase().includes('_std')) {
+            // Add _std suffix before extension
             const baseName = this.fileName.replace(/\.csv$/i, '');
             this.fileName = `${baseName}_std.csv`;
+            console.log('Added _std suffix:', this.fileName);
         }
         
+        console.log('Final filename for display:', this.fileName);
+        
         // Re-render the table with converted data
+        // This will show the new filename with _std suffix above the table
         this.renderTable();
         
         // Update file info to show conversion details
@@ -1329,7 +1512,44 @@ class CSVManager {
     }
 
     processToStdFormat() {
-        // Updated column mappings with flexible pattern matching
+        console.log('=== PROCESS TO STD FORMAT START ===');
+        console.log('Following specification requirements step by step...');
+        
+        // Step 1: Find date and time columns dynamically
+        this.addToProcessingLog('STEP 1: Finding date and time columns...');
+        console.log('STEP 1: Finding date and time columns...');
+        const { dateColIndex, timeColIndex, isCombined } = this.findDateTimeColumns();
+        
+        this.addToProcessingLog(`Date-time detection results:`);
+        this.addToProcessingLog(`- dateColIndex: ${dateColIndex}`);
+        this.addToProcessingLog(`- timeColIndex: ${timeColIndex}`);
+        this.addToProcessingLog(`- isCombined: ${isCombined}`);
+        
+        console.log('Date-time detection results:');
+        console.log('- dateColIndex:', dateColIndex);
+        console.log('- timeColIndex:', timeColIndex); 
+        console.log('- isCombined:', isCombined);
+        
+        if (dateColIndex === -1 || timeColIndex === -1) {
+            const errorMsg = `Could not find valid date and time columns in the CSV. Found: dateColIndex=${dateColIndex}, timeColIndex=${timeColIndex}`;
+            this.addToProcessingLog(`❌ ${errorMsg}`, 'error');
+            throw new Error(errorMsg);
+        }
+
+        // Step 2: Extract and reformat timestamps into ISO 8601 format: YYYY-MM-DDTHH:MM:SS.000Z
+        this.addToProcessingLog('STEP 2: Extracting timestamps and reformatting to ISO 8601...');
+        console.log('STEP 2: Extracting timestamps and reformatting to ISO 8601...');
+        const timestamps = this.extractTimestamps(dateColIndex, timeColIndex, isCombined);
+        
+        this.addToProcessingLog(`Extracted ${timestamps.length} timestamps`);
+        this.addToProcessingLog(`Sample timestamps: ${timestamps.slice(0, 3).join(', ')}`);
+        
+        console.log(`Extracted ${timestamps.length} timestamps`);
+        console.log('Sample timestamps:', timestamps.slice(0, 3));
+
+        // Step 3: Extract data columns according to specification
+        this.addToProcessingLog('STEP 3: Extracting and renaming data columns per specification...');
+        console.log('STEP 3: Extracting and renaming data columns per specification...');
         const columnMappings = [
             { patterns: ['Harbour Porpoise (DPM)_F', 'NBHF_DPM'], target: 'Porpoise (DPM)' },
             { patterns: ['Harbour Porpoise (Clicks)_F', 'NBHFclx'], target: 'Porpoise (Clicks)' },
@@ -1339,38 +1559,66 @@ class CSVManager {
             { patterns: ['SONARclx'], target: 'Sonar (Clicks)' }
         ];
 
-        // Find date and time columns dynamically
-        const { dateColIndex, timeColIndex, isCombined } = this.findDateTimeColumns();
+        const extractedColumns = this.extractDataColumns(columnMappings);
+        this.addToProcessingLog(`Found ${extractedColumns.length} matching data columns: ${extractedColumns.map(col => col.name).join(', ')}`);
+        console.log(`Found ${extractedColumns.length} matching data columns:`, extractedColumns.map(col => col.name));
         
-        if (dateColIndex === -1 || timeColIndex === -1) {
-            throw new Error('Could not find valid date and time columns in the CSV.');
+        if (extractedColumns.length === 0) {
+            const errorMsg = 'No matching data columns found for conversion. Check column names match specification.';
+            this.addToProcessingLog(`❌ ${errorMsg}`, 'error');
+            throw new Error(errorMsg);
         }
 
-        // Extract and combine timestamps
-        const timestamps = this.extractTimestamps(dateColIndex, timeColIndex, isCombined);
-
-        // Find and extract data columns based on patterns
-        const dataColumns = this.extractDataColumns(columnMappings);
+        // Step 4: Create structured dataset with Time column as first column
+        console.log('STEP 4: Creating structured dataset...');
         
-        if (dataColumns.length === 0) {
-            throw new Error('No matching data columns found for conversion.');
-        }
-
         // Align all data with timestamps
         const maxLength = timestamps.length;
-        const alignedData = this.alignDataColumns(dataColumns, maxLength);
+        const alignedColumns = this.alignDataColumns(extractedColumns, maxLength);
 
-        // Create the _std format data structure
-        const stdHeaders = ['Time', ...alignedData.map(col => col.name)];
+        // Create headers: Time column FIRST, then data columns
+        const stdHeaders = ['Time', ...alignedColumns.map(col => col.name)];
+        console.log('Final headers:', stdHeaders);
+        
+        // Create data rows: Time column FIRST, then data columns
+        this.addToProcessingLog('STEP 4: Creating final data rows...');
         const stdData = [];
+        let missingTimestampCount = 0;
+        let missingDataCount = 0;
+        let validRowCount = 0;
         
         for (let i = 0; i < maxLength; i++) {
-            const row = [timestamps[i]];
-            alignedData.forEach(col => {
-                row.push(col.data[i] || '');
+            const timestamp = timestamps[i] || '0';
+            if (timestamp === '0') {
+                missingTimestampCount++;
+                this.addToProcessingLog(`⚠️ Row ${i}: Invalid/missing timestamp - using '0'`, 'warning');
+            } else {
+                validRowCount++;
+            }
+            const row = [timestamp]; // Time column FIRST
+            
+            alignedColumns.forEach(col => {
+                const value = col.data[i] || '0';
+                if (value === '0' && col.data[i] === undefined) missingDataCount++;
+                row.push(value); // Replace missing data with '0'
             });
             stdData.push(row);
         }
+        
+        this.addToProcessingLog(`✅ Created ${stdData.length} data rows: ${validRowCount} with valid timestamps, ${missingTimestampCount} with invalid timestamps`);
+        this.addToProcessingLog(`Replaced ${missingDataCount} missing data cells with '0'`);
+
+        console.log('STEP 5: Validation - checking for columns before Time...');
+        // Step 5: Check if there's any column before Time (there shouldn't be)
+        if (stdHeaders[0] !== 'Time') {
+            console.warn('WARNING: Time column is not first! Fixing...');
+            // This shouldn't happen with our logic, but just in case
+        } else {
+            console.log('✅ Time column is correctly positioned as first column');
+        }
+
+        console.log(`✅ STD conversion complete: ${stdData.length} rows, ${stdHeaders.length} columns`);
+        console.log('Sample data row:', stdData[0]);
 
         return {
             headers: stdHeaders,
@@ -1379,19 +1627,40 @@ class CSVManager {
     }
 
     findDateTimeColumns() {
+        console.log('=== FINDING DATE-TIME COLUMNS ===');
+        console.log('Available headers:', this.headers);
+        console.log('Total headers:', this.headers.length);
+        console.log('Data rows available:', this.csvData.length);
+        
         let dateColIndex = -1;
         let timeColIndex = -1;
         let combinedColIndex = -1;
 
+        // Show sample of first few rows for debugging
+        if (this.csvData.length > 0) {
+            console.log('First row sample:', this.csvData[0]);
+            if (this.csvData.length > 1) {
+                console.log('Second row sample:', this.csvData[1]);
+            }
+        }
+
         // Look for date/time patterns in headers
         for (let i = 0; i < this.headers.length; i++) {
             const header = (this.headers[i] || '').toLowerCase().trim();
+            console.log(`Checking header ${i}: "${this.headers[i]}" (lowercase: "${header}")`);
             
             // Look for ChunkEnd column (combined date/time)
             if (header === 'chunkend' || header.includes('chunkend')) {
-                if (this.csvData.length > 0 && this.isCombinedDateTimeColumn(i)) {
-                    combinedColIndex = i;
-                    break; // Use combined column if found
+                console.log(`Found potential ChunkEnd column at index ${i}`);
+                if (this.csvData.length > 0) {
+                    console.log(`Sample ChunkEnd data: "${this.csvData[0][i]}"`);
+                    if (this.isCombinedDateTimeColumn(i)) {
+                        combinedColIndex = i;
+                        console.log(`✅ Confirmed ChunkEnd column at index ${i}`);
+                        break; // Use combined column if found
+                    } else {
+                        console.log(`❌ ChunkEnd column validation failed at index ${i}`);
+                    }
                 }
             }
             
@@ -1422,13 +1691,26 @@ class CSVManager {
             }
         }
 
+        // Final results logging
+        console.log('=== DATE-TIME COLUMN DETECTION RESULTS ===');
+        console.log('Combined column index:', combinedColIndex);
+        console.log('Date column index:', dateColIndex);
+        console.log('Time column index:', timeColIndex);
+        
         // Return combined column index if found, otherwise separate columns
         if (combinedColIndex !== -1) {
+            console.log('✅ Using COMBINED date-time column');
             return { 
                 dateColIndex: combinedColIndex, 
                 timeColIndex: combinedColIndex, 
                 isCombined: true 
             };
+        }
+
+        if (dateColIndex !== -1 && timeColIndex !== -1) {
+            console.log('✅ Using SEPARATE date and time columns');
+        } else {
+            console.log('❌ No valid date-time columns found!');
         }
 
         return { dateColIndex, timeColIndex, isCombined: false };
@@ -1465,21 +1747,260 @@ class CSVManager {
     }
 
     isCombinedDateTimeColumn(colIndex) {
+        console.log(`=== VALIDATING COMBINED DATE-TIME COLUMN ${colIndex} ===`);
+        
         // Check first few non-empty rows for combined date/time patterns like "3/30/2025 19:59:00"
         for (let i = 0; i < Math.min(5, this.csvData.length); i++) {
             const value = this.csvData[i][colIndex];
+            console.log(`Row ${i}, Column ${colIndex}: "${value}" (type: ${typeof value})`);
+            
             if (value && typeof value === 'string') {
-                // Check for ChunkEnd format: M/D/YYYY H:MM:SS or MM/DD/YYYY HH:MM:SS
-                if (value.match(/^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}:\d{2}$/)) {
+                const trimmedValue = value.trim();
+                console.log(`Trimmed value: "${trimmedValue}"`);
+                
+                // Check for ChunkEnd format: M/D/YYYY H:MM or M/D/YYYY H:MM:SS (seconds optional)
+                const pattern = /^\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{1,2}(:\d{1,2})?$/;
+                const matches = trimmedValue.match(pattern);
+                console.log(`Pattern match result: ${matches ? 'MATCH' : 'NO MATCH'}`);
+                
+                if (matches) {
+                    console.log('✅ Found valid combined date-time format');
                     return true;
                 }
+            } else if (value) {
+                console.log(`Non-string value found: ${value}`);
             }
         }
+        
+        console.log('❌ No valid combined date-time format found');
         return false;
     }
 
+    /**
+     * Detect date format by analyzing multiple date entries for chronological consistency
+     * @param {number} dateColIndex - Index of the date column
+     * @returns {string} - Detected format: 'DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD', or 'DD-MM-YYYY'
+     */
+    detectDateFormat(dateColIndex) {
+        console.log('Starting date format detection...');
+        
+        // Collect valid date samples (skip header row if present)
+        const dateSamples = [];
+        const sampleSize = Math.min(10, this.csvData.length); // Check up to 10 samples
+        
+        for (let i = 0; i < sampleSize; i++) {
+            const dateStr = this.csvData[i]?.[dateColIndex]?.trim();
+            if (dateStr && dateStr.match(/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/)) {
+                dateSamples.push(dateStr);
+            }
+        }
+        
+        if (dateSamples.length < 3) {
+            console.warn('Not enough date samples for reliable detection, defaulting to MM/DD/YYYY');
+            return 'MM/DD/YYYY';
+        }
+        
+        console.log('Date samples for analysis:', dateSamples);
+        
+        // Test both formats and see which creates a more logical chronological sequence
+        const formats = ['DD/MM/YYYY', 'MM/DD/YYYY'];
+        let bestFormat = 'MM/DD/YYYY'; // Default fallback
+        let bestScore = -1;
+        
+        formats.forEach(format => {
+            const score = this.evaluateDateFormat(dateSamples, format);
+            console.log(`Format ${format} score:`, score);
+            
+            if (score > bestScore) {
+                bestScore = score;
+                bestFormat = format;
+            }
+        });
+        
+        console.log('Best detected format:', bestFormat, 'with score:', bestScore);
+        return bestFormat;
+    }
+    
+    /**
+     * Evaluate how well a date format fits the data by checking chronological consistency
+     * @param {string[]} dateSamples - Array of date strings to test
+     * @param {string} format - Format to test ('DD/MM/YYYY' or 'MM/DD/YYYY')
+     * @returns {number} - Score indicating format fitness (higher = better)
+     */
+    evaluateDateFormat(dateSamples, format) {
+        const parsedDates = [];
+        let validParses = 0;
+        
+        // Parse all samples with the given format
+        for (const dateStr of dateSamples) {
+            try {
+                const parsed = this.parseDateWithFormat(dateStr, format);
+                if (parsed && !isNaN(parsed.getTime())) {
+                    parsedDates.push(parsed);
+                    validParses++;
+                }
+            } catch (error) {
+                // Invalid parse, continue
+            }
+        }
+        
+        if (validParses < 2) return 0; // Need at least 2 valid dates
+        
+        // Check for chronological consistency
+        let chronologicalScore = 0;
+        let reasonableDatesScore = 0;
+        
+        // Sort dates and check if they follow expected logger pattern (generally ascending)
+        const sortedDates = [...parsedDates].sort((a, b) => a.getTime() - b.getTime());
+        
+        // Score based on how many dates are in chronological order in original sequence
+        for (let i = 1; i < parsedDates.length; i++) {
+            if (parsedDates[i].getTime() >= parsedDates[i-1].getTime()) {
+                chronologicalScore++;
+            }
+        }
+        
+        // Score based on reasonable date ranges (within last 10 years and not in future)
+        const now = new Date();
+        const tenYearsAgo = new Date(now.getFullYear() - 10, 0, 1);
+        
+        for (const date of parsedDates) {
+            if (date >= tenYearsAgo && date <= now) {
+                reasonableDatesScore++;
+            }
+        }
+        
+        // Combined score: chronological consistency + reasonable dates
+        const totalScore = (chronologicalScore / (parsedDates.length - 1)) * 50 + 
+                          (reasonableDatesScore / parsedDates.length) * 50;
+        
+        console.log(`Format ${format}: ${validParses}/${dateSamples.length} valid, chrono: ${chronologicalScore}/${parsedDates.length-1}, reasonable: ${reasonableDatesScore}/${parsedDates.length}`);
+        
+        return totalScore;
+    }
+    
+    /**
+     * Parse date string with specific format
+     * @param {string} dateStr - Date string to parse
+     * @param {string} format - Format to use
+     * @returns {Date} - Parsed date object
+     */
+    parseDateWithFormat(dateStr, format) {
+        const parts = dateStr.split(/[\/\-]/);
+        if (parts.length !== 3) throw new Error('Invalid date parts');
+        
+        const [part1, part2, year] = parts;
+        let month, day;
+        
+        switch (format) {
+            case 'DD/MM/YYYY':
+            case 'DD-MM-YYYY':
+                day = parseInt(part1, 10);
+                month = parseInt(part2, 10);
+                break;
+            case 'MM/DD/YYYY':
+            case 'MM-DD-YYYY':
+                month = parseInt(part1, 10);
+                day = parseInt(part2, 10);
+                break;
+            default:
+                throw new Error('Unsupported format');
+        }
+        
+        // Validate ranges
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+            throw new Error('Invalid date values');
+        }
+        
+        return new Date(parseInt(year, 10), month - 1, day);
+    }
+
+    detectCombinedDateFormat(dateColIndex) {
+        console.log('=== DETECTING COMBINED DATE FORMAT ===');
+        
+        const samples = [];
+        const maxSamples = Math.min(10, this.csvData.length);
+        
+        // Collect sample combined date-time strings
+        for (let i = 0; i < maxSamples; i++) {
+            const combined = this.csvData[i][dateColIndex];
+            if (combined && typeof combined === 'string') {
+                const match = combined.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (match) {
+                    samples.push({
+                        first: parseInt(match[1], 10),
+                        second: parseInt(match[2], 10),
+                        original: combined
+                    });
+                }
+            }
+        }
+        
+        console.log(`Analyzing ${samples.length} combined date samples:`, samples.map(s => s.original));
+        
+        if (samples.length === 0) {
+            console.log('No valid combined date samples found, defaulting to DD/MM/YYYY');
+            return 'DD/MM/YYYY';
+        }
+        
+        let ddmmScore = 0;
+        let mmddScore = 0;
+        
+        for (const sample of samples) {
+            // If first number > 12, it must be DD/MM/YYYY
+            if (sample.first > 12) {
+                ddmmScore += 2; // Strong evidence
+                console.log(`  "${sample.original}": first=${sample.first} > 12, strong DD/MM evidence`);
+            }
+            // If second number > 12, it must be MM/DD/YYYY
+            else if (sample.second > 12) {
+                mmddScore += 2; // Strong evidence
+                console.log(`  "${sample.original}": second=${sample.second} > 12, strong MM/DD evidence`);
+            }
+            // If both <= 12, look for patterns (like increasing sequences)
+            else {
+                console.log(`  "${sample.original}": ambiguous (both <= 12), first=${sample.first}, second=${sample.second}`);
+                // Could add chronological analysis here if needed
+            }
+        }
+        
+        const detectedFormat = ddmmScore >= mmddScore ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
+        console.log(`Format detection scores: DD/MM=${ddmmScore}, MM/DD=${mmddScore}`);
+        console.log(`✅ Detected combined format: ${detectedFormat}`);
+        
+        return detectedFormat;
+    }
+
     extractTimestamps(dateColIndex, timeColIndex, isCombined = false) {
+        console.log('=== EXTRACTING TIMESTAMPS ===');
+        console.log(`dateColIndex: ${dateColIndex}, timeColIndex: ${timeColIndex}, isCombined: ${isCombined}`);
+        
         const timestamps = [];
+        
+        // Detect date format - for combined and separate columns
+        let detectedDateFormat = null;
+        if (isCombined) {
+            detectedDateFormat = this.detectCombinedDateFormat(dateColIndex);
+            console.log('Detected combined date format:', detectedDateFormat);
+        } else {
+            detectedDateFormat = this.detectDateFormat(dateColIndex);
+            console.log('Detected date format:', detectedDateFormat);
+        }
+        
+        console.log(`Processing ${this.csvData.length} data rows...`);
+        
+        // Show sample data for debugging
+        if (this.csvData.length > 0) {
+            console.log('Sample data rows for timestamp parsing:');
+            for (let sampleIdx = 0; sampleIdx < Math.min(3, this.csvData.length); sampleIdx++) {
+                const sampleRow = this.csvData[sampleIdx];
+                if (isCombined) {
+                    console.log(`  Row ${sampleIdx}: Combined column [${dateColIndex}] = "${sampleRow[dateColIndex]}"`);
+                } else {
+                    console.log(`  Row ${sampleIdx}: Date [${dateColIndex}] = "${sampleRow[dateColIndex]}", Time [${timeColIndex}] = "${sampleRow[timeColIndex]}"`);
+                }
+            }
+        }
         
         for (let i = 0; i < this.csvData.length; i++) {
             const row = this.csvData[i];
@@ -1489,13 +2010,17 @@ class CSVManager {
                 const combinedStr = row[dateColIndex] || '';
                 if (combinedStr) {
                     try {
-                        const timestamp = this.parseCombinedDateTime(combinedStr);
+                        const timestamp = this.parseCombinedDateTime(combinedStr, detectedDateFormat);
                         timestamps.push(timestamp);
                     } catch (error) {
-                        timestamps.push(''); // Add empty timestamp for invalid data
+                        console.error(`Row ${i}: Failed to parse timestamp "${combinedStr}":`, error.message);
+                        this.addToProcessingLog(`❌ Row ${i}: Failed to parse timestamp "${combinedStr}": ${error.message}`, 'error');
+                        timestamps.push('0'); // Only fallback to '0' after logging error
                     }
                 } else {
-                    timestamps.push('');
+                    console.warn(`Row ${i}: Missing timestamp data`);
+                    this.addToProcessingLog(`⚠️ Row ${i}: Missing timestamp data`, 'warning');
+                    timestamps.push('0'); // Replace missing timestamp with '0'
                 }
             } else {
                 // Handle separate date and time columns
@@ -1504,13 +2029,17 @@ class CSVManager {
                 
                 if (dateStr && timeStr) {
                     try {
-                        const timestamp = this.combineDateTime(dateStr, timeStr);
+                        const timestamp = this.combineDateTime(dateStr, timeStr, detectedDateFormat);
                         timestamps.push(timestamp);
                     } catch (error) {
-                        timestamps.push(''); // Add empty timestamp for invalid data
+                        console.error(`Row ${i}: Failed to combine date "${dateStr}" and time "${timeStr}":`, error.message);
+                        this.addToProcessingLog(`❌ Row ${i}: Failed to combine date "${dateStr}" and time "${timeStr}": ${error.message}`, 'error');
+                        timestamps.push('0'); // Only fallback to '0' after logging error
                     }
                 } else {
-                    timestamps.push('');
+                    console.warn(`Row ${i}: Missing date or time data - date: "${dateStr}", time: "${timeStr}"`);
+                    this.addToProcessingLog(`⚠️ Row ${i}: Missing date or time data - date: "${dateStr}", time: "${timeStr}"`, 'warning');
+                    timestamps.push('0'); // Replace missing timestamp with '0'
                 }
             }
         }
@@ -1536,7 +2065,7 @@ class CSVManager {
                     // Extract data from this column
                     const columnData = [];
                     for (let j = 0; j < this.csvData.length; j++) {
-                        columnData.push(this.csvData[j][i] || '');
+                        columnData.push(this.csvData[j][i] || '0'); // Replace missing data with '0'
                     }
                     
                     dataColumns.push({
@@ -1560,39 +2089,59 @@ class CSVManager {
         }));
     }
 
-    parseCombinedDateTime(combinedStr) {
-        // Handle ChunkEnd format: "3/30/2025 19:59:00"
-        const match = combinedStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+    parseCombinedDateTime(combinedStr, detectedDateFormat = 'DD/MM/YYYY') {
+        console.log(`Parsing combined datetime: "${combinedStr}" using format: ${detectedDateFormat}`);
+        
+        // Handle ChunkEnd format: "3/30/2025 19:59" or "3/30/2025 19:59:00" (seconds optional)
+        const match = combinedStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
         
         if (!match) {
+            console.error(`Failed to parse ChunkEnd format: ${combinedStr}`);
             throw new Error(`Invalid ChunkEnd format: ${combinedStr}`);
         }
+        
+        console.log('Parsed components:', match.slice(1));
 
-        const month = parseInt(match[1], 10);
-        const day = parseInt(match[2], 10);
+        const first = parseInt(match[1], 10);
+        const second = parseInt(match[2], 10);
         const year = parseInt(match[3], 10);
         const hours = parseInt(match[4], 10);
         const minutes = parseInt(match[5], 10);
-        const seconds = parseInt(match[6], 10);
+        const seconds = parseInt(match[6] || '0', 10); // Default to 0 if no seconds
+
+        // Use detected date format to assign month and day
+        let month, day;
+        
+        if (detectedDateFormat === 'DD/MM/YYYY') {
+            day = first;
+            month = second;
+            console.log(`Using DD/MM/YYYY format: day=${day}, month=${month}`);
+        } else {
+            // MM/DD/YYYY format
+            month = first;
+            day = second;
+            console.log(`Using MM/DD/YYYY format: month=${month}, day=${day}`);
+        }
 
         // Validate values
         if (month < 1 || month > 12 || day < 1 || day > 31 || 
             hours > 23 || minutes > 59 || seconds > 59) {
-            throw new Error(`Invalid date/time values: ${combinedStr}`);
+            throw new Error(`Invalid date/time values: ${combinedStr} (interpreted as day=${day}, month=${month})`);
         }
 
         // Create date object (month is 0-indexed in JavaScript)
         const date = new Date(year, month - 1, day, hours, minutes, seconds);
 
         if (isNaN(date.getTime())) {
-            throw new Error(`Invalid date: ${combinedStr}`);
+            throw new Error(`Invalid date: ${combinedStr} (interpreted as day=${day}, month=${month})`);
         }
 
         // Return ISO 8601 format
+        console.log(`✅ Successfully parsed "${combinedStr}" as ${date.toISOString()}`);
         return date.toISOString();
     }
 
-    combineDateTime(dateStr, timeStr) {
+    combineDateTime(dateStr, timeStr, detectedDateFormat = null) {
         // Handle various date formats
         let date;
         
@@ -1600,16 +2149,43 @@ class CSVManager {
         if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             date = new Date(dateStr + 'T00:00:00.000Z');
         }
-        // Try parsing as MM/DD/YYYY or DD/MM/YYYY
+        // Try parsing as MM/DD/YYYY or DD/MM/YYYY using detected format
         else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
             const parts = dateStr.split('/');
-            // Assume MM/DD/YYYY format for now
-            date = new Date(parts[2], parts[0] - 1, parts[1]);
+            let month, day;
+            
+            // Use detected format if available, otherwise default to MM/DD/YYYY
+            if (detectedDateFormat === 'DD/MM/YYYY') {
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                console.log(`Parsing ${dateStr} as DD/MM/YYYY: day=${day}, month=${month}`);
+            } else {
+                // Default MM/DD/YYYY or explicitly detected MM/DD/YYYY
+                month = parseInt(parts[0], 10);
+                day = parseInt(parts[1], 10);
+                console.log(`Parsing ${dateStr} as MM/DD/YYYY: month=${month}, day=${day}`);
+            }
+            
+            date = new Date(parseInt(parts[2], 10), month - 1, day);
         }
-        // Try parsing as DD-MM-YYYY
+        // Try parsing as DD-MM-YYYY or MM-DD-YYYY using detected format  
         else if (dateStr.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
             const parts = dateStr.split('-');
-            date = new Date(parts[2], parts[1] - 1, parts[0]);
+            let month, day;
+            
+            // Use detected format if available, otherwise default to DD-MM-YYYY
+            if (detectedDateFormat === 'MM-DD-YYYY') {
+                month = parseInt(parts[0], 10);
+                day = parseInt(parts[1], 10);
+                console.log(`Parsing ${dateStr} as MM-DD-YYYY: month=${month}, day=${day}`);
+            } else {
+                // Default DD-MM-YYYY or explicitly detected DD-MM-YYYY
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                console.log(`Parsing ${dateStr} as DD-MM-YYYY: day=${day}, month=${month}`);
+            }
+            
+            date = new Date(parseInt(parts[2], 10), month - 1, day);
         }
         else {
             throw new Error(`Unsupported date format: ${dateStr}`);
@@ -1852,15 +2428,15 @@ class CSVManager {
                             // Round to 3 decimal places as per specifications
                             hourlyAverages[hour][columnName] = parseFloat(average.toFixed(3));
                         } else {
-                            hourlyAverages[hour][columnName] = null; // Handle missing data
+                            hourlyAverages[hour][columnName] = 0; // Replace missing data with 0
                         }
                     }
                 }
             } else {
-                // No data for this hour, set all values to null
+                // No data for this hour, set all values to 0
                 for (let j = 0; j < this.headers.length; j++) {
                     if (j !== timeColumnIndex) {
-                        hourlyAverages[hour][this.headers[j]] = null;
+                        hourlyAverages[hour][this.headers[j]] = 0; // Replace missing data with 0
                     }
                 }
             }
@@ -1898,8 +2474,8 @@ class CSVManager {
                 if (i !== timeColumnIndex) {
                     const columnName = this.headers[i];
                     const value = hourlyAverages[hour][columnName];
-                    // Handle null values appropriately - use empty string or 0
-                    row.push(value !== null ? value : 0);
+                    // Replace missing values with 0 for consistency
+                    row.push(value !== null && value !== undefined ? value : 0);
                 }
             }
             
@@ -2238,7 +2814,18 @@ class NavigationManager {
 
         // If switching to plot page, update file info
         if (pageName === 'plot') {
+            console.log('Switching to plot page - refreshing file information...');
+            
+            // Force refresh the file list from csvManager
+            if (csvManager && csvManager.workingDirFiles) {
+                console.log(`Plot page: Found ${csvManager.workingDirFiles.length} files in working directory`);
+                csvManager.workingDirFiles.forEach(file => {
+                    console.log(`  - ${file.name}`);
+                });
+            }
+            
             this.updatePlotPageFileInfo();
+            console.log('Plot page file info updated');
         }
     }
 
@@ -2345,8 +2932,30 @@ class NavigationManager {
     }
 
     updatePlotPageFileInfo() {
+        console.log('=== UPDATING PLOT PAGE FILE INFO ===');
+        
         // Get file info from csvManager if available
-        const fileList = csvManager && csvManager.workingDirFiles ? csvManager.workingDirFiles : [];
+        let fileList = csvManager && csvManager.workingDirFiles ? csvManager.workingDirFiles : [];
+        console.log(`Initial file list has ${fileList.length} files`);
+        
+        // Also gather all file versions from fileInfos Map to ensure nothing is missed
+        if (csvManager && csvManager.fileInfos) {
+            const allFileVersions = [];
+            csvManager.fileInfos.forEach((fileInfo, baseName) => {
+                fileInfo.versions.forEach((file, version) => {
+                    // Check if this file is already in the fileList
+                    if (!fileList.find(f => f.name === file.name)) {
+                        allFileVersions.push(file);
+                        console.log(`Adding missing file version: ${file.name} (${version})`);
+                    }
+                });
+            });
+            
+            // Add any missing file versions
+            fileList = [...fileList, ...allFileVersions];
+            console.log(`Enhanced file list now has ${fileList.length} files`);
+        }
+        
         this.availableFiles = fileList;
         
         // Extract sites and sources from filenames
@@ -2357,6 +2966,8 @@ class NavigationManager {
         
         // Update status display
         this.updateStatusDisplay();
+        
+        console.log('✅ Plot page file info update complete');
     }
 
     extractSitesAndSources(fileList) {
@@ -3016,13 +3627,8 @@ class NavigationManager {
             this.drawPlotLegend(ctx, plotData, plotArea);
             
             console.log('Updating output div...');
-            // Update output div
-            outputDiv.innerHTML = `
-                <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
-                    <h4 style="color: #15803d; margin-bottom: 10px;">✅ Site Comparison Plot Generated</h4>
-                    <p style="margin-bottom: 15px;"><strong>Source:</strong> ${source} | <strong>Sites:</strong> ${sites.join(', ')}</p>
-                </div>
-            `;
+            // Clear output div and append plot container directly
+            outputDiv.innerHTML = '';
             
             console.log('Appending plot container...');
             outputDiv.appendChild(plotContainer);
@@ -3151,6 +3757,39 @@ class NavigationManager {
             ctx.fillText(dpm.toFixed(1), plotArea.left - 6, y + 4);
         }
         
+        // Add horizontal gridlines for Y-axis major ticks (faint)
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 0.5;
+        for (let i = 1; i < dpmSteps; i++) { // Skip 0 and max to avoid overlapping with axes
+            const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+            ctx.beginPath();
+            ctx.moveTo(plotArea.left, y);
+            ctx.lineTo(plotArea.right, y);
+            ctx.stroke();
+        }
+        
+        // Add vertical gridlines for X-axis major ticks (faint)
+        // Use the xStep already declared above
+        for (let i = 2; i < hours.length - 1; i += 2) { // Skip first and last, show every 2 hours
+            const x = plotArea.left + (i * xStep);
+            ctx.beginPath();
+            ctx.moveTo(x, plotArea.top);
+            ctx.lineTo(x, plotArea.bottom);
+            ctx.stroke();
+        }
+        
+        // Add horizontal line at top to complete the rectangle
+        ctx.strokeStyle = '#d0d0d0';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, plotArea.top);
+        ctx.lineTo(plotArea.right, plotArea.top);
+        ctx.stroke();
+        
+        // Reset styles for other elements
+        ctx.strokeStyle = '#d0d0d0';
+        ctx.lineWidth = 1;
+        
         // Right Y-axis labels (Percentage)
         ctx.textAlign = 'left';
         for (let i = 0; i <= dpmSteps; i++) {
@@ -3239,25 +3878,33 @@ class NavigationManager {
     }
 
     drawPlotLegend(ctx, plotData, plotArea) {
-        // Professional legend positioning (top right)
-        const legendX = plotArea.right - 150;
-        const legendY = plotArea.top + 15;
+        // Legend positioning aligned to left like the second plot
+        const legendX = plotArea.left + 20;
+        const legendY = plotArea.top + 20;
         
-        // Draw legend background
+        // Calculate legend box dimensions
+        const legendPadding = 10;
+        const lineHeight = 20;
         const legendWidth = 140;
-        const legendHeight = (plotData.length * 22) + 15;
+        const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.fillRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
+        // Draw legend background box with transparency
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // White with 30% transparency
+        ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
         
-        // Legend items
-        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        // Draw legend border
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
+        ctx.lineWidth = 1;
+        ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+        
+        // Draw legend items
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.textAlign = 'left';
         
         plotData.forEach((siteData, i) => {
-            const y = legendY + (i * 22) + 8;
+            const y = legendY + (i * lineHeight);
             
-            // Draw line sample only (no markers)
+            // Draw line sample only (no boxes)
             ctx.strokeStyle = siteData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
@@ -3266,8 +3913,8 @@ class NavigationManager {
             ctx.stroke();
             
             // Site name
-            ctx.fillStyle = '#000000';
-            ctx.fillText(siteData.site, legendX + 28, y + 2);
+            ctx.fillStyle = '#374151';
+            ctx.fillText(siteData.site, legendX + 30, y + 2);
         });
     }
 
@@ -3416,13 +4063,8 @@ class NavigationManager {
         // Draw legend
         this.drawSourcePlotLegend(ctx, plotData, plotArea);
         
-        // Update output div
-        outputDiv.innerHTML = `
-            <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
-                <h4 style="color: #15803d; margin-bottom: 10px;">✅ Source Comparison Plot Generated</h4>
-                <p style="margin-bottom: 15px;"><strong>Site:</strong> ${site} | <strong>Sources:</strong> ${sources.join(', ')}</p>
-            </div>
-        `;
+        // Clear output div and append plot container directly
+        outputDiv.innerHTML = '';
         
         outputDiv.appendChild(plotContainer);
     }
@@ -3479,11 +4121,27 @@ class NavigationManager {
         const legendX = plotArea.left + 20;
         const legendY = plotArea.top + 20;
         
+        // Calculate legend box dimensions
+        const legendPadding = 10;
+        const lineHeight = 20;
+        const legendWidth = 140;
+        const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
+        
+        // Draw legend background box with transparency
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // White with 30% transparency
+        ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+        
+        // Draw legend border
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
+        ctx.lineWidth = 1;
+        ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+        
+        // Draw legend items
         ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
-            const y = legendY + (i * 20);
+            const y = legendY + (i * lineHeight);
             
             // Draw line sample only (no boxes)
             ctx.strokeStyle = sourceData.color;
