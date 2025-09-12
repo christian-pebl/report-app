@@ -2777,16 +2777,25 @@ class NavigationManager {
             }
             plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
             
-            console.log('Creating canvas element...');
+            console.log('Creating high-resolution canvas element...');
             const canvas = document.createElement('canvas');
             if (!canvas) {
                 throw new Error('Failed to create canvas element');
             }
             
-            console.log('Setting canvas properties...');
-            canvas.width = 800;
-            canvas.height = 400;
-            canvas.style.cssText = 'width: 100%; height: 100%;';
+            console.log('Setting high-DPI canvas properties...');
+            // Get device pixel ratio for crisp rendering
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = 900;
+            const displayHeight = 500;
+            
+            // Set actual canvas size in pixels (high-res)
+            canvas.width = displayWidth * dpr;
+            canvas.height = displayHeight * dpr;
+            
+            // Scale canvas display size
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
             
             console.log('Appending canvas to container...');
             plotContainer.appendChild(canvas);
@@ -2796,7 +2805,10 @@ class NavigationManager {
             if (!ctx) {
                 throw new Error('Failed to get 2D context from canvas');
             }
-            console.log('Canvas and context created successfully');
+            
+            // Scale context for high-DPI display
+            ctx.scale(dpr, dpr);
+            console.log('High-DPI canvas and context created successfully');
         
             // Define PEBL brand colors for professional plots
             const journalColors = [
@@ -2812,14 +2824,14 @@ class NavigationManager {
                 '#DEF2F1'  // PEBL light teal (for lighter elements)
             ];
             
-            // Set up professional plot dimensions with more space for labels
+            // Set up professional plot dimensions with more space for labels and external legend
             const plotArea = {
                 left: 90,
-                right: 700,
+                right: 650, // Reduced to make room for external legend
                 top: 80,
-                bottom: 320,
-                width: 610,
-                height: 240
+                bottom: 420,
+                width: 560, // Adjusted width
+                height: 340 // Increased height for better resolution
             };
             
             console.log('Clearing canvas...');
@@ -2964,10 +2976,10 @@ class NavigationManager {
     }
 
     drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas) {
-        // PEBL brand elegant styling
+        // PEBL brand elegant styling with improved fonts
         ctx.strokeStyle = '#DEF2F1';  // PEBL light teal for axes
         ctx.lineWidth = 1;
-        ctx.font = '11px "Roboto", "Arial", sans-serif';
+        ctx.font = '13px "Roboto", "Arial", sans-serif';  // Increased by 2pts
         ctx.textAlign = 'center';
         ctx.fillStyle = '#2B7A78';  // PEBL dark teal text color
         
@@ -3019,8 +3031,8 @@ class NavigationManager {
             ctx.lineTo(plotArea.left, y);
             ctx.stroke();
             
-            // Label
-            ctx.fillText(dpm.toFixed(1), plotArea.left - 10, y + 4);
+            // Label - moved closer to axis
+            ctx.fillText(dpm.toFixed(1), plotArea.left - 15, y + 4);
         }
         
         // Right Y-axis labels (Percentage)
@@ -3035,28 +3047,28 @@ class NavigationManager {
             ctx.lineTo(plotArea.right + 5, y);
             ctx.stroke();
             
-            // Label
-            ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 10, y + 4);
+            // Label - moved closer to axis
+            ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 8, y + 4);
         }
         
-        // Elegant axis labels
+        // PEBL brand axis labels with increased font size
         ctx.textAlign = 'center';
-        ctx.font = '12px "Helvetica Neue", "Arial", sans-serif';
-        ctx.fillStyle = '#555555';
+        ctx.font = '14px "Roboto", "Arial", sans-serif';  // Increased by 2pts and consistent font
+        ctx.fillStyle = '#2B7A78';  // PEBL dark teal
         
         // X-axis label
         ctx.fillText('Time of day (hours)', plotArea.left + plotArea.width / 2, plotArea.bottom + 40);
         
-        // Left Y-axis label
+        // Left Y-axis label - moved closer to axis
         ctx.save();
-        ctx.translate(25, plotArea.top + plotArea.height / 2);
+        ctx.translate(35, plotArea.top + plotArea.height / 2);  // Moved closer (25 -> 35)
         ctx.rotate(-Math.PI / 2);
         ctx.fillText('Detections per minute', 0, 0);
         ctx.restore();
         
-        // Right Y-axis label
+        // Right Y-axis label - moved closer to axis
         ctx.save();
-        ctx.translate(canvas.width - 15, plotArea.top + plotArea.height / 2);
+        ctx.translate(displayWidth - 25, plotArea.top + plotArea.height / 2);  // Moved closer and using displayWidth
         ctx.rotate(Math.PI / 2);
         ctx.fillText('Detection rate (%)', 0, 0);
         ctx.restore();
@@ -3111,13 +3123,13 @@ class NavigationManager {
     }
 
     drawPlotLegend(ctx, plotData, plotArea) {
-        // Professional legend positioning (top right)
-        const legendX = plotArea.right - 150;
+        // Professional legend positioning - outside plot area on the right
+        const legendX = plotArea.right + 20;  // Moved outside plot area
         const legendY = plotArea.top + 15;
         
         // Draw legend background
-        const legendWidth = 140;
-        const legendHeight = (plotData.length * 22) + 15;
+        const legendWidth = 180;  // Increased width for larger fonts
+        const legendHeight = (plotData.length * 26) + 20;  // Increased spacing for larger fonts
         
         ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.fillRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
@@ -3125,12 +3137,13 @@ class NavigationManager {
         ctx.lineWidth = 1;
         ctx.strokeRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
         
-        // Legend items
-        ctx.font = '11px "Times New Roman", serif';
+        // Legend items with PEBL branding and increased font size
+        ctx.font = '13px "Roboto", "Arial", sans-serif';  // Increased by 2pts and PEBL font
+        ctx.fillStyle = '#2B7A78';  // PEBL dark teal
         ctx.textAlign = 'left';
         
         plotData.forEach((siteData, i) => {
-            const y = legendY + (i * 22) + 8;
+            const y = legendY + (i * 26) + 10;  // Adjusted spacing for larger font
             
             // Draw line sample
             ctx.strokeStyle = siteData.color;
@@ -3154,9 +3167,9 @@ class NavigationManager {
             ctx.fillStyle = siteData.color;
             ctx.fill();
             
-            // Site name
-            ctx.fillStyle = '#000000';
-            ctx.fillText(siteData.site, legendX + 28, y + 2);
+            // Site name with PEBL branding
+            ctx.fillStyle = '#2B7A78';  // PEBL dark teal
+            ctx.fillText(siteData.site, legendX + 30, y + 3);  // Adjusted position
         });
     }
 
@@ -3233,14 +3246,25 @@ class NavigationManager {
         const plotContainer = document.createElement('div');
         plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
         
+        // Create high-DPI canvas for crisp rendering
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
-        canvas.style.cssText = 'width: 100%; height: 100%;';
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = 900;
+        const displayHeight = 500;
+        
+        // Set actual canvas size in pixels (high-res)
+        canvas.width = displayWidth * dpr;
+        canvas.height = displayHeight * dpr;
+        
+        // Scale canvas display size
+        canvas.style.width = displayWidth + 'px';
+        canvas.style.height = displayHeight + 'px';
         
         plotContainer.appendChild(canvas);
         
         const ctx = canvas.getContext('2d');
+        // Scale context for high-DPI display
+        ctx.scale(dpr, dpr);
         
         // Use PEBL brand colors for sources
         const journalColors = [
@@ -3252,14 +3276,14 @@ class NavigationManager {
             '#4AA4A0', // Medium variant
         ];
         
-        // Set up professional plot dimensions
+        // Set up professional plot dimensions with space for external legend
         const plotArea = {
             left: 90,
-            right: 700,
+            right: 650, // Reduced to make room for external legend
             top: 80,
-            bottom: 320,
-            width: 610,
-            height: 240
+            bottom: 420,
+            width: 560, // Adjusted width
+            height: 340 // Increased height for better resolution
         };
         
         // Clear canvas with professional white background
@@ -3374,23 +3398,47 @@ class NavigationManager {
     }
 
     drawSourcePlotLegend(ctx, plotData, plotArea) {
-        const legendX = plotArea.left + 20;
+        // Position legend outside plot area on the right
+        const legendX = plotArea.right + 20;
         const legendY = plotArea.top + 20;
         
-        ctx.font = '12px Arial';
+        // Draw legend background
+        const legendWidth = 180;
+        const legendHeight = (plotData.length * 26) + 20;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
+        
+        // PEBL brand font styling
+        ctx.font = '13px "Roboto", "Arial", sans-serif';  // Increased by 2pts
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
-            const y = legendY + (i * 20);
+            const y = legendY + (i * 26) + 10;  // Adjusted spacing
             
-            // Color box
-            ctx.fillStyle = sourceData.color;
-            ctx.fillRect(legendX, y - 8, 12, 12);
+            // Draw line sample
+            ctx.strokeStyle = sourceData.color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(legendX, y - 2);
+            ctx.lineTo(legendX + 20, y - 2);
+            ctx.stroke();
             
-            // Source name
-            ctx.fillStyle = '#374151';
-            ctx.fillText(sourceData.source, legendX + 20, y + 2);
+            // Source name with PEBL branding
+            ctx.fillStyle = '#2B7A78';  // PEBL dark teal
+            ctx.fillText(sourceData.source, legendX + 30, y + 3);  // Adjusted position
         });
+    }
+}
+
+// Collapsible section toggle function
+function toggleSection(sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.toggle('collapsed');
     }
 }
 

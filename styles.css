@@ -861,6 +861,66 @@ header p {
     font-size: 0.8rem;
 }
 
+/* Collapsible Section Styles */
+.collapsible-section {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    background: white;
+}
+
+.collapsible-header {
+    background: var(--pebl-medium-teal);
+    color: var(--pebl-white);
+    padding: 15px 20px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    transition: background-color 0.2s ease;
+}
+
+.collapsible-header:hover {
+    background: var(--pebl-dark-teal);
+}
+
+.collapsible-header h2 {
+    font-family: 'Futura', Arial, sans-serif;
+    font-size: 1.4rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.collapsible-header p {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin: 4px 0 0 0;
+}
+
+.collapsible-toggle {
+    font-size: 1.2rem;
+    font-weight: 700;
+    transition: transform 0.3s ease;
+}
+
+.collapsible-content {
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding: 20px;
+}
+
+.collapsible-section.collapsed .collapsible-content {
+    max-height: 0;
+    padding: 0 20px;
+}
+
+.collapsible-section.collapsed .collapsible-toggle {
+    transform: rotate(180deg);
+}
+
 /* Mobile Responsiveness for Plot Page */
 @media (max-width: 768px) {
     .banner-content {
