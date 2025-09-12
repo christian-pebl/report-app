@@ -2564,10 +2564,14 @@ class NavigationManager {
                 throw new Error('No _24hr files found for the selected sites');
             }
 
-            console.log('Creating plot...');
+            console.log('Processing data for Plotly...');
+            // Process data for Plotly plotting
+            const { plotData, hours } = this.processSiteDataForPlotly(siteData, source);
+            
+            console.log('Creating interactive Plotly plot...');
             // Generate the plot
-            this.createSiteComparisonPlot(siteData, source, sites, outputDiv);
-            console.log('Plot creation completed');
+            plotlyEngine.createSiteComparisonPlot(plotData, hours, source, sites, outputDiv);
+            console.log('Interactive plot creation completed');
             
         } catch (error) {
             console.error('Error generating site comparison plot:', error);
@@ -3195,8 +3199,13 @@ class NavigationManager {
                 throw new Error(`No _24hr file found for site: ${site}`);
             }
 
+            console.log('Processing source data for Plotly...');
+            // Process data for Plotly plotting
+            const { plotData, hours } = this.processSourceDataForPlotly(siteData, sources);
+            
+            console.log('Creating interactive Plotly source plot...');
             // Generate the plot
-            this.createSourceComparisonPlot(siteData, site, sources, outputDiv);
+            plotlyEngine.createSourceComparisonPlot(plotData, hours, site, sources, outputDiv);
             
         } catch (error) {
             console.error('Error generating source comparison plot:', error);
@@ -3239,6 +3248,128 @@ class NavigationManager {
         
         console.warn(`File not found: ${filename}`);
         return null;
+    }
+
+    // Process site data for Plotly plotting
+    processSiteDataForPlotly(siteData, source) {
+        console.log('Processing site data for Plotly...');
+        
+        // Extract hours (0-23) for x-axis
+        const hours = Array.from({length: 24}, (_, i) => i);
+        
+        // Process each site's data
+        const plotData = siteData.map((siteInfo, index) => {
+            const data = siteInfo.data;
+            const dpmColumnName = `${source} (DPM)`;
+            
+            console.log(`Processing site: ${siteInfo.site}, looking for column: ${dpmColumnName}`);
+            
+            // Find the DPM column
+            const dpmColumnIndex = data.headers.findIndex(header => 
+                header.toLowerCase().includes(source.toLowerCase()) && header.toLowerCase().includes('dpm')
+            );
+            
+            if (dpmColumnIndex === -1) {
+                console.warn(`DPM column not found for ${source} in site ${siteInfo.site}`);
+                return null;
+            }
+
+            // Extract DPM values for each hour (0-23)
+            const dpmValues = new Array(24).fill(0);
+            
+            data.data.forEach(row => {
+                // Parse the timestamp to get the hour
+                const timestamp = row[0]; // Assume first column is timestamp
+                let hour = 0;
+                
+                if (timestamp) {
+                    try {
+                        const date = new Date(timestamp);
+                        if (!isNaN(date.getTime())) {
+                            hour = date.getHours();
+                        }
+                    } catch (error) {
+                        console.warn('Error parsing timestamp:', timestamp, error);
+                    }
+                }
+                
+                // Get DPM value
+                const dpmValue = parseFloat(row[dpmColumnIndex]);
+                if (!isNaN(dpmValue) && hour >= 0 && hour < 24) {
+                    dpmValues[hour] = dpmValue;
+                }
+            });
+            
+            return {
+                site: this.extractSiteNameFromFilename(siteInfo.site),
+                dpmValues: dpmValues,
+                color: plotlyEngine.peblColors[index % plotlyEngine.peblColors.length],
+                filename: siteInfo.site
+            };
+        }).filter(item => item !== null);
+
+        console.log('Processed plot data:', plotData.length, 'sites');
+        return { plotData, hours };
+    }
+
+    // Process source data for Plotly plotting
+    processSourceDataForPlotly(siteData, sources) {
+        console.log('Processing source data for Plotly...');
+        
+        // Extract hours (0-23) for x-axis
+        const hours = Array.from({length: 24}, (_, i) => i);
+        
+        // Process each source's data
+        const plotData = sources.map((source, index) => {
+            const dpmColumnName = `${source} (DPM)`;
+            
+            console.log(`Processing source: ${source}, looking for column: ${dpmColumnName}`);
+            
+            // Find the DPM column
+            const dpmColumnIndex = siteData.data.headers.findIndex(header => 
+                header.toLowerCase().includes(source.toLowerCase()) && header.toLowerCase().includes('dpm')
+            );
+            
+            if (dpmColumnIndex === -1) {
+                console.warn(`DPM column not found for ${source}`);
+                return null;
+            }
+
+            // Extract DPM values for each hour (0-23)
+            const dpmValues = new Array(24).fill(0);
+            
+            siteData.data.data.forEach(row => {
+                // Parse the timestamp to get the hour
+                const timestamp = row[0]; // Assume first column is timestamp
+                let hour = 0;
+                
+                if (timestamp) {
+                    try {
+                        const date = new Date(timestamp);
+                        if (!isNaN(date.getTime())) {
+                            hour = date.getHours();
+                        }
+                    } catch (error) {
+                        console.warn('Error parsing timestamp:', timestamp, error);
+                    }
+                }
+                
+                // Get DPM value
+                const dpmValue = parseFloat(row[dpmColumnIndex]);
+                if (!isNaN(dpmValue) && hour >= 0 && hour < 24) {
+                    dpmValues[hour] = dpmValue;
+                }
+            });
+            
+            return {
+                source: source,
+                dpmValues: dpmValues,
+                color: plotlyEngine.peblColors[index % plotlyEngine.peblColors.length]
+            };
+        }).filter(item => item !== null);
+
+        console.log('Processed source plot data:', plotData.length, 'sources');
+        return { plotData, hours };
     }
 
     createSourceComparisonPlot(siteData, site, sources, outputDiv) {
@@ -3442,12 +3573,294 @@ function toggleSection(sectionId) {
     }
 }
 
-// Initialize the CSV Manager and Navigation when the page loads
+// ============================================================================
+// PLOTLY.JS ENHANCED PLOTTING SYSTEM
+// ============================================================================
+
+class PlotlyPlottingEngine {
+    constructor() {
+        this.peblColors = [
+            '#3AAFA9', // PEBL medium teal
+            '#2B7A78', // PEBL dark teal
+            '#17252A', // PEBL navy
+            '#5CB3AE', // Variant of medium teal
+            '#1E5F5D', // Darker variant
+            '#4AA4A0', // Medium variant
+            '#71C7C1', // Lighter medium teal
+            '#DEF2F1'  // PEBL light teal (for lighter elements)
+        ];
+        this.currentTheme = 'light';
+    }
+
+    // Create PEBL-branded Plotly layout
+    createPEBLLayout(title, options = {}) {
+        const isDark = this.currentTheme === 'dark';
+        
+        return {
+            title: {
+                text: title,
+                font: {
+                    family: 'Futura, Arial, sans-serif',
+                    size: 18,
+                    color: isDark ? '#DEF2F1' : '#2B7A78'
+                },
+                x: 0.05
+            },
+            xaxis: {
+                title: {
+                    text: options.xTitle || 'Time of day (hours)',
+                    font: {family: 'Roboto, Arial, sans-serif', size: 14, color: isDark ? '#DEF2F1' : '#2B7A78'}
+                },
+                gridcolor: isDark ? '#2B7A78' : '#DEF2F1',
+                linecolor: isDark ? '#3AAFA9' : '#DEF2F1',
+                tickfont: {size: 12, color: isDark ? '#DEF2F1' : '#2B7A78'},
+                showgrid: true,
+                zeroline: false
+            },
+            yaxis: {
+                title: {
+                    text: options.yTitle || 'Detections per minute',
+                    font: {family: 'Roboto, Arial, sans-serif', size: 14, color: isDark ? '#DEF2F1' : '#2B7A78'}
+                },
+                gridcolor: isDark ? '#2B7A78' : '#DEF2F1',
+                linecolor: isDark ? '#3AAFA9' : '#DEF2F1',
+                tickfont: {size: 12, color: isDark ? '#DEF2F1' : '#2B7A78'},
+                showgrid: true,
+                zeroline: false
+            },
+            yaxis2: options.dualAxis ? {
+                title: {
+                    text: options.y2Title || 'Detection rate (%)',
+                    font: {family: 'Roboto, Arial, sans-serif', size: 14, color: isDark ? '#DEF2F1' : '#2B7A78'}
+                },
+                overlaying: 'y',
+                side: 'right',
+                gridcolor: isDark ? '#2B7A78' : '#DEF2F1',
+                linecolor: isDark ? '#3AAFA9' : '#DEF2F1',
+                tickfont: {size: 12, color: isDark ? '#DEF2F1' : '#2B7A78'},
+                showgrid: false,
+                zeroline: false
+            } : undefined,
+            paper_bgcolor: isDark ? '#17252A' : '#FFFFFF',
+            plot_bgcolor: isDark ? '#17252A' : '#FFFFFF',
+            font: {
+                family: 'Roboto, Arial, sans-serif',
+                color: isDark ? '#DEF2F1' : '#2B7A78'
+            },
+            legend: {
+                x: 1.02,
+                y: 1,
+                bgcolor: isDark ? 'rgba(23,37,42,0.8)' : 'rgba(255,255,255,0.8)',
+                bordercolor: isDark ? '#3AAFA9' : '#DEF2F1',
+                borderwidth: 1,
+                font: {size: 13, color: isDark ? '#DEF2F1' : '#2B7A78'}
+            },
+            margin: {l: 80, r: 120, t: 80, b: 80},
+            hovermode: 'x unified',
+            ...options.layoutOverrides
+        };
+    }
+
+    // Create Plotly configuration with PEBL branding
+    createPEBLConfig(filename = 'marine_analysis') {
+        return {
+            responsive: true,
+            displayModeBar: true,
+            modeBarButtonsToAdd: [
+                'pan2d',
+                'select2d',
+                'lasso2d', 
+                'zoomIn2d',
+                'zoomOut2d',
+                'autoScale2d'
+            ],
+            toImageButtonOptions: {
+                format: 'png',
+                filename: filename,
+                height: 600,
+                width: 1000,
+                scale: 2 // High-DPI export
+            },
+            displaylogo: false
+        };
+    }
+
+    // Convert site data to Plotly traces
+    createSiteComparisonTraces(plotData, hours) {
+        return plotData.map((siteData, index) => ({
+            x: hours,
+            y: siteData.dpmValues,
+            type: 'scatter',
+            mode: 'lines',
+            name: siteData.site,
+            line: {
+                color: siteData.color,
+                width: 2.5,
+                shape: 'spline',
+                smoothing: 0.8
+            },
+            hovertemplate: '<b>%{fullData.name}</b><br>' +
+                         'Time: %{x}:00<br>' +
+                         'DPM: %{y:.1f}<br>' +
+                         '<extra></extra>'
+        }));
+    }
+
+    // Create interactive Plotly plot for site comparison
+    createSiteComparisonPlot(plotData, hours, source, sites, outputDiv) {
+        console.log('Creating Plotly site comparison plot...');
+        
+        // Create plot container
+        const plotContainer = document.createElement('div');
+        plotContainer.style.cssText = 'width: 100%; position: relative; background: white; border-radius: 8px; padding: 20px; margin-top: 15px;';
+        
+        // Create Plotly div
+        const plotDiv = document.createElement('div');
+        const plotId = 'plotly-site-' + Date.now();
+        plotDiv.id = plotId;
+        plotDiv.style.cssText = 'width: 100%; height: 600px;';
+        
+        plotContainer.appendChild(plotDiv);
+        
+        // Create traces
+        const traces = this.createSiteComparisonTraces(plotData, hours);
+        
+        // Create layout
+        const layout = this.createPEBLLayout(
+            `Marine Species Detection Analysis - ${source}`,
+            {
+                xTitle: 'Time of day (hours)',
+                yTitle: 'Detections per minute',
+                dualAxis: true,
+                y2Title: 'Detection rate (%)'
+            }
+        );
+
+        // Create configuration
+        const config = this.createPEBLConfig(`${source}_site_comparison`);
+        
+        // Create the plot
+        Plotly.newPlot(plotId, traces, layout, config);
+        
+        // Update output div
+        outputDiv.innerHTML = `
+            <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #15803d; margin-bottom: 10px;">✅ Interactive Site Comparison Plot Generated</h4>
+                <p style="margin-bottom: 15px;"><strong>Source:</strong> ${source} | <strong>Sites:</strong> ${sites.join(', ')}</p>
+                <p style="font-size: 0.9rem; color: #16a34a;">📊 Interactive features: Zoom, pan, hover for details, export options</p>
+            </div>
+        `;
+        
+        outputDiv.appendChild(plotContainer);
+        console.log('Interactive Plotly plot created successfully');
+    }
+
+    // Create interactive Plotly plot for source comparison
+    createSourceComparisonPlot(plotData, hours, site, sources, outputDiv) {
+        console.log('Creating Plotly source comparison plot...');
+        
+        // Create plot container
+        const plotContainer = document.createElement('div');
+        plotContainer.style.cssText = 'width: 100%; position: relative; background: white; border-radius: 8px; padding: 20px; margin-top: 15px;';
+        
+        // Create Plotly div
+        const plotDiv = document.createElement('div');
+        const plotId = 'plotly-source-' + Date.now();
+        plotDiv.id = plotId;
+        plotDiv.style.cssText = 'width: 100%; height: 600px;';
+        
+        plotContainer.appendChild(plotDiv);
+        
+        // Create traces (similar format but for sources)
+        const traces = plotData.map((sourceData, index) => ({
+            x: hours,
+            y: sourceData.dpmValues,
+            type: 'scatter',
+            mode: 'lines',
+            name: sourceData.source,
+            line: {
+                color: sourceData.color,
+                width: 2.5,
+                shape: 'spline',
+                smoothing: 0.8
+            },
+            hovertemplate: '<b>%{fullData.name}</b><br>' +
+                         'Time: %{x}:00<br>' +
+                         'DPM: %{y:.1f}<br>' +
+                         '<extra></extra>'
+        }));
+        
+        // Extract clean site name for title
+        const siteName = this.extractSiteNameFromFilename ? this.extractSiteNameFromFilename(site) : site;
+        
+        // Create layout
+        const layout = this.createPEBLLayout(
+            `Species Detection Comparison - ${siteName}`,
+            {
+                xTitle: 'Time of day (hours)',
+                yTitle: 'Detections per minute'
+            }
+        );
+
+        // Create configuration
+        const config = this.createPEBLConfig(`${siteName}_source_comparison`);
+        
+        // Create the plot
+        Plotly.newPlot(plotId, traces, layout, config);
+        
+        // Update output div
+        outputDiv.innerHTML = `
+            <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #15803d; margin-bottom: 10px;">✅ Interactive Source Comparison Plot Generated</h4>
+                <p style="margin-bottom: 15px;"><strong>Site:</strong> ${siteName} | <strong>Sources:</strong> ${sources.join(', ')}</p>
+                <p style="font-size: 0.9rem; color: #16a34a;">📊 Interactive features: Zoom, pan, hover for details, export options</p>
+            </div>
+        `;
+        
+        outputDiv.appendChild(plotContainer);
+        console.log('Interactive Plotly source plot created successfully');
+    }
+
+    // Theme switching functionality
+    switchTheme(plotIds, isDark = false) {
+        this.currentTheme = isDark ? 'dark' : 'light';
+        
+        plotIds.forEach(plotId => {
+            const plotDiv = document.getElementById(plotId);
+            if (plotDiv) {
+                const newLayout = {
+                    paper_bgcolor: isDark ? '#17252A' : '#FFFFFF',
+                    plot_bgcolor: isDark ? '#17252A' : '#FFFFFF',
+                    font: {color: isDark ? '#DEF2F1' : '#2B7A78'},
+                    'title.font.color': isDark ? '#DEF2F1' : '#2B7A78',
+                    'xaxis.gridcolor': isDark ? '#2B7A78' : '#DEF2F1',
+                    'xaxis.linecolor': isDark ? '#3AAFA9' : '#DEF2F1',
+                    'xaxis.tickfont.color': isDark ? '#DEF2F1' : '#2B7A78',
+                    'xaxis.title.font.color': isDark ? '#DEF2F1' : '#2B7A78',
+                    'yaxis.gridcolor': isDark ? '#2B7A78' : '#DEF2F1',
+                    'yaxis.linecolor': isDark ? '#3AAFA9' : '#DEF2F1',
+                    'yaxis.tickfont.color': isDark ? '#DEF2F1' : '#2B7A78',
+                    'yaxis.title.font.color': isDark ? '#DEF2F1' : '#2B7A78',
+                    'legend.bgcolor': isDark ? 'rgba(23,37,42,0.8)' : 'rgba(255,255,255,0.8)',
+                    'legend.bordercolor': isDark ? '#3AAFA9' : '#DEF2F1',
+                    'legend.font.color': isDark ? '#DEF2F1' : '#2B7A78'
+                };
+                
+                Plotly.relayout(plotDiv, newLayout);
+            }
+        });
+    }
+}
+
+// Initialize the CSV Manager, Navigation, and Plotly Engine when the page loads
 let csvManager;
 let navigationManager;
+let plotlyEngine;
+
 document.addEventListener('DOMContentLoaded', () => {
     csvManager = new CSVManager();
     navigationManager = new NavigationManager();
+    plotlyEngine = new PlotlyPlottingEngine();
     
     // Hook into csvManager's file loading to update plot page
     const originalUpdateFileBrowser = csvManager.updateFileBrowser;
