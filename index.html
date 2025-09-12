@@ -37,11 +37,12 @@
     <nav class="top-banner">
         <div class="banner-content">
             <div class="banner-left">
-                <h1 class="banner-title">Report App</h1>
+                <h1 class="banner-title">PEBL Marine Data Portal</h1>
+                <span class="banner-tagline">Protecting Ecology Beyond Land</span>
             </div>
             <div class="banner-right">
-                <button class="nav-tab active" data-page="reformat">Reformat</button>
-                <button class="nav-tab" data-page="plot">Plot</button>
+                <button class="nav-tab active" data-page="reformat">Data Processing</button>
+                <button class="nav-tab" data-page="plot">Marine Analysis</button>
             </div>
         </div>
     </nav>
@@ -49,8 +50,8 @@
     <div class="container">
         <div id="reformatPage" class="page-content active">
             <header>
-                <h1>Reformat</h1>
-                <p>Upload and visualize your CSV data</p>
+                <h1>Marine Data Processing</h1>
+                <p>Process and reformat marine monitoring data for analysis</p>
             </header>
 
         <main>
@@ -124,23 +125,23 @@
         <!-- Plot Page -->
         <div id="plotPage" class="page-content">
             <header>
-                <h1>Data Plotting</h1>
-                <p>Create nicely formatted plots from your CSV data</p>
+                <h1>Marine Monitoring Analysis</h1>
+                <p>Generate professional marine species detection plots and comparisons</p>
             </header>
             
             <main>
                 <!-- 24 Hour Average DPM Section -->
                 <div class="plot-section-container">
                     <div class="section-header">
-                        <h2>24 Hour Average DPM</h2>
-                        <p>Generate 24-hour average DPM (Detections Per Minute) analysis plots</p>
+                        <h2>Marine Species Detection Analysis</h2>
+                        <p>24-hour average DPM (Detections Per Minute) comparisons for Porpoises, Dolphins & Sonar</p>
                     </div>
                     
                     <div class="comparison-container">
                         <!-- Compare sites for specified source -->
                         <div class="comparison-card">
                             <div class="card-header">
-                                <h3>1. Compare 24hr trend between sites for specified source</h3>
+                                <h3>1. Compare detection trends between marine sites</h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-row">
@@ -170,7 +171,7 @@
                         <!-- Compare sources for specified site -->
                         <div class="comparison-card">
                             <div class="card-header">
-                                <h3>2. Compare 24hr trend between sources for specified site</h3>
+                                <h3>2. Compare species detection at specific site</h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-row">
@@ -200,8 +201,8 @@
                     
                     <!-- Status info -->
                     <div class="status-info">
-                        <h4>Directory Status</h4>
-                        <p id="availableFilesStatus">No directory selected. Please select a working directory first.</p>
+                        <h4>Marine Data Status</h4>
+                        <p id="availableFilesStatus">No marine monitoring files selected. Please load your CSV files first.</p>
                         <p id="availableSitesStatus"></p>
                         <p id="availableSourcesStatus"></p>
                     </div>

@@ -1070,7 +1070,7 @@ class CSVManager {
         const plotHeight = canvas.height / window.devicePixelRatio - 2 * margin;
         
         // Colors for different series
-        const colors = ['#007aff', '#34c759', '#ff3b30', '#ff9500', '#af52de', '#00c7be', '#ff2d92'];
+        const colors = ['#3AAFA9', '#2B7A78', '#17252A', '#5CB3AE', '#1E5F5D', '#4AA4A0', '#71C7C1'];
         
         // Find min/max for each series
         const seriesStats = {};
@@ -2798,18 +2798,18 @@ class NavigationManager {
             }
             console.log('Canvas and context created successfully');
         
-            // Define professional journal-style colors (Nature journal style)
+            // Define PEBL brand colors for professional plots
             const journalColors = [
-                '#1f77b4', // Blue
-                '#ff7f0e', // Orange  
-                '#2ca02c', // Green
-                '#d62728', // Red
-                '#9467bd', // Purple
-                '#8c564b', // Brown
-                '#e377c2', // Pink
-                '#7f7f7f', // Gray
-                '#bcbd22', // Olive
-                '#17becf'  // Cyan
+                '#3AAFA9', // PEBL medium teal
+                '#2B7A78', // PEBL dark teal
+                '#17252A', // PEBL navy
+                '#5CB3AE', // Variant of medium teal
+                '#1E5F5D', // Darker variant
+                '#0F1A1D', // Darker navy
+                '#4AA4A0', // Medium variant
+                '#236563', // Another dark variant
+                '#71C7C1', // Lighter medium teal
+                '#DEF2F1'  // PEBL light teal (for lighter elements)
             ];
             
             // Set up professional plot dimensions with more space for labels
@@ -2964,12 +2964,12 @@ class NavigationManager {
     }
 
     drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas) {
-        // Softer, elegant styling
-        ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
+        // PEBL brand elegant styling
+        ctx.strokeStyle = '#DEF2F1';  // PEBL light teal for axes
         ctx.lineWidth = 1;
-        ctx.font = '11px "Helvetica Neue", "Arial", sans-serif';
+        ctx.font = '11px "Roboto", "Arial", sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#666666';  // Softer text color
+        ctx.fillStyle = '#2B7A78';  // PEBL dark teal text color
         
         // X-axis
         ctx.beginPath();
@@ -3242,14 +3242,14 @@ class NavigationManager {
         
         const ctx = canvas.getContext('2d');
         
-        // Use professional journal colors for sources
+        // Use PEBL brand colors for sources
         const journalColors = [
-            '#1f77b4', // Blue
-            '#ff7f0e', // Orange  
-            '#2ca02c', // Green
-            '#d62728', // Red
-            '#9467bd', // Purple
-            '#8c564b', // Brown
+            '#3AAFA9', // PEBL medium teal
+            '#2B7A78', // PEBL dark teal
+            '#17252A', // PEBL navy
+            '#5CB3AE', // Variant of medium teal
+            '#1E5F5D', // Darker variant
+            '#4AA4A0', // Medium variant
         ];
         
         // Set up professional plot dimensions
