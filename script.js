@@ -115,37 +115,40 @@ class CSVManager {
             
             const { fileName, suffix, baseName, fileInfo } = this.pendingConversion;
             
-            // Save the file
-            this.autoSaveConvertedFile(fileName, suffix);
-            
-            // Create a mock file object and add to fileInfo
-            const mockFile = this.createMockFileFromCurrentData(fileName);
-            fileInfo.versions.set(suffix, mockFile);
-            
-            // Add the new file to working directory files for plot page
-            if (this.workingDirFiles && !this.workingDirFiles.find(f => f.name === fileName)) {
-                this.workingDirFiles.push(mockFile);
-                console.log(`Added ${fileName} to working directory files`);
-            }
-            
-            // Update UI
-            this.renderFileBrowser();
-            this.showSuccess(`Saved ${fileName} successfully!`);
-            
-            // Update plot page if navigation manager exists
-            if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
-                navigationManager.updatePlotPageFileInfo();
-                console.log('Updated plot page file info after creating new file');
-            }
-            
-            // Hide buttons and clear pending conversion
-            confirmSaveBtn.style.display = 'none';
-            confirmSavePlotBtn.style.display = 'none';
-            document.getElementById('toggleViewBtn').style.display = 'none';
-            this.pendingConversion = null;
-            
-            // Reset title
-            document.getElementById('dataTitle').textContent = this.fileName || 'CSV Data';
+            // Show confirmation dialog with directory guidance
+            this.showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, () => {
+                // Save the file
+                this.autoSaveConvertedFile(fileName, suffix);
+                
+                // Create a mock file object and add to fileInfo
+                const mockFile = this.createMockFileFromCurrentData(fileName);
+                fileInfo.versions.set(suffix, mockFile);
+                
+                // Add the new file to working directory files for plot page
+                if (this.workingDirFiles && !this.workingDirFiles.find(f => f.name === fileName)) {
+                    this.workingDirFiles.push(mockFile);
+                    console.log(`Added ${fileName} to working directory files`);
+                }
+                
+                // Update UI
+                this.renderFileBrowser();
+                this.showSuccess(`Saved ${fileName} successfully! Remember to save in your original CSV directory.`);
+                
+                // Update plot page if navigation manager exists
+                if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
+                    navigationManager.updatePlotPageFileInfo();
+                    console.log('Updated plot page file info after creating new file');
+                }
+                
+                // Hide buttons and clear pending conversion
+                confirmSaveBtn.style.display = 'none';
+                confirmSavePlotBtn.style.display = 'none';
+                document.getElementById('toggleViewBtn').style.display = 'none';
+                this.pendingConversion = null;
+                
+                // Reset title
+                document.getElementById('dataTitle').textContent = this.fileName || 'CSV Data';
+            });
         };
         
         if (confirmSaveBtn) {
@@ -498,7 +501,7 @@ class CSVManager {
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.innerHTML = `
-            <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-content" style="max-width: 650px;">
                 <div class="modal-header">
                     <h2>💾 Confirm Save</h2>
                     <p>Review the converted data and confirm to save as <strong>${fileName}</strong></p>
@@ -507,8 +510,15 @@ class CSVManager {
                     <div style="margin-bottom: 15px;">
                         <strong>Preview:</strong> ${this.csvData.length} records, ${this.headers.length} columns
                     </div>
+                    <div class="save-instructions" style="background-color: #e8f4fd; border: 1px solid #bee5eb; border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 8px 0; color: #0c5460;">📁 Save Location Recommendation</h4>
+                        <p style="margin: 0; color: #0c5460; font-size: 14px;">
+                            <strong>Please save this file in the same directory/folder where you originally loaded your CSV files.</strong><br>
+                            This keeps all related files (raw, _std, _24hr) organized together for easy access in the Plot page.
+                        </p>
+                    </div>
                     <div class="modal-actions">
-                        <button class="btn-primary" id="confirmSaveBtn">✅ Confirm & Save</button>
+                        <button class="btn-primary" id="confirmSaveBtn">✅ Confirm & Save to Original Directory</button>
                         <button class="btn-secondary" id="cancelSaveBtn">❌ Cancel</button>
                     </div>
                 </div>
@@ -537,7 +547,7 @@ class CSVManager {
             
             // Update UI
             this.renderFileBrowser();
-            this.showSuccess(`Generated and saved ${fileName}`);
+            this.showSuccess(`Generated and saved ${fileName}! Remember to save in your original CSV directory.`);
             
             // Update plot page if navigation manager exists
             if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
@@ -551,6 +561,59 @@ class CSVManager {
         
         cancelBtn.addEventListener('click', () => {
             // Just remove modal without saving
+            document.body.removeChild(modal);
+        });
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+    }
+
+    showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, onConfirm) {
+        // Create compact confirmation dialog
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width: 550px;">
+                <div class="modal-header">
+                    <h2>💾 Save ${fileName}</h2>
+                </div>
+                <div class="modal-body">
+                    <div class="save-instructions" style="background-color: #e8f4fd; border: 1px solid #bee5eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0; color: #0c5460;">📁 Important: Save Location</h4>
+                        <p style="margin: 0 0 10px 0; color: #0c5460; font-size: 14px;">
+                            <strong>Please save this file in the same directory/folder where you loaded your original CSV files.</strong>
+                        </p>
+                        <p style="margin: 0; color: #0c5460; font-size: 13px; font-style: italic;">
+                            This keeps all related files (raw, _std, _24hr) organized together for easy access when plotting.
+                        </p>
+                    </div>
+                    <div style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">
+                        File: <strong>${fileName}</strong> • ${this.csvData.length} records, ${this.headers.length} columns
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn-primary" id="confirmDirectorySaveBtn" style="min-width: 180px;">✅ Save to Original Directory</button>
+                        <button class="btn-secondary" id="cancelDirectorySaveBtn">❌ Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        const confirmBtn = modal.querySelector('#confirmDirectorySaveBtn');
+        const cancelBtn = modal.querySelector('#cancelDirectorySaveBtn');
+        
+        confirmBtn.addEventListener('click', () => {
+            onConfirm();
+            document.body.removeChild(modal);
+        });
+        
+        cancelBtn.addEventListener('click', () => {
             document.body.removeChild(modal);
         });
         
@@ -3818,14 +3881,14 @@ class NavigationManager {
         ctx.save();
         ctx.translate(40, plotArea.top + plotArea.height / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText('Detections per minute', 0, 0);
+        ctx.fillText('Detection Positive Minutes (DPM)', 0, 0);
         ctx.restore();
         
         // Right Y-axis label (moved much more LEFT towards center)
         ctx.save();
         ctx.translate(canvas.width - 40, plotArea.top + plotArea.height / 2);
         ctx.rotate(Math.PI / 2);
-        ctx.fillText('Detection rate (%)', 0, 0);
+        ctx.fillText('Detection rate (% of hour)', 0, 0);
         ctx.restore();
     }
 
@@ -3883,7 +3946,7 @@ class NavigationManager {
         const legendY = plotArea.top + 20;
         
         // Calculate legend box dimensions
-        const legendPadding = 10;
+        const legendPadding = 6; // Reduced from 10 to 6 for more compact layout
         const lineHeight = 20;
         const legendWidth = 140;
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
@@ -3894,7 +3957,7 @@ class NavigationManager {
         
         // Draw legend border
         ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 0.5; // Reduced from 1 to 0.5 for thinner border
         ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
         
         // Draw legend items
@@ -3902,19 +3965,19 @@ class NavigationManager {
         ctx.textAlign = 'left';
         
         plotData.forEach((siteData, i) => {
-            const y = legendY + (i * lineHeight);
+            const y = legendY + (legendPadding * 2) + (i * lineHeight);
             
-            // Draw line sample only (no boxes)
+            // Draw line sample only (no boxes) - adjusted for double padding
             ctx.strokeStyle = siteData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(legendX, y - 2);
-            ctx.lineTo(legendX + 24, y - 2);
+            ctx.moveTo(legendX + (legendPadding * 2), y - 2);
+            ctx.lineTo(legendX + (legendPadding * 2) + 24, y - 2);
             ctx.stroke();
             
-            // Site name
+            // Site name - adjusted for double padding
             ctx.fillStyle = '#374151';
-            ctx.fillText(siteData.site, legendX + 30, y + 2);
+            ctx.fillText(siteData.site, legendX + (legendPadding * 2) + 30, y + 2);
         });
     }
 
@@ -4122,7 +4185,7 @@ class NavigationManager {
         const legendY = plotArea.top + 20;
         
         // Calculate legend box dimensions
-        const legendPadding = 10;
+        const legendPadding = 6; // Reduced from 10 to 6 for more compact layout
         const lineHeight = 20;
         const legendWidth = 140;
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
@@ -4133,7 +4196,7 @@ class NavigationManager {
         
         // Draw legend border
         ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 0.5; // Reduced from 1 to 0.5 for thinner border
         ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
         
         // Draw legend items
@@ -4141,19 +4204,19 @@ class NavigationManager {
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
-            const y = legendY + (i * lineHeight);
+            const y = legendY + (legendPadding * 2) + (i * lineHeight);
             
-            // Draw line sample only (no boxes)
+            // Draw line sample only (no boxes) - adjusted for double padding
             ctx.strokeStyle = sourceData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(legendX, y - 2);
-            ctx.lineTo(legendX + 24, y - 2);
+            ctx.moveTo(legendX + (legendPadding * 2), y - 2);
+            ctx.lineTo(legendX + (legendPadding * 2) + 24, y - 2);
             ctx.stroke();
             
-            // Source name
+            // Source name - adjusted for double padding
             ctx.fillStyle = '#374151';
-            ctx.fillText(sourceData.source, legendX + 30, y + 2);
+            ctx.fillText(sourceData.source, legendX + (legendPadding * 2) + 30, y + 2);
         });
     }
 
