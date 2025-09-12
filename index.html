@@ -206,6 +206,84 @@
                         <p id="availableSourcesStatus"></p>
                     </div>
                 </div>
+
+                <!-- Standard DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>Standard DPM Analysis</h2>
+                        <p>Generate standard DPM (Detections Per Minute) analysis plots from raw data</p>
+                    </div>
+                    
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. Compare standard trend between sites for specified source</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="sourceSelectStd1">Select DPM Column:</label>
+                                        <select id="sourceSelectStd1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sitesSelectStd1">Select _std.csv Files:</label>
+                                        <select id="sitesSelectStd1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _std.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="generateSiteComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="siteComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. Compare standard trend between sources for specified site</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="siteSelectStd2">Select _std.csv File:</label>
+                                        <select id="siteSelectStd2" class="form-control">
+                                            <option value="">Select a _std.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _std.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sourcesSelectStd2">Select DPM Columns:</label>
+                                        <select id="sourcesSelectStd2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="generateSourceComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="sourceComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Standard Status info -->
+                    <div class="status-info">
+                        <h4>Standard Data Status</h4>
+                        <p id="availableStdFilesStatus">No directory selected. Please select a working directory first.</p>
+                        <p id="availableStdSitesStatus"></p>
+                        <p id="availableStdSourcesStatus"></p>
+                    </div>
+                </div>
             </main>
         </div> <!-- End plotPage -->
     </div>

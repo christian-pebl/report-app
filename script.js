@@ -929,7 +929,7 @@ class CSVManager {
         
         if (numericColumns.length === 0) {
             ctx.fillStyle = '#666';
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No numeric columns found for plotting', canvas.width/2, canvas.height/2);
             return;
@@ -940,7 +940,7 @@ class CSVManager {
         
         if (plotData.length === 0) {
             ctx.fillStyle = '#666';
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No valid data for plotting', canvas.width/2, canvas.height/2);
             return;
@@ -986,7 +986,7 @@ class CSVManager {
         
         if (selectedColumns.length === 0) {
             ctx.fillStyle = '#666';
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No variables selected for plotting', canvas.width/(2*window.devicePixelRatio), canvas.height/(2*window.devicePixelRatio));
             return;
@@ -997,7 +997,7 @@ class CSVManager {
         
         if (plotData.length === 0) {
             ctx.fillStyle = '#666';
-            ctx.font = '16px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('No valid data for plotting', canvas.width/(2*window.devicePixelRatio), canvas.height/(2*window.devicePixelRatio));
             return;
@@ -1142,7 +1142,7 @@ class CSVManager {
         });
         
         // Draw legend
-        ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         const legendY = 20;
         let legendX = margin;
         
@@ -2293,6 +2293,55 @@ class NavigationManager {
                 this.generateSourceComparison(site, sources);
             });
         }
+
+        // Standard DPM controls
+        const sourceSelectStd1 = document.getElementById('sourceSelectStd1');
+        const sitesSelectStd1 = document.getElementById('sitesSelectStd1');
+        const generateSiteComparisonStdBtn = document.getElementById('generateSiteComparisonStdBtn');
+
+        const siteSelectStd2 = document.getElementById('siteSelectStd2');
+        const sourcesSelectStd2 = document.getElementById('sourcesSelectStd2');
+        const generateSourceComparisonStdBtn = document.getElementById('generateSourceComparisonStdBtn');
+
+        // Add event listeners for std buttons
+        const updateStdSiteComparisonButton = () => {
+            const sourceSelected = sourceSelectStd1?.value;
+            const sitesSelected = Array.from(sitesSelectStd1?.selectedOptions || []).map(option => option.value);
+            if (generateSiteComparisonStdBtn) {
+                generateSiteComparisonStdBtn.disabled = !sourceSelected || sitesSelected.length < 2;
+            }
+        };
+
+        const updateStdSourceComparisonButton = () => {
+            const siteSelected = siteSelectStd2?.value;
+            const sourcesSelected = Array.from(sourcesSelectStd2?.selectedOptions || []).map(option => option.value);
+            if (generateSourceComparisonStdBtn) {
+                generateSourceComparisonStdBtn.disabled = !siteSelected || sourcesSelected.length < 2;
+            }
+        };
+
+        // Add event listeners for std controls
+        if (sourceSelectStd1) sourceSelectStd1.addEventListener('change', updateStdSiteComparisonButton);
+        if (sitesSelectStd1) sitesSelectStd1.addEventListener('change', updateStdSiteComparisonButton);
+        if (siteSelectStd2) siteSelectStd2.addEventListener('change', updateStdSourceComparisonButton);
+        if (sourcesSelectStd2) sourcesSelectStd2.addEventListener('change', updateStdSourceComparisonButton);
+
+        // Std button click handlers
+        if (generateSiteComparisonStdBtn) {
+            generateSiteComparisonStdBtn.addEventListener('click', () => {
+                const source = sourceSelectStd1.value;
+                const sites = Array.from(sitesSelectStd1.selectedOptions).map(option => option.value);
+                this.generateStdSiteComparison(source, sites);
+            });
+        }
+
+        if (generateSourceComparisonStdBtn) {
+            generateSourceComparisonStdBtn.addEventListener('click', () => {
+                const site = siteSelectStd2.value;
+                const sources = Array.from(sourcesSelectStd2.selectedOptions).map(option => option.value);
+                this.generateStdSourceComparison(site, sources);
+            });
+        }
     }
 
     updatePlotPageFileInfo() {
@@ -2314,6 +2363,7 @@ class NavigationManager {
         this.sites.clear();
         this.sources.clear();
         this.hr24Files = []; // Store actual _24hr files
+        this.stdFiles = []; // Store actual _std files
         
         // First, get sources from column headers if we have loaded files
         if (csvManager && csvManager.headers && csvManager.headers.length > 0) {
@@ -2336,7 +2386,7 @@ class NavigationManager {
             this.checkAllFilesForSources(fileList);
         }
         
-        // Find all _24hr.csv files instead of extracting site names
+        // Find all _24hr.csv files and _std.csv files
         fileList.forEach(file => {
             const fileName = file.name.toLowerCase();
             if (fileName.includes('24hr') && fileName.endsWith('.csv')) {
@@ -2344,10 +2394,13 @@ class NavigationManager {
                 this.hr24Files.push(file);
                 // Also add to sites for backward compatibility
                 this.sites.add(file.name);
+            } else if (fileName.includes('std') && fileName.endsWith('.csv')) {
+                console.log(`Found _std file: ${file.name}`);
+                this.stdFiles.push(file);
             }
         });
         
-        console.log(`Found ${this.hr24Files.length} _24hr.csv files`);
+        console.log(`Found ${this.hr24Files.length} _24hr.csv files and ${this.stdFiles.length} _std.csv files`);
     }
 
     extractSiteFromFilename(baseName) {
@@ -2494,12 +2547,72 @@ class NavigationManager {
                 sourcesSelect2.appendChild(option);
             });
         }
+
+        // Update std dropdowns
+        this.updateStdDropdowns(sources, this.stdFiles);
+    }
+
+    updateStdDropdowns(sources, stdFiles) {
+        console.log('Updating std dropdowns with:', sources.length, 'sources and', stdFiles.length, '_std files');
+        
+        // Update source dropdown for std site comparison (DPM columns)
+        const sourceSelectStd1 = document.getElementById('sourceSelectStd1');
+        if (sourceSelectStd1) {
+            sourceSelectStd1.innerHTML = '<option value="">Select DPM column to plot...</option>';
+            sources.forEach(source => {
+                const option = document.createElement('option');
+                option.value = source;
+                option.textContent = `${source} (DPM)`;
+                sourceSelectStd1.appendChild(option);
+            });
+        }
+
+        // Update sites dropdown for std site comparison (_std files)
+        const sitesSelectStd1 = document.getElementById('sitesSelectStd1');
+        if (sitesSelectStd1) {
+            sitesSelectStd1.innerHTML = '';
+            stdFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name; // Use full filename as value
+                option.textContent = file.name;
+                sitesSelectStd1.appendChild(option);
+            });
+        }
+
+        // Update site dropdown for std source comparison (_std files)
+        const siteSelectStd2 = document.getElementById('siteSelectStd2');
+        if (siteSelectStd2) {
+            siteSelectStd2.innerHTML = '<option value="">Select a _std.csv file...</option>';
+            stdFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name; // Use full filename as value
+                option.textContent = file.name;
+                siteSelectStd2.appendChild(option);
+            });
+        }
+
+        // Update sources dropdown for std source comparison
+        const sourcesSelectStd2 = document.getElementById('sourcesSelectStd2');
+        if (sourcesSelectStd2) {
+            sourcesSelectStd2.innerHTML = '';
+            sources.forEach(source => {
+                const option = document.createElement('option');
+                option.value = source;
+                option.textContent = `${source} (DPM)`;
+                sourcesSelectStd2.appendChild(option);
+            });
+        }
     }
 
     updateStatusDisplay() {
         const availableFilesStatus = document.getElementById('availableFilesStatus');
         const availableSitesStatus = document.getElementById('availableSitesStatus');
         const availableSourcesStatus = document.getElementById('availableSourcesStatus');
+        
+        // Update std status displays
+        const availableStdFilesStatus = document.getElementById('availableStdFilesStatus');
+        const availableStdSitesStatus = document.getElementById('availableStdSitesStatus');
+        const availableStdSourcesStatus = document.getElementById('availableStdSourcesStatus');
         
         if (this.availableFiles.length > 0) {
             if (availableFilesStatus) {
@@ -2513,6 +2626,19 @@ class NavigationManager {
                 const sources = Array.from(this.sources);
                 availableSourcesStatus.textContent = `Available Sources: ${sources.length > 0 ? sources.join(', ') : 'None detected'}`;
             }
+
+            // Update std status displays
+            if (availableStdFilesStatus) {
+                availableStdFilesStatus.textContent = `Found ${this.stdFiles.length} _std.csv files in working directory.`;
+            }
+            if (availableStdSitesStatus) {
+                const stdSites = this.stdFiles.map(f => f.name);
+                availableStdSitesStatus.textContent = `Available Std Sites: ${stdSites.length > 0 ? stdSites.join(', ') : 'None detected'}`;
+            }
+            if (availableStdSourcesStatus) {
+                const sources = Array.from(this.sources);
+                availableStdSourcesStatus.textContent = `Available Sources: ${sources.length > 0 ? sources.join(', ') : 'None detected'}`;
+            }
         } else {
             if (availableFilesStatus) {
                 availableFilesStatus.textContent = 'No directory selected. Please select a working directory first.';
@@ -2522,6 +2648,17 @@ class NavigationManager {
             }
             if (availableSourcesStatus) {
                 availableSourcesStatus.textContent = '';
+            }
+
+            // Clear std status displays
+            if (availableStdFilesStatus) {
+                availableStdFilesStatus.textContent = 'No directory selected. Please select a working directory first.';
+            }
+            if (availableStdSitesStatus) {
+                availableStdSitesStatus.textContent = '';
+            }
+            if (availableStdSourcesStatus) {
+                availableStdSourcesStatus.textContent = '';
             }
         }
     }
@@ -2827,17 +2964,8 @@ class NavigationManager {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            console.log('Drawing title...');
-            // Draw professional title
-            ctx.fillStyle = '#000000';
-            ctx.font = 'bold 14px "Times New Roman", serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`24-Hour ${source} Detection Patterns`, canvas.width / 2, 25);
-            
-            // Add subtitle
-            ctx.font = '12px "Times New Roman", serif';
-            ctx.fillStyle = '#333333';
-            ctx.fillText('Detections per minute (DPM) and percentage detection rates by hour', canvas.width / 2, 45);
+            console.log('Title and subtitle removed for cleaner appearance');
+            // Title and subtitle removed
             
             console.log('Preparing data for plotting...');
             // Prepare data for plotting
@@ -2967,7 +3095,7 @@ class NavigationManager {
         // Softer, elegant styling
         ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
         ctx.lineWidth = 1;
-        ctx.font = '11px "Helvetica Neue", "Arial", sans-serif';
+        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#666666';  // Softer text color
         
@@ -3019,8 +3147,8 @@ class NavigationManager {
             ctx.lineTo(plotArea.left, y);
             ctx.stroke();
             
-            // Label
-            ctx.fillText(dpm.toFixed(1), plotArea.left - 10, y + 4);
+            // Label (moved closer to axis)
+            ctx.fillText(dpm.toFixed(1), plotArea.left - 6, y + 4);
         }
         
         // Right Y-axis labels (Percentage)
@@ -3035,28 +3163,28 @@ class NavigationManager {
             ctx.lineTo(plotArea.right + 5, y);
             ctx.stroke();
             
-            // Label
-            ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 10, y + 4);
+            // Label (moved closer to axis)
+            ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 6, y + 4);
         }
         
         // Elegant axis labels
         ctx.textAlign = 'center';
-        ctx.font = '12px "Helvetica Neue", "Arial", sans-serif';
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.fillStyle = '#555555';
         
         // X-axis label
         ctx.fillText('Time of day (hours)', plotArea.left + plotArea.width / 2, plotArea.bottom + 40);
         
-        // Left Y-axis label
+        // Left Y-axis label (moved much more RIGHT towards center)
         ctx.save();
-        ctx.translate(25, plotArea.top + plotArea.height / 2);
+        ctx.translate(40, plotArea.top + plotArea.height / 2);
         ctx.rotate(-Math.PI / 2);
         ctx.fillText('Detections per minute', 0, 0);
         ctx.restore();
         
-        // Right Y-axis label
+        // Right Y-axis label (moved much more LEFT towards center)
         ctx.save();
-        ctx.translate(canvas.width - 15, plotArea.top + plotArea.height / 2);
+        ctx.translate(canvas.width - 40, plotArea.top + plotArea.height / 2);
         ctx.rotate(Math.PI / 2);
         ctx.fillText('Detection rate (%)', 0, 0);
         ctx.restore();
@@ -3119,40 +3247,23 @@ class NavigationManager {
         const legendWidth = 140;
         const legendHeight = (plotData.length * 22) + 15;
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         ctx.fillRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
-        ctx.strokeStyle = '#cccccc';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(legendX - 10, legendY - 10, legendWidth, legendHeight);
         
         // Legend items
-        ctx.font = '11px "Times New Roman", serif';
+        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.textAlign = 'left';
         
         plotData.forEach((siteData, i) => {
             const y = legendY + (i * 22) + 8;
             
-            // Draw line sample
+            // Draw line sample only (no markers)
             ctx.strokeStyle = siteData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
             ctx.moveTo(legendX, y - 2);
-            ctx.lineTo(legendX + 20, y - 2);
+            ctx.lineTo(legendX + 24, y - 2);
             ctx.stroke();
-            
-            // Draw marker sample
-            ctx.beginPath();
-            ctx.arc(legendX + 10, y - 2, 3, 0, 2 * Math.PI);
-            ctx.fillStyle = '#ffffff';
-            ctx.fill();
-            ctx.strokeStyle = siteData.color;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(legendX + 10, y - 2, 2, 0, 2 * Math.PI);
-            ctx.fillStyle = siteData.color;
-            ctx.fill();
             
             // Site name
             ctx.fillStyle = '#000000';
@@ -3266,19 +3377,10 @@ class NavigationManager {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Extract clean site name for title
+        // Extract clean site name for processing
         const siteName = this.extractSiteNameFromFilename(site);
         
-        // Draw professional title
-        ctx.fillStyle = '#000000';
-        ctx.font = 'bold 14px "Times New Roman", serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`24-Hour Detection Source Comparison - ${siteName}`, canvas.width / 2, 25);
-        
-        // Add subtitle
-        ctx.font = '12px "Times New Roman", serif';
-        ctx.fillStyle = '#333333';
-        ctx.fillText('Detections per minute (DPM) and percentage detection rates by hour', canvas.width / 2, 45);
+        // Title and subtitle removed for cleaner appearance
         
         // Prepare data for plotting
         const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
@@ -3377,20 +3479,356 @@ class NavigationManager {
         const legendX = plotArea.left + 20;
         const legendY = plotArea.top + 20;
         
-        ctx.font = '12px Arial';
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
             const y = legendY + (i * 20);
             
-            // Color box
-            ctx.fillStyle = sourceData.color;
-            ctx.fillRect(legendX, y - 8, 12, 12);
+            // Draw line sample only (no boxes)
+            ctx.strokeStyle = sourceData.color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(legendX, y - 2);
+            ctx.lineTo(legendX + 24, y - 2);
+            ctx.stroke();
             
             // Source name
             ctx.fillStyle = '#374151';
-            ctx.fillText(sourceData.source, legendX + 20, y + 2);
+            ctx.fillText(sourceData.source, legendX + 30, y + 2);
         });
+    }
+
+    // Standard DPM plotting functions
+    async generateStdSiteComparison(source, sites) {
+        console.log('=== GENERATE STD SITE COMPARISON START ===');
+        console.log('Source:', source);
+        console.log('Sites:', sites);
+        console.log('Available std files:', this.stdFiles?.length || 0);
+        
+        const outputDiv = document.getElementById('siteComparisonStdOutput');
+        if (!outputDiv) {
+            console.error('Std output div not found');
+            return;
+        }
+
+        outputDiv.classList.add('active');
+        
+        // Show loading message
+        outputDiv.innerHTML = `
+            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+                <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Standard Plot...</h4>
+                <p>Loading ${sites.join(', ')} data for ${source} analysis...</p>
+                <p style="font-size: 0.8rem; margin-top: 10px;">Debug: Found ${this.stdFiles?.length || 0} std files</p>
+            </div>
+        `;
+
+        try {
+            console.log('Starting to load std files...');
+            // Load the _std CSV files for each selected site
+            const siteData = await this.loadStdFilesForSites(sites, source);
+            
+            console.log('Loaded std site data:', siteData.length, 'files');
+            
+            if (siteData.length === 0) {
+                throw new Error('No _std files found for the selected sites');
+            }
+
+            console.log('Creating std plot...');
+            // Generate the plot using the same format as 24hr
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv);
+            console.log('Std plot creation completed');
+            
+        } catch (error) {
+            console.error('Error generating std site comparison plot:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 0.85rem;">
+                        Make sure the corresponding _std files exist for: ${sites.join(', ')}
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    async loadStdFilesForSites(selectedFilenames, source) {
+        console.log('=== LOAD STD FILES FOR SITES ===');
+        console.log('Selected filenames:', selectedFilenames);
+        console.log('Available std files count:', this.stdFiles?.length || 0);
+        
+        const siteData = [];
+        
+        for (const filename of selectedFilenames) {
+            console.log(`Looking for std file: ${filename}`);
+            // Find the file by exact filename match
+            const fileStd = this.stdFiles.find(file => file.name === filename);
+            
+            console.log(`Found std file for ${filename}:`, fileStd?.name || 'NOT FOUND');
+            
+            if (fileStd) {
+                try {
+                    console.log(`Parsing CSV file: ${fileStd.name}`);
+                    const data = await this.parseCSVFile(fileStd);
+                    console.log(`Parsed std data for ${filename}:`, data.headers?.length || 0, 'headers,', data.data?.length || 0, 'rows');
+                    
+                    siteData.push({
+                        site: filename, // Use filename as site identifier
+                        file: fileStd,
+                        data: data,
+                        source: source
+                    });
+                } catch (error) {
+                    console.error(`Error loading std file ${filename}:`, error);
+                }
+            } else {
+                console.warn(`Std file not found: ${filename}`);
+            }
+        }
+        
+        console.log('Total std site data loaded:', siteData.length);
+        return siteData;
+    }
+
+    createStdSiteComparisonPlot(siteData, source, sites, outputDiv) {
+        console.log('=== CREATE STD SITE COMPARISON PLOT ===');
+        
+        try {
+            // Create the plot container
+            const plotContainer = document.createElement('div');
+            plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+            
+            console.log('Creating high-resolution canvas element...');
+            const canvas = document.createElement('canvas');
+            
+            // Get device pixel ratio for crisp rendering
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = 900;
+            const displayHeight = 500;
+            
+            // Set actual canvas size in pixels (high-res)
+            canvas.width = displayWidth * dpr;
+            canvas.height = displayHeight * dpr;
+            
+            // Scale the context to match device pixel ratio
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            
+            plotContainer.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            
+            // Clear canvas with professional white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            console.log('Title and subtitle removed for cleaner appearance');
+            // Title and subtitle removed
+            
+            console.log('Preparing data for plotting...');
+            // Prepare data for plotting (same format as 24hr)
+            const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+            let maxDPM = 0;
+            
+            const plotData = siteData.map((site, index) => {
+                const hourlyData = this.extractHourlyData(site.data, source);
+                const dpmValues = hours.map(hour => {
+                    const hourKey = hour.replace(':00', '');
+                    return hourlyData[hourKey] || 0;
+                });
+                maxDPM = Math.max(maxDPM, ...dpmValues);
+                
+                return {
+                    site: site.site,
+                    dpmValues: dpmValues,
+                    color: this.getSiteColor(index)
+                };
+            });
+            
+            // Define plot area
+            const plotArea = {
+                left: 80,
+                top: 60,
+                right: displayWidth - 80,
+                bottom: displayHeight - 80,
+                width: displayWidth - 160,
+                height: displayHeight - 140
+            };
+            
+            console.log('Drawing axes...');
+            // Draw axes and labels
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, displayWidth);
+            
+            console.log('Plotting data...');
+            // Plot each site's data
+            plotData.forEach((siteData, index) => {
+                this.plotSiteData(ctx, plotArea, siteData, hours, maxDPM);
+            });
+            
+            console.log('Drawing legend...');
+            // Draw legend
+            this.drawPlotLegend(ctx, plotData, plotArea);
+            
+            console.log('Updating output div...');
+            // Update output div
+            outputDiv.innerHTML = `
+                <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #15803d; margin-bottom: 10px;">✅ Standard Site Comparison Plot Generated</h4>
+                    <p style="margin-bottom: 15px;"><strong>Source:</strong> ${source} | <strong>Sites:</strong> ${sites.join(', ')}</p>
+                </div>
+            `;
+            
+            outputDiv.appendChild(plotContainer);
+            
+        } catch (error) {
+            console.error('Error in std site comparison plot creation:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Plot creation failed:</strong> ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+
+    async generateStdSourceComparison(site, sources) {
+        console.log('=== GENERATE STD SOURCE COMPARISON START ===');
+        
+        const outputDiv = document.getElementById('sourceComparisonStdOutput');
+        if (!outputDiv) {
+            console.error('Std source output div not found');
+            return;
+        }
+
+        outputDiv.classList.add('active');
+        
+        // Show loading message
+        outputDiv.innerHTML = `
+            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+                <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Standard Source Plot...</h4>
+                <p>Loading ${site} data for sources: ${sources.join(', ')}</p>
+            </div>
+        `;
+
+        try {
+            // Find the std file for the selected site
+            const siteFile = this.stdFiles.find(file => file.name === site);
+            if (!siteFile) {
+                throw new Error(`No _std file found for site: ${site}`);
+            }
+
+            // Parse the file data
+            const siteData = await this.parseCSVFile(siteFile);
+            
+            // Generate the plot using same format as 24hr
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv);
+            
+        } catch (error) {
+            console.error('Error generating std source comparison plot:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 0.85rem;">
+                        Make sure the corresponding _std file exists for: ${site}
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    createStdSourceComparisonPlot(siteData, site, sources, outputDiv) {
+        try {
+            // Create the plot container
+            const plotContainer = document.createElement('div');
+            plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+            
+            const canvas = document.createElement('canvas');
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = 900;
+            const displayHeight = 500;
+            
+            canvas.width = displayWidth * dpr;
+            canvas.height = displayHeight * dpr;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            
+            plotContainer.appendChild(canvas);
+            
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            
+            // Clear canvas with professional white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Extract clean site name for processing
+            const siteName = this.extractSiteNameFromFilename(site);
+            
+            // Title and subtitle removed for cleaner appearance
+            
+            // Prepare data for plotting
+            const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+            let maxDPM = 0;
+            
+            const plotData = sources.map((source, index) => {
+                const hourlyData = this.extractHourlyData(siteData, source);
+                const dpmValues = hours.map(hour => {
+                    const hourKey = hour.replace(':00', '');
+                    return hourlyData[hourKey] || 0;
+                });
+                maxDPM = Math.max(maxDPM, ...dpmValues);
+                
+                return {
+                    source: source,
+                    dpmValues: dpmValues,
+                    color: this.getSourceColor(index)
+                };
+            });
+            
+            // Define plot area
+            const plotArea = {
+                left: 80,
+                top: 60,
+                right: displayWidth - 80,
+                bottom: displayHeight - 80,
+                width: displayWidth - 160,
+                height: displayHeight - 140
+            };
+            
+            // Draw axes and labels
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, displayWidth);
+            
+            // Plot each source's data
+            plotData.forEach((sourceData, index) => {
+                this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM);
+            });
+            
+            // Draw legend
+            this.drawSourcePlotLegend(ctx, plotData, plotArea);
+            
+            // Update output div
+            outputDiv.innerHTML = `
+                <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #15803d; margin-bottom: 10px;">✅ Standard Source Comparison Plot Generated</h4>
+                    <p style="margin-bottom: 15px;"><strong>Site:</strong> ${site} | <strong>Sources:</strong> ${sources.join(', ')}</p>
+                </div>
+            `;
+            
+            outputDiv.appendChild(plotContainer);
+            console.log('Standard source comparison plot created successfully');
+            
+        } catch (error) {
+            console.error('Error in std source comparison plot creation:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Plot creation failed:</strong> ${error.message}</p>
+                </div>
+            `;
+        }
     }
 }
 
