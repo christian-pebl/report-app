@@ -15,14 +15,24 @@ When creating charts, the following formatting rules should be applied:
    - Display column headers as legend items
    - Example: Chart title shows `Control-S_2406-2407`, legend shows column names
 
-### File Name Truncation Rule
+### File Name Truncation Rule for Legends
+**IMPORTANT**: Whenever a file name is being truncated to use as a legend entry, apply this rule:
+
 Extract site identifier from filename by taking text between:
 - Start: After the 2nd underscore
 - End: Before the 4th underscore
 
+**Implementation**: `parts.slice(2, 4).join('_')` where parts = `fileName.split('_')`
+
 Examples:
 - `FPOD_Alga_Control-S_2406-2407_std.csv` → `Control-S_2406-2407`
 - `FPOD_Temp_Site-A_2501-2503_24hr.csv` → `Site-A_2501-2503`
+- `FPOD_Alga_Control-W_2408-2409_std.csv` → `Control-W_2408-2409`
+
+**Apply this rule for**:
+- Chart legends when file names are displayed
+- Chart titles when file names are used as titles
+- Any UI element where file names need to be displayed in shortened form
 
 ### Standard Deviation Scaling
 - When plotting std series alongside non-std series, automatically scale std values down by factor of 0.1 relative to the main series range
