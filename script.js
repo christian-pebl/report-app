@@ -3835,18 +3835,27 @@ class NavigationManager {
             // Title and subtitle removed
             
             console.log('Preparing data for plotting...');
-            // Prepare data for plotting
-            const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+            // Prepare data for plotting - first extract all available time points from all sites
+            let allTimePoints = new Set();
+            siteData.forEach(siteInfo => {
+                const hourlyData = this.extractHourlyData(siteInfo.data, source);
+                Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+            });
+
+            // Sort time points and format them as dates in dd/mm/yy format
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0]);
+            console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
+
             let maxDPM = 0;
-            
+
             const plotData = siteData.map((siteInfo, index) => {
                 console.log(`Processing data for site: ${siteInfo.site}`);
                 const hourlyData = this.extractHourlyData(siteInfo.data, source);
                 console.log(`Hourly data for ${siteInfo.site}:`, Object.keys(hourlyData).length, 'hours');
-                
-                const dpmValues = hours.map(hour => {
-                    const hourKey = hour.replace(':00', '');
-                    return hourlyData[hourKey] || 0;
+
+                const dpmValues = sortedHours.map(hour => {
+                    return hourlyData[hour] || 0;
                 });
                 maxDPM = Math.max(maxDPM, ...dpmValues);
                 
@@ -3951,6 +3960,46 @@ class NavigationManager {
         console.log('Sample hourly data:', Object.fromEntries(Object.entries(hourlyData).slice(0, 5)));
 
         return hourlyData;
+    }
+
+    formatTimePointsAsDateLabels(sortedHours, sampleSiteData) {
+        // Extract the base date from the CSV data
+        let baseDate = null;
+
+        // Try to find a timestamp in the data to extract the base date
+        if (sampleSiteData && sampleSiteData.data && sampleSiteData.data.data && sampleSiteData.data.data.length > 0) {
+            const firstRow = sampleSiteData.data.data[0];
+            const timeKey = Object.keys(firstRow).find(key =>
+                key.toLowerCase().includes('time') || key.toLowerCase().includes('date')
+            );
+
+            if (timeKey && firstRow[timeKey]) {
+                const timeValue = firstRow[timeKey];
+                if (typeof timeValue === 'string' && timeValue.includes('T')) {
+                    baseDate = new Date(timeValue);
+                }
+            }
+        }
+
+        // If we can't extract a base date, use current date as fallback
+        if (!baseDate || isNaN(baseDate.getTime())) {
+            baseDate = new Date();
+            console.warn('Could not extract base date from data, using current date as fallback');
+        }
+
+        // Generate date labels in dd/mm/yy format for each time point
+        return sortedHours.map((hour, index) => {
+            const date = new Date(baseDate);
+            // Add index as days offset (each hour could represent a different day)
+            // For std files, this might be days rather than hours
+            date.setDate(date.getDate() + index);
+
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+
+            return `${day}/${month}/${year}`;
+        });
     }
 
     extractStandardData(csvData, source) {
@@ -4423,15 +4472,24 @@ class NavigationManager {
         
         // Title and subtitle removed for cleaner appearance
         
-        // Prepare data for plotting
-        const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+        // Prepare data for plotting - first extract all available time points from all sources
+        let allTimePoints = new Set();
+        sources.forEach(source => {
+            const hourlyData = this.extractHourlyData(siteData.data, source);
+            Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+        });
+
+        // Sort time points and format them as dates in dd/mm/yy format
+        const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+        const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData});
+        console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
+
         let maxDPM = 0;
-        
+
         const plotData = sources.map((source, index) => {
             const hourlyData = this.extractHourlyData(siteData.data, source);
-            const dpmValues = hours.map(hour => {
-                const hourKey = hour.replace(':00', '');
-                return hourlyData[hourKey] || 0;
+            const dpmValues = sortedHours.map(hour => {
+                return hourlyData[hour] || 0;
             });
             maxDPM = Math.max(maxDPM, ...dpmValues);
             
@@ -4671,8 +4729,18 @@ class NavigationManager {
             // Title and subtitle removed
             
             console.log('Preparing data for plotting...');
-            // Prepare data for plotting DPM values only
-            const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+            // Prepare data for plotting - first extract all available time points from all sites
+            let allTimePoints = new Set();
+            siteData.forEach(site => {
+                const hourlyData = this.extractHourlyData(site.data, source);
+                Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+            });
+
+            // Sort time points and format them as dates in dd/mm/yy format
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0]);
+            console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
+
             let maxDPM = 0;
             let maxStdDPM = 0;
             let maxNonStdDPM = 0;
@@ -4680,9 +4748,8 @@ class NavigationManager {
             const plotData = siteData.map((site, index) => {
                 // Extract DPM data
                 const hourlyData = this.extractHourlyData(site.data, source);
-                const dpmValues = hours.map(hour => {
-                    const hourKey = hour.replace(':00', '');
-                    return hourlyData[hourKey] || 0;
+                const dpmValues = sortedHours.map(hour => {
+                    return hourlyData[hour] || 0;
                 });
 
                 const maxSiteValue = Math.max(...dpmValues);
@@ -4865,15 +4932,24 @@ class NavigationManager {
             
             // Title and subtitle removed for cleaner appearance
             
-            // Prepare data for plotting
-            const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
+            // Prepare data for plotting - first extract all available time points from all sources
+            let allTimePoints = new Set();
+            sources.forEach(source => {
+                const hourlyData = this.extractHourlyData(siteData, source);
+                Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+            });
+
+            // Sort time points and format them as dates in dd/mm/yy format
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData});
+            console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
+
             let maxDPM = 0;
-            
+
             const plotData = sources.map((source, index) => {
                 const hourlyData = this.extractHourlyData(siteData, source);
-                const dpmValues = hours.map(hour => {
-                    const hourKey = hour.replace(':00', '');
-                    return hourlyData[hourKey] || 0;
+                const dpmValues = sortedHours.map(hour => {
+                    return hourlyData[hour] || 0;
                 });
                 maxDPM = Math.max(maxDPM, ...dpmValues);
                 
