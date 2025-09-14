@@ -136,7 +136,8 @@ class CSVManager {
                 
                 // Update plot page if navigation manager exists
                 if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
-                    navigationManager.updatePlotPageFileInfo();
+                    // Fire and forget - don't await to avoid blocking the UI
+                    navigationManager.updatePlotPageFileInfo().catch(console.error);
                     console.log('Updated plot page file info after creating new file');
                 }
                 
@@ -551,7 +552,8 @@ class CSVManager {
             
             // Update plot page if navigation manager exists
             if (typeof navigationManager !== 'undefined' && navigationManager.updatePlotPageFileInfo) {
-                navigationManager.updatePlotPageFileInfo();
+                // Fire and forget - don't await to avoid blocking the UI
+                navigationManager.updatePlotPageFileInfo().catch(console.error);
                 console.log('Updated plot page file info after creating new file');
             }
             
@@ -2853,14 +2855,14 @@ class NavigationManager {
     initializeNavigation() {
         const navTabs = document.querySelectorAll('.nav-tab');
         navTabs.forEach(tab => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', async () => {
                 const targetPage = tab.getAttribute('data-page');
-                this.switchPage(targetPage);
+                await this.switchPage(targetPage);
             });
         });
     }
 
-    switchPage(pageName) {
+    async switchPage(pageName) {
         // Update nav tabs
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.classList.remove('active');
@@ -2887,7 +2889,7 @@ class NavigationManager {
                 });
             }
             
-            this.updatePlotPageFileInfo();
+            await this.updatePlotPageFileInfo();
             console.log('Plot page file info updated');
         }
     }
@@ -2994,7 +2996,7 @@ class NavigationManager {
         }
     }
 
-    updatePlotPageFileInfo() {
+    async updatePlotPageFileInfo() {
         console.log('=== UPDATING PLOT PAGE FILE INFO ===');
         
         // Get file info from csvManager if available
@@ -3022,7 +3024,7 @@ class NavigationManager {
         this.availableFiles = fileList;
         
         // Extract sites and sources from filenames
-        this.extractSitesAndSources(fileList);
+        await this.extractSitesAndSources(fileList);
         
         // Update dropdowns
         this.updateDropdowns();
@@ -3033,7 +3035,7 @@ class NavigationManager {
         console.log('✅ Plot page file info update complete');
     }
 
-    extractSitesAndSources(fileList) {
+    async extractSitesAndSources(fileList) {
         this.sites.clear();
         this.sources.clear();
         this.hr24Files = []; // Store actual _24hr files
@@ -3041,15 +3043,16 @@ class NavigationManager {
         
         // First, get sources from column headers if we have loaded files
         if (csvManager && csvManager.headers && csvManager.headers.length > 0) {
-            // Look for Porpoise, Dolphin, or Sonar in column headers
+            // Extract all non-time columns as potential DPM sources
             csvManager.headers.forEach(header => {
                 const headerLower = header.toLowerCase();
-                if (headerLower.includes('porpoise')) {
-                    this.sources.add('Porpoise');
-                } else if (headerLower.includes('dolphin')) {
-                    this.sources.add('Dolphin');
-                } else if (headerLower.includes('sonar')) {
-                    this.sources.add('Sonar');
+                // Skip time/date columns - include everything else as potential DPM columns
+                if (!headerLower.includes('time') &&
+                    !headerLower.includes('date') &&
+                    !headerLower.includes('hour') &&
+                    !headerLower.includes('timestamp') &&
+                    header.trim() !== '') {
+                    this.sources.add(header.trim()); // Use original header name
                 }
             });
         }
@@ -3057,7 +3060,7 @@ class NavigationManager {
         // If no sources found in headers, fall back to checking all available files
         if (this.sources.size === 0) {
             // Check headers of all available files for sources
-            this.checkAllFilesForSources(fileList);
+            await this.checkAllFilesForSources(fileList);
         }
         
         // Find all _24hr.csv files and _std.csv files
@@ -3075,6 +3078,11 @@ class NavigationManager {
         });
         
         console.log(`Found ${this.hr24Files.length} _24hr.csv files and ${this.stdFiles.length} _std.csv files`);
+
+        // Also check std files for additional column headers (they might have different columns)
+        if (this.stdFiles.length > 0) {
+            await this.checkStdFilesForSources();
+        }
     }
 
     extractSiteFromFilename(baseName) {
@@ -3161,11 +3169,61 @@ class NavigationManager {
     }
 
     async checkAllFilesForSources(fileList) {
-        // This would ideally check all files for their column headers
-        // For now, we'll use the standard sources
-        this.sources.add('Porpoise');
-        this.sources.add('Dolphin');
-        this.sources.add('Sonar');
+        console.log('Checking all files for column headers...');
+
+        // Check a few representative files to extract column headers
+        for (const file of fileList.slice(0, 3)) { // Check first 3 files
+            try {
+                console.log(`Checking file: ${file.name}`);
+                const csvData = await this.parseCSVFile(file);
+                if (csvData && csvData.headers) {
+                    csvData.headers.forEach(header => {
+                        const headerLower = header.toLowerCase();
+                        // Skip time/date columns - include everything else as potential DPM columns
+                        if (!headerLower.includes('time') &&
+                            !headerLower.includes('date') &&
+                            !headerLower.includes('hour') &&
+                            !headerLower.includes('timestamp') &&
+                            header.trim() !== '') {
+                            this.sources.add(header.trim()); // Use original header name
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn(`Could not parse file ${file.name}:`, error);
+            }
+        }
+
+        console.log('Found sources from files:', Array.from(this.sources));
+    }
+
+    async checkStdFilesForSources() {
+        console.log('Checking std files for additional column headers...');
+
+        // Check a few representative std files to extract column headers
+        for (const file of this.stdFiles.slice(0, 3)) { // Check first 3 std files
+            try {
+                console.log(`Checking std file: ${file.name}`);
+                const csvData = await this.parseCSVFile(file);
+                if (csvData && csvData.headers) {
+                    csvData.headers.forEach(header => {
+                        const headerLower = header.toLowerCase();
+                        // Skip time/date columns - include everything else as potential DPM columns
+                        if (!headerLower.includes('time') &&
+                            !headerLower.includes('date') &&
+                            !headerLower.includes('hour') &&
+                            !headerLower.includes('timestamp') &&
+                            header.trim() !== '') {
+                            this.sources.add(header.trim()); // Use original header name
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn(`Could not parse std file ${file.name}:`, error);
+            }
+        }
+
+        console.log('Total sources after checking std files:', Array.from(this.sources));
     }
 
     updateDropdowns() {
@@ -3708,33 +3766,33 @@ class NavigationManager {
         console.log(`=== EXTRACT HOURLY DATA FOR SOURCE: ${source} ===`);
         console.log('CSV headers:', csvData.headers);
         console.log('CSV data rows:', csvData.data.length);
-        
+
         const hourlyData = {};
-        
+
         csvData.data.forEach((row, index) => {
             if (index < 3) { // Log first few rows for debugging
                 console.log(`Row ${index}:`, row);
             }
-            
+
             // Look for hour column (might be 'Hour', 'Time', etc.)
-            const hourKey = Object.keys(row).find(key => 
+            const hourKey = Object.keys(row).find(key =>
                 key.toLowerCase().includes('hour') || key.toLowerCase().includes('time')
             );
-            
+
             // Look for the source column (Porpoise, Dolphin, Sonar)
-            const sourceKey = Object.keys(row).find(key => 
+            const sourceKey = Object.keys(row).find(key =>
                 key.toLowerCase().includes(source.toLowerCase())
             );
-            
+
             if (index < 3) {
                 console.log(`Row ${index} - Hour key: "${hourKey}", Source key: "${sourceKey}"`);
                 if (hourKey) console.log(`  Hour value: "${row[hourKey]}"`);
                 if (sourceKey) console.log(`  Source value: "${row[sourceKey]}"`);
             }
-            
+
             if (hourKey && sourceKey && row[hourKey] && row[sourceKey]) {
                 let hour = row[hourKey];
-                
+
                 // Extract hour from timestamp if it's a full date/time
                 if (typeof hour === 'string' && hour.includes('T')) {
                     // Extract hour from ISO timestamp like "2025-03-30T01:00:00.000Z"
@@ -3744,20 +3802,130 @@ class NavigationManager {
                     // Use as-is and pad
                     hour = String(hour).padStart(2, '0');
                 }
-                
+
                 const dpm = parseFloat(row[sourceKey]) || 0;
                 hourlyData[hour] = dpm;
-                
+
                 if (index < 3) {
                     console.log(`  Stored: hour="${hour}", dpm=${dpm}`);
                 }
             }
         });
-        
+
         console.log('Extracted hourly data:', Object.keys(hourlyData).length, 'hours');
         console.log('Sample hourly data:', Object.fromEntries(Object.entries(hourlyData).slice(0, 5)));
-        
+
         return hourlyData;
+    }
+
+    extractStandardData(csvData, source) {
+        console.log(`=== EXTRACT STANDARD DATA FOR SOURCE: ${source} ===`);
+        console.log('CSV headers:', csvData.headers);
+        console.log('CSV data rows:', csvData.data.length);
+
+        // Group data by day first, then calculate % detection per day
+        const dailyData = {};
+
+        csvData.data.forEach((row, index) => {
+            if (index < 3) { // Log first few rows for debugging
+                console.log(`Row ${index}:`, row);
+            }
+
+            // Look for time column (ISO format)
+            const timeKey = Object.keys(row).find(key =>
+                key.toLowerCase().includes('time') || key.toLowerCase().includes('hour')
+            );
+
+            // Look for the source column (Porpoise, Dolphin, Sonar, etc.)
+            const sourceKey = Object.keys(row).find(key =>
+                key.toLowerCase().includes(source.toLowerCase())
+            );
+
+            if (index < 3) {
+                console.log(`Row ${index} - Time key: "${timeKey}", Source key: "${sourceKey}"`);
+                if (timeKey) console.log(`  Time value: "${row[timeKey]}"`);
+                if (sourceKey) console.log(`  Source value: "${row[sourceKey]}"`);
+            }
+
+            if (timeKey && sourceKey && row[timeKey] && row[sourceKey] !== undefined) {
+                const timeValue = row[timeKey];
+                const dpm = parseFloat(row[sourceKey]) || 0;
+
+                // Parse ISO time format to get date and hour
+                let date, hour;
+                if (typeof timeValue === 'string' && timeValue.includes('T')) {
+                    // ISO timestamp like "2025-03-30T01:00:00.000Z"
+                    const dateObj = new Date(timeValue);
+                    date = dateObj.toISOString().split('T')[0]; // Get YYYY-MM-DD
+                    hour = String(dateObj.getHours()).padStart(2, '0'); // 00-23 format
+                } else {
+                    // Fallback - assume it's just hour data
+                    date = 'unknown';
+                    hour = String(timeValue).padStart(2, '0');
+                }
+
+                // Initialize day data if not exists
+                if (!dailyData[date]) {
+                    dailyData[date] = { totalHours: 0, detectedHours: 0, hourlyData: {} };
+                }
+
+                // Track this hour
+                dailyData[date].totalHours++;
+                dailyData[date].hourlyData[hour] = dpm;
+
+                // Count as detected if DPM > 0
+                if (dpm > 0) {
+                    dailyData[date].detectedHours++;
+                }
+
+                if (index < 3) {
+                    console.log(`  Processed: date="${date}", hour="${hour}", dpm=${dpm}, detected=${dpm > 0}`);
+                }
+            }
+        });
+
+        // Calculate % detection per day and aggregate by hour across all days
+        const hourlyPercentages = {};
+        let totalDays = 0;
+
+        // Initialize all hours to 0
+        for (let h = 0; h < 24; h++) {
+            hourlyPercentages[String(h + 1).padStart(2, '0')] = 0; // Using 01-24 format
+        }
+
+        Object.keys(dailyData).forEach(date => {
+            const dayData = dailyData[date];
+            const dayPercentage = dayData.totalHours > 0 ? (dayData.detectedHours / dayData.totalHours) * 100 : 0;
+
+            console.log(`Day ${date}: ${dayData.detectedHours}/${dayData.totalHours} hours detected (${dayPercentage.toFixed(1)}%)`);
+
+            // For each hour in this day, add the day's percentage if there was detection
+            Object.keys(dayData.hourlyData).forEach(hour => {
+                const hourDPM = dayData.hourlyData[hour];
+                const displayHour = String(parseInt(hour) + 1).padStart(2, '0'); // Convert to 01-24 format
+
+                if (hourDPM > 0) {
+                    // This hour had detection, so add the day's detection percentage
+                    if (!hourlyPercentages[displayHour]) hourlyPercentages[displayHour] = 0;
+                    hourlyPercentages[displayHour] += dayPercentage;
+                }
+            });
+
+            totalDays++;
+        });
+
+        // Average the percentages across all days
+        Object.keys(hourlyPercentages).forEach(hour => {
+            if (totalDays > 0) {
+                hourlyPercentages[hour] = hourlyPercentages[hour] / totalDays;
+            }
+        });
+
+        console.log('Calculated hourly percentages:', Object.keys(hourlyPercentages).length, 'hours');
+        console.log('Sample hourly percentages:', Object.fromEntries(Object.entries(hourlyPercentages).slice(0, 5)));
+        console.log(`Total days processed: ${totalDays}`);
+
+        return hourlyPercentages;
     }
 
     drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas) {
@@ -4349,48 +4517,65 @@ class NavigationManager {
             // Title and subtitle removed
             
             console.log('Preparing data for plotting...');
-            // Prepare data for plotting (same format as 24hr)
+            // Prepare data for plotting with dual y-axes (DPM + % day detected)
             const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
             let maxDPM = 0;
-            
+            let maxPercentage = 0;
+
             const plotData = siteData.map((site, index) => {
+                // Extract DPM data (first y-axis)
                 const hourlyData = this.extractHourlyData(site.data, source);
                 const dpmValues = hours.map(hour => {
                     const hourKey = hour.replace(':00', '');
                     return hourlyData[hourKey] || 0;
                 });
                 maxDPM = Math.max(maxDPM, ...dpmValues);
-                
+
+                // Calculate detection rate (second y-axis): (DPM / 1440) * 100
+                const detectionRateValues = dpmValues.map(dpm => (dpm / 1440) * 100);
+                maxPercentage = Math.max(maxPercentage, ...detectionRateValues);
+
                 return {
                     site: site.site,
                     dpmValues: dpmValues,
+                    detectionRateValues: detectionRateValues,
                     color: this.getSiteColor(index)
                 };
             });
             
-            // Define plot area
+            // Define plot area (wider left margin for dual y-axes)
             const plotArea = {
-                left: 80,
+                left: 100,
                 top: 60,
-                right: displayWidth - 80,
+                right: displayWidth - 100,
                 bottom: displayHeight - 80,
-                width: displayWidth - 160,
+                width: displayWidth - 200,
                 height: displayHeight - 140
             };
-            
-            console.log('Drawing axes...');
-            // Draw axes and labels
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, displayWidth);
-            
-            console.log('Plotting data...');
-            // Plot each site's data
+
+            // Round up max values to nice numbers
+            maxDPM = Math.ceil(maxDPM * 1.1);
+            maxPercentage = Math.ceil(maxPercentage * 1.1);
+
+            console.log('Drawing dual y-axes...');
+            // Draw axes and labels with dual y-axes
+            this.drawDualYAxes(ctx, plotArea, hours, maxDPM, maxPercentage);
+
+            console.log('Plotting DPM data...');
+            // Plot each site's DPM data (first y-axis)
             plotData.forEach((siteData, index) => {
-                this.plotSiteData(ctx, plotArea, siteData, hours, maxDPM);
+                this.plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM);
             });
-            
-            console.log('Drawing legend...');
-            // Draw legend
-            this.drawPlotLegend(ctx, plotData, plotArea);
+
+            console.log('Plotting detection rate data...');
+            // Plot each site's detection rate data (second y-axis) with dashed lines
+            plotData.forEach((siteData, index) => {
+                this.plotSiteDataDetectionRate(ctx, plotArea, siteData, hours, maxPercentage);
+            });
+
+            console.log('Drawing dual-axis legend...');
+            // Draw legend for dual y-axis plot
+            this.drawDualAxisLegend(ctx, plotData, plotArea);
             
             console.log('Updating output div...');
             // Update output div
@@ -4551,6 +4736,251 @@ class NavigationManager {
             `;
         }
     }
+
+    // Color methods for plots
+    getSiteColor(index) {
+        const journalColors = [
+            '#1f77b4', // Blue
+            '#ff7f0e', // Orange
+            '#2ca02c', // Green
+            '#d62728', // Red
+            '#9467bd', // Purple
+            '#8c564b', // Brown
+            '#e377c2', // Pink
+            '#7f7f7f', // Gray
+            '#bcbd22', // Olive
+            '#17becf'  // Cyan
+        ];
+        return journalColors[index % journalColors.length];
+    }
+
+    getSourceColor(index) {
+        const journalColors = [
+            '#1f77b4', // Blue
+            '#ff7f0e', // Orange
+            '#2ca02c', // Green
+            '#d62728', // Red
+            '#9467bd', // Purple
+            '#8c564b', // Brown
+            '#e377c2', // Pink
+            '#7f7f7f', // Gray
+            '#bcbd22', // Olive
+            '#17becf'  // Cyan
+        ];
+        return journalColors[index % journalColors.length];
+    }
+
+    drawDualYAxes(ctx, plotArea, hours, maxDPM, maxPercentage) {
+        // Softer, elegant styling
+        ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
+        ctx.lineWidth = 1;
+
+        // Draw X-axis
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, plotArea.bottom);
+        ctx.lineTo(plotArea.right, plotArea.bottom);
+        ctx.stroke();
+
+        // Draw left Y-axis (DPM)
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, plotArea.top);
+        ctx.lineTo(plotArea.left, plotArea.bottom);
+        ctx.stroke();
+
+        // Draw right Y-axis (% day detected)
+        ctx.beginPath();
+        ctx.moveTo(plotArea.right, plotArea.top);
+        ctx.lineTo(plotArea.right, plotArea.bottom);
+        ctx.stroke();
+
+        // Style for axis labels
+        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#666666';  // Softer text color
+
+        // X-axis labels (hours)
+        const xStep = plotArea.width / 24;
+        hours.forEach((hour, index) => {
+            const x = plotArea.left + (index + 0.5) * xStep;
+            const hourLabel = hour.replace(':00', '');
+
+            if (index % 2 === 0) { // Show every other hour to avoid crowding
+                ctx.fillText(hourLabel, x, plotArea.bottom + 20);
+            }
+        });
+
+        // X-axis title
+        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.fillText('Hour of Day', plotArea.left + plotArea.width / 2, plotArea.bottom + 50);
+
+        // Left Y-axis labels (DPM)
+        ctx.textAlign = 'right';
+        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.fillStyle = '#1f77b4'; // Blue for DPM
+        const dpmSteps = 5;
+        for (let i = 0; i <= dpmSteps; i++) {
+            const value = (maxDPM / dpmSteps) * i;
+            const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+            ctx.fillText(value.toFixed(1), plotArea.left - 10, y + 4);
+        }
+
+        // Left Y-axis title (DPM)
+        ctx.save();
+        ctx.translate(plotArea.left - 60, plotArea.top + plotArea.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('DPM (Detections per Minute)', 0, 0);
+        ctx.restore();
+
+        // Right Y-axis labels (Detection Rate %)
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#d62728'; // Red for detection rate
+        const percentSteps = 5;
+        for (let i = 0; i <= percentSteps; i++) {
+            const value = (maxPercentage / percentSteps) * i;
+            const y = plotArea.bottom - (plotArea.height / percentSteps) * i;
+            ctx.fillText(value.toFixed(1) + '%', plotArea.right + 10, y + 4);
+        }
+
+        // Right Y-axis title (Detection Rate %)
+        ctx.save();
+        ctx.translate(plotArea.right + 80, plotArea.top + plotArea.height / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Detection Rate (%)', 0, 0);
+        ctx.restore();
+    }
+
+    plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM) {
+        const { site, dpmValues, color } = siteData;
+
+        // Solid line for DPM data
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([]); // Solid line
+
+        const xStep = plotArea.width / 24;
+
+        ctx.beginPath();
+        let firstPoint = true;
+
+        dpmValues.forEach((dpm, index) => {
+            const x = plotArea.left + (index + 0.5) * xStep;
+            const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+
+            if (firstPoint) {
+                ctx.moveTo(x, y);
+                firstPoint = false;
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+
+        ctx.stroke();
+    }
+
+    plotSiteDataDetectionRate(ctx, plotArea, siteData, hours, maxPercentage) {
+        const { site, detectionRateValues, color } = siteData;
+
+        // Dashed line for detection rate data
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.setLineDash([5, 5]); // Dashed line
+
+        const xStep = plotArea.width / 24;
+
+        ctx.beginPath();
+        let firstPoint = true;
+
+        detectionRateValues.forEach((detectionRate, index) => {
+            const x = plotArea.left + (index + 0.5) * xStep;
+            const y = plotArea.bottom - (detectionRate / maxPercentage) * plotArea.height;
+
+            if (firstPoint) {
+                ctx.moveTo(x, y);
+                firstPoint = false;
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset to solid line
+    }
+
+    drawDualAxisLegend(ctx, plotData, plotArea) {
+        // Legend positioning - more space needed for dual entries
+        const legendX = plotArea.left + 20;
+        const legendY = plotArea.top + 20;
+
+        // Calculate legend box dimensions - doubled for both line types
+        const legendPadding = 8;
+        const lineHeight = 18;
+        const legendWidth = 200;
+        const legendHeight = (plotData.length * lineHeight * 2) + (legendPadding * 2) + 25; // Extra space for headers
+
+        // Draw legend background box with transparency
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'; // More opaque for readability
+        ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+        // Draw legend border
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+        // Draw legend headers
+        ctx.font = 'bold 12px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#1f77b4'; // Blue for DPM
+        ctx.fillText('DPM (solid lines):', legendX, legendY + 12);
+
+        ctx.fillStyle = '#d62728'; // Red for detection rate
+        ctx.fillText('Detection Rate % (dashed):', legendX, legendY + 26);
+
+        // Draw legend items
+        ctx.font = '11px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        let currentY = legendY + 45;
+
+        plotData.forEach((siteData, i) => {
+            // DPM line (solid)
+            ctx.strokeStyle = siteData.color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([]); // Solid line
+            ctx.beginPath();
+            ctx.moveTo(legendX + 5, currentY - 2);
+            ctx.lineTo(legendX + 25, currentY - 2);
+            ctx.stroke();
+
+            // Site name for DPM
+            ctx.fillStyle = '#374151';
+            ctx.fillText(`${siteData.site} (DPM)`, legendX + 30, currentY + 2);
+
+            currentY += lineHeight;
+
+            // Percentage line (dashed)
+            ctx.strokeStyle = siteData.color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]); // Dashed line
+            ctx.beginPath();
+            ctx.moveTo(legendX + 5, currentY - 2);
+            ctx.lineTo(legendX + 25, currentY - 2);
+            ctx.stroke();
+
+            // Site name for detection rate
+            ctx.fillStyle = '#374151';
+            ctx.fillText(`${siteData.site} (Rate%)`, legendX + 30, currentY + 2);
+
+            currentY += lineHeight;
+        });
+
+        ctx.setLineDash([]); // Reset to solid line
+    }
 }
 
 // Initialize the CSV Manager and Navigation when the page loads
@@ -4566,7 +4996,8 @@ document.addEventListener('DOMContentLoaded', () => {
         originalUpdateFileBrowser.call(this, files);
         // Update plot page when files are loaded
         if (navigationManager) {
-            navigationManager.updatePlotPageFileInfo();
+            // Fire and forget - don't await to avoid blocking the UI
+            navigationManager.updatePlotPageFileInfo().catch(console.error);
         }
     };
 });
