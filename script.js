@@ -4517,13 +4517,12 @@ class NavigationManager {
             // Title and subtitle removed
             
             console.log('Preparing data for plotting...');
-            // Prepare data for plotting with dual y-axes (DPM + % day detected)
+            // Prepare data for plotting DPM values only
             const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
             let maxDPM = 0;
-            let maxPercentage = 0;
 
             const plotData = siteData.map((site, index) => {
-                // Extract DPM data (first y-axis)
+                // Extract DPM data
                 const hourlyData = this.extractHourlyData(site.data, source);
                 const dpmValues = hours.map(hour => {
                     const hourKey = hour.replace(':00', '');
@@ -4531,51 +4530,39 @@ class NavigationManager {
                 });
                 maxDPM = Math.max(maxDPM, ...dpmValues);
 
-                // Calculate detection rate (second y-axis): (DPM / 1440) * 100
-                const detectionRateValues = dpmValues.map(dpm => (dpm / 1440) * 100);
-                maxPercentage = Math.max(maxPercentage, ...detectionRateValues);
-
                 return {
                     site: site.site,
                     dpmValues: dpmValues,
-                    detectionRateValues: detectionRateValues,
                     color: this.getSiteColor(index)
                 };
             });
             
-            // Define plot area (wider left margin for dual y-axes)
+            // Define plot area
             const plotArea = {
-                left: 100,
+                left: 80,
                 top: 60,
-                right: displayWidth - 100,
+                right: displayWidth - 80,
                 bottom: displayHeight - 80,
-                width: displayWidth - 200,
+                width: displayWidth - 160,
                 height: displayHeight - 140
             };
 
-            // Round up max values to nice numbers
+            // Round up max value to nice number
             maxDPM = Math.ceil(maxDPM * 1.1);
-            maxPercentage = Math.ceil(maxPercentage * 1.1);
 
-            console.log('Drawing dual y-axes...');
-            // Draw axes and labels with dual y-axes
-            this.drawDualYAxes(ctx, plotArea, hours, maxDPM, maxPercentage);
+            console.log('Drawing axes...');
+            // Draw axes and labels
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, displayWidth);
 
             console.log('Plotting DPM data...');
-            // Plot each site's DPM data (first y-axis)
+            // Plot each site's DPM data
             plotData.forEach((siteData, index) => {
                 this.plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM);
             });
 
-            console.log('Plotting detection rate data...');
-            // Plot each site's detection rate data (second y-axis) with dashed lines
-            plotData.forEach((siteData, index) => {
-                this.plotSiteDataDetectionRate(ctx, plotArea, siteData, hours, maxPercentage);
-            });
-
-            console.log('Drawing dual-axis legend...');
-            // Draw legend for dual y-axis plot
-            this.drawDualAxisLegend(ctx, plotData, plotArea);
+            console.log('Drawing legend...');
+            // Draw legend
+            this.drawPlotLegend(ctx, plotData, plotArea);
             
             console.log('Updating output div...');
             // Update output div
