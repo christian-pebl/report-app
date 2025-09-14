@@ -3271,11 +3271,11 @@ class NavigationManager {
     }
 
     extractSiteNameFromFilename(filename) {
-        // Extract site name from filename: take text after 2nd underscore to before 3rd underscore
-        // Example: FPOD_Alga_Control-S_2504-2506_24hr.csv -> Control-S
+        // Extract site name from filename: take text between 2nd and 4th underscore (PROJECT_REQUIREMENTS)
+        // Example: FPOD_Alga_Control-S_2406-2407_24hr.csv -> Control-S_2406-2407
         const parts = filename.split('_');
-        if (parts.length >= 3) {
-            return parts[2];
+        if (parts.length >= 4) {
+            return parts.slice(2, 4).join('_');
         }
         // Fallback to the filename if extraction fails
         return filename.replace(/\.(csv|CSV)$/, '');
@@ -4257,10 +4257,28 @@ class NavigationManager {
             return fileName; // Return original if not enough underscores
         };
 
-        // Calculate legend box dimensions
-        const legendPadding = 6; // Reduced from 10 to 6 for more compact layout
+        // Calculate legend box dimensions dynamically based on text content
+        const legendPadding = 6;
         const lineHeight = 20;
-        const legendWidth = 140;
+
+        // Set font for measurement
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+        // Calculate maximum text width
+        let maxTextWidth = 0;
+        plotData.forEach((siteData) => {
+            let displayName;
+            if (plotData.length === 1) {
+                displayName = truncateFileName(siteData.site);
+            } else {
+                displayName = siteData.site; // Already truncated by extractSiteNameFromFilename
+            }
+            const textWidth = ctx.measureText(displayName).width;
+            maxTextWidth = Math.max(maxTextWidth, textWidth);
+        });
+
+        // Legend width: line sample (30px) + text width + padding
+        const legendWidth = Math.max(140, maxTextWidth + 60); // Minimum 140px, but expand as needed
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
