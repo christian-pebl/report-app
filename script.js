@@ -3027,13 +3027,13 @@ class NavigationManager {
         const updateSiteComparisonButton = () => {
             const sourceSelected = sourceSelect1.value;
             const sitesSelected = Array.from(sitesSelect1.selectedOptions).map(option => option.value);
-            generateSiteComparisonBtn.disabled = !sourceSelected || sitesSelected.length < 2;
+            generateSiteComparisonBtn.disabled = !sourceSelected || sitesSelected.length < 1;
         };
 
         const updateSourceComparisonButton = () => {
             const siteSelected = siteSelect2.value;
             const sourcesSelected = Array.from(sourcesSelect2.selectedOptions).map(option => option.value);
-            generateSourceComparisonBtn.disabled = !siteSelected || sourcesSelected.length < 2;
+            generateSourceComparisonBtn.disabled = !siteSelected || sourcesSelected.length < 1;
         };
 
         // Add event listeners
@@ -3073,7 +3073,7 @@ class NavigationManager {
             const sourceSelected = sourceSelectStd1?.value;
             const sitesSelected = Array.from(sitesSelectStd1?.selectedOptions || []).map(option => option.value);
             if (generateSiteComparisonStdBtn) {
-                generateSiteComparisonStdBtn.disabled = !sourceSelected || sitesSelected.length < 2;
+                generateSiteComparisonStdBtn.disabled = !sourceSelected || sitesSelected.length < 1;
             }
         };
 
@@ -3081,7 +3081,7 @@ class NavigationManager {
             const siteSelected = siteSelectStd2?.value;
             const sourcesSelected = Array.from(sourcesSelectStd2?.selectedOptions || []).map(option => option.value);
             if (generateSourceComparisonStdBtn) {
-                generateSourceComparisonStdBtn.disabled = !siteSelected || sourcesSelected.length < 2;
+                generateSourceComparisonStdBtn.disabled = !siteSelected || sourcesSelected.length < 1;
             }
         };
 
@@ -4149,9 +4149,14 @@ class NavigationManager {
             ctx.lineTo(x, plotArea.bottom + 5);
             ctx.stroke();
             
-            // Label (show every 2 hours to avoid crowding)
+            // Label (show every 2 hours to avoid crowding) - rotated at 45 degrees
             if (i % 2 === 0) {
-                ctx.fillText(hour, x, plotArea.bottom + 20);
+                ctx.save();
+                ctx.translate(x, plotArea.bottom + 20);
+                ctx.rotate(-Math.PI / 4); // -45 degrees
+                ctx.textAlign = 'right';
+                ctx.fillText(hour, 0, 0);
+                ctx.restore();
             }
         });
         
@@ -5064,14 +5069,18 @@ class NavigationManager {
         ctx.textAlign = 'center';
         ctx.fillStyle = '#666666';  // Softer text color
 
-        // X-axis labels (hours)
-        const xStep = plotArea.width / 24;
+        // X-axis labels (dates)
+        const xStep = plotArea.width / hours.length;
         hours.forEach((hour, index) => {
             const x = plotArea.left + (index + 0.5) * xStep;
-            const hourLabel = hour.replace(':00', '');
 
-            if (index % 2 === 0) { // Show every other hour to avoid crowding
-                ctx.fillText(hourLabel, x, plotArea.bottom + 20);
+            if (index % 2 === 0) { // Show every other date to avoid crowding - rotated at 45 degrees
+                ctx.save();
+                ctx.translate(x, plotArea.bottom + 20);
+                ctx.rotate(-Math.PI / 4); // -45 degrees
+                ctx.textAlign = 'right';
+                ctx.fillText(hour, 0, 0);
+                ctx.restore();
             }
         });
 
@@ -5129,7 +5138,7 @@ class NavigationManager {
         ctx.lineJoin = 'round';
         ctx.setLineDash([]); // Solid line
 
-        const xStep = plotArea.width / 24;
+        const xStep = plotArea.width / dpmValues.length;
 
         ctx.beginPath();
         let firstPoint = true;
@@ -5159,7 +5168,7 @@ class NavigationManager {
         ctx.lineJoin = 'round';
         ctx.setLineDash([5, 5]); // Dashed line
 
-        const xStep = plotArea.width / 24;
+        const xStep = plotArea.width / dpmValues.length;
 
         ctx.beginPath();
         let firstPoint = true;
