@@ -1155,12 +1155,49 @@ class CSVManager {
 
     drawTimeSeriesChart(ctx, canvas, plotData, numericColumns) {
         const margin = 60;
+        const titleHeight = 40; // Space for title
         const plotWidth = canvas.width / window.devicePixelRatio - 2 * margin;
-        const plotHeight = canvas.height / window.devicePixelRatio - 2 * margin;
-        
+        const plotHeight = canvas.height / window.devicePixelRatio - 2 * margin - titleHeight;
+
         // Colors for different series
         const colors = ['#007aff', '#34c759', '#ff3b30', '#ff9500', '#af52de', '#00c7be', '#ff2d92'];
-        
+
+        // File name truncation function (2nd to 4th underscore)
+        const truncateFileName = (fileName) => {
+            const parts = fileName.split('_');
+            if (parts.length >= 4) {
+                return parts.slice(2, 4).join('_');
+            }
+            return fileName; // Return original if not enough underscores
+        };
+
+        // Determine chart title based on data context
+        let chartTitle = '';
+        if (numericColumns.length === 1) {
+            // Single column selected - use column name as title
+            chartTitle = numericColumns[0].header;
+        } else if (this.fileName) {
+            // Multiple columns or file-based view - use truncated filename
+            chartTitle = truncateFileName(this.fileName);
+        }
+
+        // Separate std and non-std columns
+        const stdColumns = numericColumns.filter(col =>
+            col.header.toLowerCase().includes('std') ||
+            this.fileName.toLowerCase().includes('_std')
+        );
+        const nonStdColumns = numericColumns.filter(col =>
+            !col.header.toLowerCase().includes('std') &&
+            !this.fileName.toLowerCase().includes('_std')
+        );
+
+        console.log('Chart data context:', {
+            fileName: this.fileName,
+            numericColumns: numericColumns.map(c => c.header),
+            stdColumns: stdColumns.map(c => c.header),
+            nonStdColumns: nonStdColumns.map(c => c.header)
+        });
+
         // Find min/max for each series
         const seriesStats = {};
         numericColumns.forEach(col => {
@@ -1172,41 +1209,89 @@ class CSVManager {
                 };
             }
         });
-        
+
+        // Find global min/max for std and non-std series separately
+        let globalStdMin = Infinity, globalStdMax = -Infinity;
+        let globalNonStdMin = Infinity, globalNonStdMax = -Infinity;
+
+        stdColumns.forEach(col => {
+            if (seriesStats[col.header]) {
+                globalStdMin = Math.min(globalStdMin, seriesStats[col.header].min);
+                globalStdMax = Math.max(globalStdMax, seriesStats[col.header].max);
+            }
+        });
+
+        nonStdColumns.forEach(col => {
+            if (seriesStats[col.header]) {
+                globalNonStdMin = Math.min(globalNonStdMin, seriesStats[col.header].min);
+                globalNonStdMax = Math.max(globalNonStdMax, seriesStats[col.header].max);
+            }
+        });
+
+        // If we have both std and non-std data, scale std down to match non-std range
+        const stdScaleFactor = (nonStdColumns.length > 0 && stdColumns.length > 0) ?
+            (globalNonStdMax - globalNonStdMin) / (globalStdMax - globalStdMin) * 0.05 : 1;
+
+        console.log('Scaling calculation:', {
+            globalStdMin, globalStdMax,
+            globalNonStdMin, globalNonStdMax,
+            stdScaleFactor,
+            hasStdColumns: stdColumns.length > 0,
+            hasNonStdColumns: nonStdColumns.length > 0
+        });
+
         // Find time range
         let timeMin = plotData[0].time;
         let timeMax = plotData[plotData.length - 1].time;
-        
-        // Draw axes
+
+        // Draw chart title (left-aligned)
+        if (chartTitle) {
+            ctx.font = 'bold 18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+            ctx.fillStyle = '#1d1d1f';
+            ctx.textAlign = 'left';
+            ctx.fillText(chartTitle, margin, margin - 10);
+        }
+
+        // Draw axes (adjusted for title space)
         ctx.strokeStyle = '#d1d1d6';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(margin, margin);
-        ctx.lineTo(margin, margin + plotHeight);
-        ctx.lineTo(margin + plotWidth, margin + plotHeight);
+        ctx.moveTo(margin, margin + titleHeight);
+        ctx.lineTo(margin, margin + titleHeight + plotHeight);
+        ctx.lineTo(margin + plotWidth, margin + titleHeight + plotHeight);
         ctx.stroke();
         
         // Draw time series
         numericColumns.forEach((col, seriesIndex) => {
             if (!seriesStats[col.header]) return;
-            
+
             const color = colors[seriesIndex % colors.length];
-            const stats = seriesStats[col.header];
-            const range = stats.max - stats.min;
-            
+            const isStdSeries = stdColumns.includes(col);
+
+            // Use global scaling for better comparison
+            let globalMin, globalMax;
+            if (isStdSeries) {
+                globalMin = globalStdMin;
+                globalMax = globalStdMax;
+            } else {
+                globalMin = globalNonStdMin;
+                globalMax = globalNonStdMax;
+            }
+
+            const range = globalMax - globalMin;
             if (range === 0) return; // Skip constant series
-            
+
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            
+
             let firstPoint = true;
             plotData.forEach(point => {
                 const value = point.values[col.header];
                 if (value === undefined) return;
-                
+
                 let x, y;
-                
+
                 // Calculate x position based on time
                 if (point.time instanceof Date) {
                     const timeRange = timeMax - timeMin;
@@ -1215,10 +1300,21 @@ class CSVManager {
                     const timeRange = timeMax - timeMin;
                     x = margin + (point.time - timeMin) / timeRange * plotWidth;
                 }
-                
-                // Calculate y position (inverted for canvas)
-                y = margin + plotHeight - ((value - stats.min) / range) * plotHeight;
-                
+
+                // Calculate y position with scaling for std series
+                let scaledValue = value;
+                let scaledMin = globalMin;
+
+                if (isStdSeries && stdScaleFactor !== 1) {
+                    // Scale down std values to be comparable with non-std values
+                    scaledValue = (value - globalMin) * stdScaleFactor + globalNonStdMin;
+                    scaledMin = globalNonStdMin;
+                    const scaledRange = (globalMax - globalMin) * stdScaleFactor;
+                    y = margin + titleHeight + plotHeight - ((scaledValue - scaledMin) / (globalNonStdMax - globalNonStdMin)) * plotHeight;
+                } else {
+                    y = margin + titleHeight + plotHeight - ((value - globalMin) / range) * plotHeight;
+                }
+
                 if (firstPoint) {
                     ctx.moveTo(x, y);
                     firstPoint = false;
@@ -1226,7 +1322,7 @@ class CSVManager {
                     ctx.lineTo(x, y);
                 }
             });
-            
+
             ctx.stroke();
         });
         
@@ -1234,18 +1330,35 @@ class CSVManager {
         ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         const legendY = 20;
         let legendX = margin;
-        
+
         numericColumns.forEach((col, seriesIndex) => {
             if (!seriesStats[col.header]) return;
-            
+
             const color = colors[seriesIndex % colors.length];
+            const isStdSeries = stdColumns.includes(col);
+
             ctx.fillStyle = color;
             ctx.fillRect(legendX, legendY, 12, 12);
-            
+
             ctx.fillStyle = '#1d1d1f';
-            ctx.fillText(col.header, legendX + 18, legendY + 9);
-            
-            legendX += ctx.measureText(col.header).width + 40;
+
+            // Determine legend text based on context
+            let legendText;
+            if (numericColumns.length === 1) {
+                // Single column selected (column first) - show truncated file name
+                legendText = truncateFileName(this.fileName);
+            } else {
+                // Multiple columns or file-based view (file first) - show column header
+                legendText = col.header;
+            }
+
+            if (isStdSeries && stdScaleFactor !== 1) {
+                legendText += ' (scaled)';
+            }
+
+            ctx.fillText(legendText, legendX + 18, legendY + 9);
+
+            legendX += ctx.measureText(legendText).width + 40;
         });
     }
 
@@ -4520,6 +4633,8 @@ class NavigationManager {
             // Prepare data for plotting DPM values only
             const hours = Array.from({length: 24}, (_, i) => String(i + 1).padStart(2, '0') + ':00');
             let maxDPM = 0;
+            let maxStdDPM = 0;
+            let maxNonStdDPM = 0;
 
             const plotData = siteData.map((site, index) => {
                 // Extract DPM data
@@ -4528,14 +4643,44 @@ class NavigationManager {
                     const hourKey = hour.replace(':00', '');
                     return hourlyData[hourKey] || 0;
                 });
-                maxDPM = Math.max(maxDPM, ...dpmValues);
+
+                const maxSiteValue = Math.max(...dpmValues);
+                maxDPM = Math.max(maxDPM, maxSiteValue);
+
+                // Check if this is a std file
+                const isStdFile = site.site.toLowerCase().includes('_std');
+                if (isStdFile) {
+                    maxStdDPM = Math.max(maxStdDPM, maxSiteValue);
+                } else {
+                    maxNonStdDPM = Math.max(maxNonStdDPM, maxSiteValue);
+                }
 
                 return {
                     site: site.site,
                     dpmValues: dpmValues,
-                    color: this.getSiteColor(index)
+                    color: this.getSiteColor(index),
+                    isStdFile: isStdFile
                 };
             });
+
+            // Apply scaling to std data if we have both std and non-std files
+            const hasStdFiles = plotData.some(site => site.isStdFile);
+            const hasNonStdFiles = plotData.some(site => !site.isStdFile);
+
+            if (hasStdFiles && hasNonStdFiles && maxStdDPM > 0 && maxNonStdDPM > 0) {
+                const stdScaleFactor = (maxNonStdDPM / maxStdDPM) * 0.8; // Scale std to 80% of non-std range
+                console.log('Applying std scaling factor:', stdScaleFactor);
+
+                plotData.forEach(site => {
+                    if (site.isStdFile) {
+                        site.dpmValues = site.dpmValues.map(val => val * stdScaleFactor);
+                        site.site += ' (scaled)'; // Add indicator to legend
+                    }
+                });
+
+                // Recalculate max after scaling
+                maxDPM = Math.max(maxNonStdDPM, maxStdDPM * stdScaleFactor);
+            }
             
             // Define plot area
             const plotArea = {
