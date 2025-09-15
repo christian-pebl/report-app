@@ -1,5 +1,39 @@
 # Claude Assistant Guidelines for Report App Development
 
+## Universal Project Documentation Requirements
+
+### Essential Project Files
+**ALWAYS ensure these files exist in EVERY project:**
+
+1. **PROJECT_REQUIREMENTS.md** or **COMPREHENSIVE_PROJECT_REQUIREMENTS.md**
+   - Complete technical specification
+   - Feature descriptions and implementation details
+   - User interface documentation
+   - Data processing workflows
+   - Testing requirements
+
+2. **PROJECT_HISTORY.md**
+   - Feature development timeline
+   - Version history with timestamps
+   - Commit hashes and deployment records
+   - Testing status and release notes
+   - Developer notes and lessons learned
+
+3. **CLAUDE.md** (this file)
+   - Development guidelines specific to the project
+   - Workflow instructions for feature additions
+   - Quality assurance reminders
+   - Repository management practices
+
+### When Starting ANY New Project
+```markdown
+1. Create PROJECT_REQUIREMENTS.md - Document the project purpose, technical specs, and requirements
+2. Create PROJECT_HISTORY.md - Track all development milestones and releases
+3. Create CLAUDE.md - Establish development guidelines and workflow practices
+4. Initialize git repository with proper .gitignore
+5. Set up initial project structure and documentation
+```
+
 ## Project Requirements Management
 
 ### New Feature Development Workflow
