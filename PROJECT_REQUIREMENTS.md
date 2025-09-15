@@ -39,6 +39,27 @@ Examples:
 - Add "(scaled)" indicator to legend for scaled series
 - This prevents std series from overwhelming the main data visualization
 
+## Standard Plot Data Reading Requirements
+
+### Single File Selection for Standard Plots
+When using standard plots with single file selection:
+
+1. **Complete Data Reading**:
+   - When selecting "Dolphin" and just one std file, the app MUST read ALL time values and ALL corresponding Dolphin DPM values from the entire CSV file
+   - The plot should display the complete dataset in its entirety, not just a subset
+
+2. **Source Column Mapping**:
+   - When "Dolphin" is selected, read from the DPM column that corresponds to Dolphin data
+   - When "Porpoise" is selected, read from the DPM column that corresponds to Porpoise data
+   - When "Sonar" is selected, read from the DPM column that corresponds to Sonar data
+
+3. **Time Series Completeness**:
+   - All time values from the CSV file should be plotted on the x-axis
+   - All corresponding DPM values should be plotted on the y-axis
+   - No data truncation or limitation should occur for single file selections
+
+**CRITICAL**: Currently this is NOT happening - the std plot is not reading and displaying the complete dataset when selecting a single file with one source variable.
+
 ## Implementation Notes
 - These rules ensure consistent chart readability and meaningful data comparison
 - Chart titles should be left-aligned and positioned above the plotting area

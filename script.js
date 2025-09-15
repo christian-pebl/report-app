@@ -3934,24 +3934,27 @@ class NavigationManager {
                 if (sourceKey) console.log(`  Source value: "${row[sourceKey]}"`);
             }
 
-            if (hourKey && sourceKey && row[hourKey] && row[sourceKey]) {
-                let hour = row[hourKey];
+            if (hourKey && sourceKey && row[hourKey] && row[sourceKey] !== undefined) {
+                let timeIdentifier = row[hourKey];
 
-                // Extract hour from timestamp if it's a full date/time
-                if (typeof hour === 'string' && hour.includes('T')) {
-                    // Extract hour from ISO timestamp like "2025-03-30T01:00:00.000Z"
-                    const dateObj = new Date(hour);
-                    hour = String(dateObj.getHours() + 1).padStart(2, '0'); // +1 because we want 01-24 not 00-23
+                // Handle different time formats for std files vs 24hr files
+                if (typeof timeIdentifier === 'string' && timeIdentifier.includes('T')) {
+                    // ISO timestamp like "2025-03-30T01:00:00.000Z" (common in std files)
+                    const dateObj = new Date(timeIdentifier);
+                    // Use a unique identifier that combines date and hour for std files
+                    const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                    const hourStr = String(dateObj.getHours()).padStart(2, '0'); // 00-23
+                    timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2025-03-30_14"
                 } else {
-                    // Use as-is and pad
-                    hour = String(hour).padStart(2, '0');
+                    // Use as-is for 24hr files (simple hour numbers)
+                    timeIdentifier = String(timeIdentifier).padStart(2, '0');
                 }
 
                 const dpm = parseFloat(row[sourceKey]) || 0;
-                hourlyData[hour] = dpm;
+                hourlyData[timeIdentifier] = dpm;
 
                 if (index < 3) {
-                    console.log(`  Stored: hour="${hour}", dpm=${dpm}`);
+                    console.log(`  Stored: timeIdentifier="${timeIdentifier}", dpm=${dpm}`);
                 }
             }
         });
@@ -3963,7 +3966,22 @@ class NavigationManager {
     }
 
     formatTimePointsAsDateLabels(sortedHours, sampleSiteData) {
-        // Extract the base date from the CSV data
+        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")
+        if (sortedHours.length > 0 && sortedHours[0].includes('_')) {
+            // This is std file format with date_hour identifiers
+            return sortedHours.map(timeIdentifier => {
+                const [dateStr, hourStr] = timeIdentifier.split('_');
+                const date = new Date(dateStr + 'T00:00:00Z');
+
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+
+                return `${day}/${month}/${year}`;
+            });
+        }
+
+        // Fallback for 24hr file format (simple hour numbers)
         let baseDate = null;
 
         // Try to find a timestamp in the data to extract the base date
