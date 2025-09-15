@@ -3844,7 +3844,7 @@ class NavigationManager {
 
             // Sort time points and format them as dates in dd/mm/yy format
             const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0]);
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "time");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
             let maxDPM = 0;
@@ -3878,7 +3878,7 @@ class NavigationManager {
             
             console.log('Drawing axes...');
             // Draw axes
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas);
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
             
             console.log('Plotting site data...');
             // Plot data for each site
@@ -3975,19 +3975,12 @@ class NavigationManager {
         return spacing;
     }
 
-    formatTimePointsAsDateLabels(sortedHours, sampleSiteData) {
-        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")
-        if (sortedHours.length > 0 && sortedHours[0].includes('_')) {
-            // This is std file format with date_hour identifiers
-            return sortedHours.map(timeIdentifier => {
-                const [dateStr, hourStr] = timeIdentifier.split('_');
-                const date = new Date(dateStr + 'T00:00:00Z');
-
-                const day = String(date.getDate()).padStart(2, '0');
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const year = String(date.getFullYear()).slice(-2);
-
-                return `${day}/${month}/${year}`;
+formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {        // For 24hr file format - use time format when requested (check this FIRST)        if (formatType === "time") {            return sortedHours.map((hour) => {                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);                const hours = String(hourNum).padStart(2, "0");                return `${hours}:00`;            });        }        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {            // This is std file format with date_hour identifiers            return sortedHours.map(timeIdentifier => {                const [dateStr, hourStr] = timeIdentifier.split("_");                const date = new Date(dateStr + "T00:00:00Z");                const day = String(date.getDate()).padStart(2, "0");                const month = String(date.getMonth() + 1).padStart(2, "0");                const year = String(date.getFullYear()).slice(-2);                return `${day}/${month}/${year}`;            });        }        // For 24hr file format - use time format when requested
+        if (formatType === "time") {
+            return sortedHours.map((hour) => {
+                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
+                const hours = String(hourNum).padStart(2, "0");
+                return `${hours}:00`;
             });
         }
 
@@ -4140,7 +4133,7 @@ class NavigationManager {
         return hourlyPercentages;
     }
 
-    drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas) {
+    drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, xAxisLabel = "Date") {
         // Softer, elegant styling
         ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
         ctx.lineWidth = 1;
@@ -4262,7 +4255,7 @@ class NavigationManager {
         ctx.fillStyle = '#555555';
         
         // X-axis label (positioned lower to avoid overlap with rotated tick labels)
-        ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 60);
+        ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 70 : plotArea.bottom + 60);
         
         // Left Y-axis label (moved much more RIGHT towards center)
         ctx.save();
@@ -4362,7 +4355,7 @@ class NavigationManager {
         });
 
         // Legend width: line sample (30px) + text width + padding
-        const legendWidth = Math.max(140, maxTextWidth + 60); // Minimum 140px, but expand as needed
+        const legendWidth = Math.max(120, maxTextWidth + 50); // Minimum 140px, but expand as needed
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
@@ -4379,20 +4372,20 @@ class NavigationManager {
         ctx.textAlign = 'left';
 
         plotData.forEach((siteData, i) => {
-            const y = legendY + (legendPadding * 2) + (i * lineHeight);
+            const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
 
             // Draw line sample only (no boxes) - adjusted for double padding
             ctx.strokeStyle = siteData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(legendX + (legendPadding * 2), y - 2);
-            ctx.lineTo(legendX + (legendPadding * 2) + 24, y - 2);
+            ctx.moveTo(legendX, y - 2);
+            ctx.lineTo(legendX + 24, y - 2);
             ctx.stroke();
 
             // Site name with truncation - adjusted for double padding
             ctx.fillStyle = '#374151';
             const displayName = truncateFileName(siteData.site);
-            ctx.fillText(displayName, legendX + (legendPadding * 2) + 30, y + 2);
+            ctx.fillText(displayName, legendX + 30, y + 2);
         });
     }
 
@@ -4516,7 +4509,7 @@ class NavigationManager {
 
         // Sort time points and format them as dates in dd/mm/yy format
         const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-        const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData});
+        const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "time");
         console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
         let maxDPM = 0;
@@ -4540,7 +4533,7 @@ class NavigationManager {
         const maxPercentage = Math.ceil((maxDPM / 60) * 100);
         
         // Draw axes
-        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas);
+        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
         
         // Plot data for each source
         plotData.forEach(sourceData => {
@@ -4640,19 +4633,19 @@ class NavigationManager {
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
-            const y = legendY + (legendPadding * 2) + (i * lineHeight);
+            const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
             
             // Draw line sample only (no boxes) - adjusted for double padding
             ctx.strokeStyle = sourceData.color;
             ctx.lineWidth = 2.5;
             ctx.beginPath();
-            ctx.moveTo(legendX + (legendPadding * 2), y - 2);
-            ctx.lineTo(legendX + (legendPadding * 2) + 24, y - 2);
+            ctx.moveTo(legendX, y - 2);
+            ctx.lineTo(legendX + 24, y - 2);
             ctx.stroke();
             
             // Source name - adjusted for double padding
             ctx.fillStyle = '#374151';
-            ctx.fillText(sourceData.source, legendX + (legendPadding * 2) + 30, y + 2);
+            ctx.fillText(sourceData.source, legendX + 30, y + 2);
         });
     }
 
@@ -4785,7 +4778,7 @@ class NavigationManager {
 
             // Sort time points and format them as dates in dd/mm/yy format
             const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0]);
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
             let maxDPM = 0;
@@ -4873,7 +4866,7 @@ class NavigationManager {
 
             console.log('Drawing axes...');
             // Draw axes and labels
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, 800);
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, 800, "Date");
 
             console.log('Plotting DPM data...');
             // Plot each site's DPM data
@@ -4988,7 +4981,7 @@ class NavigationManager {
 
             // Sort time points and format them as dates in dd/mm/yy format
             const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-            const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData});
+            const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
             let maxDPM = 0;
@@ -5018,7 +5011,7 @@ class NavigationManager {
             };
 
             // Draw axes and labels
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, 800);
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxDPM, 800, "Date");
             
             // Plot each source's data
             plotData.forEach((sourceData, index) => {

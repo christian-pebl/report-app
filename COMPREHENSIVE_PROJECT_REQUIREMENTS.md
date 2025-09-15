@@ -146,6 +146,14 @@ calculateOptimalLabelSpacing(dataSize) {
 - **1000 time points** → every 100th label → 10 labels total
 
 #### 5.3.3 Label Formatting
+
+**24hr Plots:**
+- **Format**: HH:MM (e.g., "00:00", "12:00", "23:00")
+- **Rotation**: -45 degrees for readability
+- **Alignment**: Right-aligned after rotation
+- **Positioning**: 20px below x-axis line
+
+**Standard Plots:**
 - **Format**: dd/mm/yy (e.g., "31/07/24")
 - **Rotation**: -45 degrees for readability
 - **Alignment**: Right-aligned after rotation
