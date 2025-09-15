@@ -42,6 +42,7 @@
             <div class="banner-right">
                 <button class="nav-tab active" data-page="reformat">Reformat</button>
                 <button class="nav-tab" data-page="plot">Plot</button>
+                <button class="nav-tab" data-page="multiplot">Multiplot</button>
             </div>
         </div>
     </nav>
@@ -69,6 +70,22 @@
                 <div class="file-list" id="fileList">
                     <!-- Files will be populated here -->
                 </div>
+                
+                <!-- Merge Files Section -->
+                <div class="merge-section" id="mergeSection" style="display: none;">
+                    <div class="merge-controls">
+                        <div class="control-buttons">
+                            <button id="mergeFilesBtn" class="btn-primary" disabled>📄 Merge Files</button>
+                        </div>
+                    </div>
+                    <div class="merge-log-section" id="mergeLogSection" style="display: none;">
+                        <button id="mergeLogToggle" class="log-toggle">📋 View Merge Log</button>
+                        <div id="mergeLogDropdown" class="log-dropdown hidden">
+                            <h4>Merge Process Log</h4>
+                            <div id="mergeLogContent"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="file-info-compact" id="fileInfoCompact" style="display: none;">
@@ -86,6 +103,7 @@
                         <span id="plotInfo"></span>
                         <div class="control-buttons">
                             <button id="toggleTableBtn" class="btn-secondary">📄 Show Table</button>
+                            <button id="saveToMultiplotBtn" class="btn-secondary">💾 Save to Multiplot</button>
                             <button id="confirmSavePlotBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
                         </div>
                     </div>
@@ -138,24 +156,23 @@
                                 <h3>1. 24hr constant source, comparing sites</h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-row">
+                                <div class="form-row-single">
                                     <div class="form-group">
-                                        <label for="sourceSelect1">Select DPM Column:</label>
+                                        <label for="sourceSelect1">DPM Column:</label>
                                         <select id="sourceSelect1" class="form-control">
-                                            <option value="">Select DPM column to plot...</option>
+                                            <option value="">Select DPM column...</option>
                                         </select>
-                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
                                     </div>
                                     <div class="form-group">
-                                        <label for="sitesSelect1">Select _24hr.csv Files:</label>
+                                        <label for="sitesSelect1">Sites (_24hr files):</label>
                                         <select id="sitesSelect1" class="form-control" multiple>
                                         </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _24hr.csv files</small>
                                     </div>
-                                </div>
-                                <div class="button-row">
                                     <button id="generateSiteComparisonBtn" class="btn-primary" disabled>
-                                        Generate Site Comparison Plot
+                                        Generate Plot
+                                    </button>
+                                    <button id="addToSavedPlots1" class="btn-secondary" style="display: none;">
+                                        💾 Add to Saved Plots
                                     </button>
                                 </div>
                                 <div id="siteComparisonOutput" class="output-area"></div>
@@ -168,37 +185,28 @@
                                 <h3>2. 24hr constant site, comparing sources</h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-row">
+                                <div class="form-row-single">
                                     <div class="form-group">
-                                        <label for="siteSelect2">Select _24hr.csv File:</label>
+                                        <label for="siteSelect2">Site (_24hr file):</label>
                                         <select id="siteSelect2" class="form-control">
-                                            <option value="">Select a _24hr.csv file...</option>
+                                            <option value="">Select site...</option>
                                         </select>
-                                        <small class="help-text">Choose one _24hr.csv file to analyze</small>
                                     </div>
                                     <div class="form-group">
-                                        <label for="sourcesSelect2">Select DPM Columns:</label>
+                                        <label for="sourcesSelect2">DPM Columns:</label>
                                         <select id="sourcesSelect2" class="form-control" multiple>
                                         </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
                                     </div>
-                                </div>
-                                <div class="button-row">
                                     <button id="generateSourceComparisonBtn" class="btn-primary" disabled>
-                                        Generate Source Comparison Plot
+                                        Generate Plot
+                                    </button>
+                                    <button id="addToSavedPlots2" class="btn-secondary" style="display: none;">
+                                        💾 Add to Saved Plots
                                     </button>
                                 </div>
                                 <div id="sourceComparisonOutput" class="output-area"></div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Status info -->
-                    <div class="status-info">
-                        <h4>Directory Status</h4>
-                        <p id="availableFilesStatus">No directory selected. Please select a working directory first.</p>
-                        <p id="availableSitesStatus"></p>
-                        <p id="availableSourcesStatus"></p>
                     </div>
                 </div>
 
@@ -215,24 +223,23 @@
                                 <h3>1. Standard constant source, comparing sites</h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-row">
+                                <div class="form-row-single">
                                     <div class="form-group">
-                                        <label for="sourceSelectStd1">Select DPM Column:</label>
+                                        <label for="sourceSelectStd1">DPM Column:</label>
                                         <select id="sourceSelectStd1" class="form-control">
-                                            <option value="">Select DPM column to plot...</option>
+                                            <option value="">Select DPM column...</option>
                                         </select>
-                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
                                     </div>
                                     <div class="form-group">
-                                        <label for="sitesSelectStd1">Select _std.csv Files:</label>
+                                        <label for="sitesSelectStd1">Sites (_std files):</label>
                                         <select id="sitesSelectStd1" class="form-control" multiple>
                                         </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _std.csv files</small>
                                     </div>
-                                </div>
-                                <div class="button-row">
                                     <button id="generateSiteComparisonStdBtn" class="btn-primary" disabled>
-                                        Generate Site Comparison Plot
+                                        Generate Plot
+                                    </button>
+                                    <button id="addToSavedPlots3" class="btn-secondary" style="display: none;">
+                                        💾 Add to Saved Plots
                                     </button>
                                 </div>
                                 <div id="siteComparisonStdOutput" class="output-area"></div>
@@ -245,41 +252,90 @@
                                 <h3>2. Standard constant site, comparing sources</h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-row">
+                                <div class="form-row-single">
                                     <div class="form-group">
-                                        <label for="siteSelectStd2">Select _std.csv File:</label>
+                                        <label for="siteSelectStd2">Site (_std file):</label>
                                         <select id="siteSelectStd2" class="form-control">
-                                            <option value="">Select a _std.csv file...</option>
+                                            <option value="">Select site...</option>
                                         </select>
-                                        <small class="help-text">Choose one _std.csv file to analyze</small>
                                     </div>
                                     <div class="form-group">
-                                        <label for="sourcesSelectStd2">Select DPM Columns:</label>
+                                        <label for="sourcesSelectStd2">DPM Columns:</label>
                                         <select id="sourcesSelectStd2" class="form-control" multiple>
                                         </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
                                     </div>
-                                </div>
-                                <div class="button-row">
                                     <button id="generateSourceComparisonStdBtn" class="btn-primary" disabled>
-                                        Generate Source Comparison Plot
+                                        Generate Plot
+                                    </button>
+                                    <button id="addToSavedPlots4" class="btn-secondary" style="display: none;">
+                                        💾 Add to Saved Plots
                                     </button>
                                 </div>
                                 <div id="sourceComparisonStdOutput" class="output-area"></div>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Standard Status info -->
-                    <div class="status-info">
-                        <h4>Standard Data Status</h4>
-                        <p id="availableStdFilesStatus">No directory selected. Please select a working directory first.</p>
-                        <p id="availableStdSitesStatus"></p>
-                        <p id="availableStdSourcesStatus"></p>
-                    </div>
                 </div>
             </main>
         </div> <!-- End plotPage -->
+
+        <!-- Multiplot Page -->
+        <div id="multiplotPage" class="page-content">
+            <div class="multiplot-container">
+                <!-- Header Section -->
+                <div class="multiplot-header">
+                    <h2>Multiplot Builder</h2>
+                    <div class="multiplot-actions">
+                        <button id="clearAllPlotsBtn" class="btn-secondary">🗑️ Clear All</button>
+                        <span id="plotCountIndicator" class="plot-count">0 plots saved</span>
+                    </div>
+                </div>
+
+                <!-- Main Content Area -->
+                <div class="multiplot-content">
+                    <!-- Left Panel: Saved Plots -->
+                    <div class="saved-plots-panel">
+                        <h3>Saved Plots</h3>
+                        <div id="savedPlotsGrid" class="plots-grid">
+                            <!-- Thumbnails will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Layout and Arrangement -->
+                    <div class="layout-panel">
+                        <!-- Layout Selector -->
+                        <div class="layout-selector-section">
+                            <h3>Select Layout</h3>
+                            <div id="layoutButtons" class="layout-buttons">
+                                <!-- Layout buttons will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Grid Preview Area -->
+                        <div class="grid-preview-section">
+                            <h3>Arrange Plots</h3>
+                            <div id="gridPreview" class="grid-preview">
+                                <!-- Grid cells will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Generate Button -->
+                        <div class="generate-section">
+                            <button id="generateMultiplotBtn" class="btn-primary">📊 Generate Multiplot</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generated Multiplot Display -->
+                <div id="multiplotOutput" class="multiplot-output" style="display: none;">
+                    <div class="output-header">
+                        <h3>Generated Multiplot</h3>
+                        <button id="exportMultiplotBtn" class="btn-primary">💾 Export as PNG</button>
+                    </div>
+                    <canvas id="multiplotCanvas"></canvas>
+                </div>
+            </div>
+        </div> <!-- End multiplotPage -->
     </div>
 
     <script src="script.js"></script>

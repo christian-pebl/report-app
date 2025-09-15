@@ -699,19 +699,19 @@ header p {
 
 .card-header {
     background: #f9fafb;
-    padding: 8px 12px;
+    padding: 6px 8px;
     border-bottom: 1px solid #e5e7eb;
 }
 
 .card-header h3 {
     color: #2B7A78;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin: 0;
     font-weight: 600;
 }
 
 .card-body {
-    padding: 12px;
+    padding: 8px;
 }
 
 .form-row {
@@ -719,6 +719,35 @@ header p {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-bottom: 12px;
+}
+
+.form-row-single {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 8px;
+}
+
+.form-row-single .form-group {
+    min-width: 0; /* Allow flex items to shrink below their content size */
+}
+
+.form-row-single .form-group label {
+    margin-bottom: 2px;
+    font-size: 0.8rem;
+}
+
+.form-row-single .form-control {
+    padding: 4px 6px;
+    font-size: 0.85rem;
+}
+
+.form-row-single .btn-primary {
+    margin: 0;
+    white-space: nowrap;
+    padding: 6px 10px;
+    font-size: 0.85rem;
 }
 
 .form-group {
@@ -825,11 +854,592 @@ header p {
         gap: 15px;
     }
     
+    .form-row-single {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .form-row-single .btn-primary {
+        margin-top: 8px;
+    }
+    
     .section-header h2 {
         font-size: 1.5rem;
     }
     
     .plot-section-container {
         padding: 15px;
+    }
+}
+/* Merge Files Section */
+.merge-section {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.merge-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.merge-log-section {
+    margin-top: 15px;
+    background: #f8fafc;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.log-toggle {
+    background: #4a5568;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.log-toggle:hover {
+    background: #2d3748;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.log-toggle:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.log-dropdown {
+    margin-top: 10px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    max-height: 500px;
+    min-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+    position: relative;
+}
+
+.log-dropdown.hidden {
+    display: none;
+}
+
+.log-dropdown h4 {
+    margin: 0 0 10px 0;
+    color: #2d3748;
+    font-size: 1rem;
+}
+
+/* File checkboxes in file list */
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.merge-checkboxes-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-right: 12px;
+    min-width: 60px;
+}
+
+.merge-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+}
+
+.file-checkbox {
+    margin: 0;
+}
+
+.merge-checkbox-item label {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Log entry styles */
+.log-entry {
+    padding: 6px 10px;
+    margin: 3px 0;
+    border-radius: 4px;
+    line-height: 1.5;
+    font-size: 0.85rem;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.log-entry.log-info {
+    background: #f0f9ff;
+    border-left: 3px solid #0ea5e9;
+    color: #0c4a6e;
+}
+
+.log-entry.log-success {
+    background: #f0fdf4;
+    border-left: 3px solid #22c55e;
+    color: #15803d;
+}
+
+.log-entry.log-error {
+    background: #fef2f2;
+    border-left: 3px solid #ef4444;
+    color: #dc2626;
+    font-weight: 500;
+}
+
+.log-entry.log-warning {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    color: #92400e;
+    font-weight: 500;
+}
+
+/* Multiplot Page Styles */
+.multiplot-container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.multiplot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #d1d1d6;
+}
+
+.multiplot-header h2 {
+    color: #1d1d1f;
+    font-size: 1.8rem;
+    margin: 0;
+}
+
+.multiplot-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.plot-count {
+    color: #86868b;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.multiplot-content {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* Saved Plots Panel */
+.saved-plots-panel {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.saved-plots-panel h3 {
+    margin: 0 0 15px 0;
+    color: #1d1d1f;
+    font-size: 1.1rem;
+}
+
+.plots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.plot-thumbnail {
+    background: white;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: move;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid transparent;
+    position: relative;
+}
+
+.plot-thumbnail:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.plot-thumbnail.dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+}
+
+.plot-thumbnail img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #f9f9f9;
+}
+
+.plot-info {
+    margin-top: 8px;
+    font-size: 0.75rem;
+}
+
+.plot-info span {
+    display: block;
+    color: #86868b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plot-info span:first-child {
+    color: #1d1d1f;
+    font-weight: 500;
+}
+
+.delete-plot-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(255, 59, 48, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.plot-thumbnail:hover .delete-plot-btn {
+    display: flex;
+}
+
+/* Layout Panel */
+.layout-panel {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.layout-selector-section,
+.grid-preview-section {
+    margin-bottom: 25px;
+}
+
+.layout-selector-section h3,
+.grid-preview-section h3 {
+    margin: 0 0 15px 0;
+    color: #1d1d1f;
+    font-size: 1.1rem;
+}
+
+.layout-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.layout-btn {
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #d1d1d6;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.layout-btn:hover {
+    background: #f9f9f9;
+    border-color: #86868b;
+}
+
+.layout-btn.active {
+    background: #007aff;
+    color: white;
+    border-color: #007aff;
+}
+
+/* Grid Preview */
+.grid-preview {
+    display: grid;
+    gap: 10px;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-height: 300px;
+}
+
+.grid-cell {
+    background: #f9f9f9;
+    border: 2px dashed #d1d1d6;
+    border-radius: 8px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.grid-cell.drag-over {
+    background: #e3f2fd;
+    border-color: #007aff;
+}
+
+.grid-cell.has-plot {
+    background: white;
+    border-style: solid;
+}
+
+.placed-plot {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    text-align: center;
+}
+
+.placed-plot img {
+    width: 80%;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.placed-plot span {
+    font-size: 0.7rem;
+    color: #86868b;
+}
+
+/* Generate Section */
+.generate-section {
+    text-align: center;
+    padding-top: 10px;
+}
+
+#generateMultiplotBtn {
+    padding: 12px 30px;
+    font-size: 1rem;
+}
+
+/* Multiplot Output */
+.multiplot-output {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 30px;
+}
+
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.output-header h3 {
+    margin: 0;
+    color: #1d1d1f;
+}
+
+#multiplotCanvas {
+    width: 100%;
+    border: 1px solid #d1d1d6;
+    border-radius: 8px;
+    background: white;
+}
+
+/* Crop Plot Page Styles */
+.crop-plot-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.crop-plot-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.crop-plot-header h2 {
+    color: #1d1d1f;
+    font-size: 1.8rem;
+    margin: 0 0 10px 0;
+}
+
+.crop-plot-header p {
+    color: #86868b;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.file-selection-section {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.selection-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.folder-name {
+    color: #86868b;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+.csv-files-list h3 {
+    margin: 0 0 15px 0;
+    color: #1d1d1f;
+    font-size: 1.1rem;
+}
+
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.csv-file-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.csv-file-item input[type="checkbox"] {
+    margin: 0;
+}
+
+.csv-file-name {
+    flex: 1;
+    color: #1d1d1f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.crop-controls-section {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.crop-controls-section h3 {
+    margin: 0 0 20px 0;
+    color: #1d1d1f;
+    font-size: 1.1rem;
+}
+
+.crop-settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.time-range-controls,
+.date-range-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.crop-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.crop-preview-section {
+    background: #f5f5f7;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.crop-preview-section h3 {
+    margin: 0 0 20px 0;
+    color: #1d1d1f;
+    font-size: 1.1rem;
+}
+
+.preview-chart {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #86868b;
+}
+
+@media (max-width: 768px) {
+    .crop-settings {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .selection-controls {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .crop-actions {
+        flex-direction: column;
     }
 }
