@@ -40,14 +40,58 @@
                 <h1 class="banner-title">Report App</h1>
             </div>
             <div class="banner-right">
-                <button class="nav-tab active" data-page="reformat">Reformat</button>
-                <button class="nav-tab" data-page="plot">Plot</button>
+                <div class="device-navigation">
+                    <div class="fpod-container">
+                        <div class="mode-slider-container">
+                            <div class="device-label">FPOD</div>
+                            <div class="slider-track">
+                                <div class="slider-thumb"></div>
+                            </div>
+                            <div class="slider-icons">
+                                <button class="slider-icon" data-page="reformat" data-device="fpod" title="Load Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 3v12l-4-4m4 4l4-4"/>
+                                        <path d="M8 21h8"/>
+                                    </svg>
+                                </button>
+                                <button class="slider-icon" data-page="plot" data-device="fpod" title="Plot Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
+                                        <polyline points="13,6 22,6 22,15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="subcam-container">
+                        <div class="mode-slider-container">
+                            <div class="device-label">SUBCAM</div>
+                            <div class="slider-track">
+                                <div class="slider-thumb"></div>
+                            </div>
+                            <div class="slider-icons">
+                                <button class="slider-icon active" data-page="subcam-reformat" data-device="subcam" title="Load Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 3v12l-4-4m4 4l4-4"/>
+                                        <path d="M8 21h8"/>
+                                    </svg>
+                                </button>
+                                <button class="slider-icon" data-page="subcam-plot" data-device="subcam" title="Plot Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
+                                        <polyline points="13,6 22,6 22,15"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <div id="reformatPage" class="page-content active">
+        <div id="reformatPage" class="page-content">
             <header>
                 <h1>Reformat</h1>
                 <p>Upload and visualize your CSV data</p>
@@ -266,6 +310,227 @@
                 </div>
             </main>
         </div> <!-- End plotPage -->
+
+        <!-- SUBCAM Reformat Page -->
+        <div id="subcam-reformatPage" class="page-content active">
+            <header>
+                <h1>SUBCAM Reformat</h1>
+                <p>Upload and visualize your SUBCAM CSV data</p>
+            </header>
+
+        <main>
+            <!-- Working Directory File Browser -->
+            <div class="file-browser" id="subcamFileBrowser" style="display: none;">
+                <div class="file-browser-header">
+                    <h3>📁 SUBCAM Working Directory Files</h3>
+                    <div class="file-browser-controls">
+                        <span id="subcamFileCount"></span>
+                        <div class="control-buttons">
+                            <button id="subcamAddFileBtn" class="btn-secondary">+ Add File</button>
+                            <button id="subcamChangeWorkingDirBtn" class="btn-secondary">Load Different Files</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="file-list" id="subcamFileList">
+                    <!-- Files will be populated here -->
+                </div>
+            </div>
+
+            <div class="file-info-compact" id="subcamFileInfoCompact" style="display: none;">
+                <button id="subcamFileInfoToggle" class="info-toggle">ℹ️</button>
+                <div id="subcamFileInfoDropdown" class="info-dropdown hidden">
+                    <h3>File Information</h3>
+                    <div id="subcamFileDetails"></div>
+                </div>
+            </div>
+
+            <div class="plot-section" id="subcamPlotSection" style="display: none;">
+                <div class="plot-controls">
+                    <h3 id="subcamPlotTitle">Time Series Plot</h3>
+                    <div class="controls">
+                        <span id="subcamPlotInfo"></span>
+                        <div class="control-buttons">
+                            <button id="subcamToggleTableBtn" class="btn-secondary">📄 Show Table</button>
+                            <button id="subcamConfirmSavePlotBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="variable-controls" id="subcamVariableControls" style="display: none;">
+                    <h4>Select Variables to Plot:</h4>
+                    <div id="subcamVariableCheckboxes"></div>
+                </div>
+                <div class="plot-container">
+                    <canvas id="subcamPlotCanvas" width="800" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="table-section" id="subcamTableSection" style="display: none;">
+                <div class="table-controls">
+                    <h3 id="subcamDataTitle">CSV Data</h3>
+                    <div class="controls">
+                        <span id="subcamRecordCount"></span>
+                        <div class="control-buttons">
+                            <button id="subcamToggleViewBtn" class="btn-secondary" style="display: none;">📊 Show Plot</button>
+                            <button id="subcamConfirmSaveBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="subcamExportBtn" class="btn-secondary">Export Current</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="subcamCsvTable">
+                        <thead id="subcamTableHead"></thead>
+                        <tbody id="subcamTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+        </div> <!-- End subcam-reformatPage -->
+
+        <!-- SUBCAM Plot Page -->
+        <div id="subcam-plotPage" class="page-content">
+
+            <main>
+                <!-- 24 Hour Average DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>SUBCAM 24 Hour Average DPM</h2>
+                    </div>
+
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. 24hr constant source, comparing sites</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subcamSourceSelect1">Select DPM Column:</label>
+                                        <select id="subcamSourceSelect1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subcamSitesSelect1">Select _24hr.csv Files:</label>
+                                        <select id="subcamSitesSelect1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _24hr.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="subcamGenerateSiteComparisonBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="subcamSiteComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. 24hr constant site, comparing sources</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subcamSiteSelect2">Select _24hr.csv File:</label>
+                                        <select id="subcamSiteSelect2" class="form-control">
+                                            <option value="">Select a _24hr.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _24hr.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subcamSourcesSelect2">Select DPM Columns:</label>
+                                        <select id="subcamSourcesSelect2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="subcamGenerateSourceComparisonBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="subcamSourceComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Standard DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>SUBCAM Standard DPM Analysis</h2>
+                    </div>
+
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. Standard constant source, comparing sites</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subcamSourceSelectStd1">Select DPM Column:</label>
+                                        <select id="subcamSourceSelectStd1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subcamSitesSelectStd1">Select _std.csv Files:</label>
+                                        <select id="subcamSitesSelectStd1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _std.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="subcamGenerateSiteComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="subcamSiteComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. Standard constant site, comparing sources</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subcamSiteSelectStd2">Select _std.csv File:</label>
+                                        <select id="subcamSiteSelectStd2" class="form-control">
+                                            <option value="">Select a _std.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _std.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subcamSourcesSelectStd2">Select DPM Columns:</label>
+                                        <select id="subcamSourcesSelectStd2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="subcamGenerateSourceComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="subcamSourceComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div> <!-- End subcam-plotPage -->
     </div>
 
     <script src="script.js"></script>

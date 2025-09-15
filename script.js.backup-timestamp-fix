@@ -2957,41 +2957,30 @@ class CSVManager {
 // Navigation functionality
 class NavigationManager {
     constructor() {
-        this.currentPage = 'subcam-reformat';
+        this.currentPage = 'reformat';
         this.availableFiles = [];
         this.sites = new Set();
         this.sources = new Set();
         this.initializeNavigation();
         this.initializePlotPage();
-
-        // Initialize slider states on page load
-        this.initializeSliderStates();
-    }
-
-    initializeSliderStates() {
-        // Set initial thumb positions for both sliders
-        this.updateSliderThumb(this.currentPage);
     }
 
     initializeNavigation() {
-        const sliderIcons = document.querySelectorAll('.slider-icon');
-        sliderIcons.forEach(icon => {
-            icon.addEventListener('click', async () => {
-                const targetPage = icon.getAttribute('data-page');
+        const navTabs = document.querySelectorAll('.nav-tab');
+        navTabs.forEach(tab => {
+            tab.addEventListener('click', async () => {
+                const targetPage = tab.getAttribute('data-page');
                 await this.switchPage(targetPage);
             });
         });
     }
 
     async switchPage(pageName) {
-        // Update slider icons
-        document.querySelectorAll('.slider-icon').forEach(icon => {
-            icon.classList.remove('active');
+        // Update nav tabs
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.classList.remove('active');
         });
-        document.querySelector(`.slider-icon[data-page="${pageName}"]`).classList.add('active');
-
-        // Update slider thumb position
-        this.updateSliderThumb(pageName);
+        document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
 
         // Update page content
         document.querySelectorAll('.page-content').forEach(page => {
@@ -3002,9 +2991,9 @@ class NavigationManager {
         this.currentPage = pageName;
 
         // If switching to plot page, update file info
-        if (pageName === 'plot' || pageName === 'subcam-plot') {
-            console.log(`Switching to ${pageName} page - refreshing file information...`);
-
+        if (pageName === 'plot') {
+            console.log('Switching to plot page - refreshing file information...');
+            
             // Force refresh the file list from csvManager
             if (csvManager && csvManager.workingDirFiles) {
                 console.log(`Plot page: Found ${csvManager.workingDirFiles.length} files in working directory`);
@@ -3012,29 +3001,9 @@ class NavigationManager {
                     console.log(`  - ${file.name}`);
                 });
             }
-
-            await this.updatePlotPageFileInfo(pageName);
-            console.log(`${pageName} page file info updated`);
-        }
-    }
-
-    updateSliderThumb(pageName) {
-        // Update FPOD slider
-        const fpodContainer = document.querySelector('.fpod-container');
-        const fpodThumb = fpodContainer?.querySelector('.slider-thumb');
-
-        // Update SUBCAM slider
-        const subcamContainer = document.querySelector('.subcam-container');
-        const subcamThumb = subcamContainer?.querySelector('.slider-thumb');
-
-        if (pageName === 'reformat' || pageName === 'subcam-reformat') {
-            // Reset both thumbs, then set active one
-            if (fpodThumb) fpodThumb.style.transform = 'translateX(0px)';
-            if (subcamThumb) subcamThumb.style.transform = 'translateX(0px)';
-        } else if (pageName === 'plot' || pageName === 'subcam-plot') {
-            // Reset both thumbs, then set active one
-            if (fpodThumb) fpodThumb.style.transform = 'translateX(56px)';
-            if (subcamThumb) subcamThumb.style.transform = 'translateX(56px)';
+            
+            await this.updatePlotPageFileInfo();
+            console.log('Plot page file info updated');
         }
     }
 
@@ -3140,8 +3109,8 @@ class NavigationManager {
         }
     }
 
-    async updatePlotPageFileInfo(pageName = 'plot') {
-        console.log(`=== UPDATING ${pageName.toUpperCase()} PAGE FILE INFO ===`);
+    async updatePlotPageFileInfo() {
+        console.log('=== UPDATING PLOT PAGE FILE INFO ===');
         
         // Get file info from csvManager if available
         let fileList = csvManager && csvManager.workingDirFiles ? csvManager.workingDirFiles : [];
@@ -3171,7 +3140,7 @@ class NavigationManager {
         await this.extractSitesAndSources(fileList);
         
         // Update dropdowns
-        this.updateDropdowns(pageName);
+        this.updateDropdowns();
         
         // Update status display
         this.updateStatusDisplay();
@@ -3370,18 +3339,14 @@ class NavigationManager {
         console.log('Total sources after checking std files:', Array.from(this.sources));
     }
 
-    updateDropdowns(pageName = 'plot') {
+    updateDropdowns() {
         const sources = Array.from(this.sources).sort();
         const hr24Files = this.hr24Files || [];
-
-        const isSubcam = pageName.includes('subcam');
-        const prefix = isSubcam ? 'subcam' : '';
-        const idPrefix = prefix ? prefix + '' : '';
-
-        console.log(`Updating ${isSubcam ? 'SUBCAM' : 'FPOD'} dropdowns with:`, sources.length, 'sources and', hr24Files.length, '_24hr files');
-
+        
+        console.log('Updating dropdowns with:', sources.length, 'sources and', hr24Files.length, '_24hr files');
+        
         // Update source dropdown for site comparison (DPM columns)
-        const sourceSelect1 = document.getElementById(idPrefix + 'sourceSelect1');
+        const sourceSelect1 = document.getElementById('sourceSelect1');
         if (sourceSelect1) {
             sourceSelect1.innerHTML = '<option value="">Select DPM column to plot...</option>';
             sources.forEach(source => {
@@ -3393,7 +3358,7 @@ class NavigationManager {
         }
         
         // Update sites dropdown for site comparison (_24hr files)
-        const sitesSelect1 = document.getElementById(idPrefix + 'sitesSelect1');
+        const sitesSelect1 = document.getElementById('sitesSelect1');
         if (sitesSelect1) {
             sitesSelect1.innerHTML = '';
             hr24Files.forEach(file => {
@@ -3405,7 +3370,7 @@ class NavigationManager {
         }
         
         // Update site dropdown for source comparison (_24hr files)
-        const siteSelect2 = document.getElementById(idPrefix + 'siteSelect2');
+        const siteSelect2 = document.getElementById('siteSelect2');
         if (siteSelect2) {
             siteSelect2.innerHTML = '<option value="">Select a _24hr.csv file...</option>';
             hr24Files.forEach(file => {
@@ -3417,7 +3382,7 @@ class NavigationManager {
         }
         
         // Update sources dropdown for source comparison (DPM columns)
-        const sourcesSelect2 = document.getElementById(idPrefix + 'sourcesSelect2');
+        const sourcesSelect2 = document.getElementById('sourcesSelect2');
         if (sourcesSelect2) {
             sourcesSelect2.innerHTML = '';
             sources.forEach(source => {
@@ -3429,18 +3394,14 @@ class NavigationManager {
         }
 
         // Update std dropdowns
-        this.updateStdDropdowns(sources, this.stdFiles, pageName);
+        this.updateStdDropdowns(sources, this.stdFiles);
     }
 
-    updateStdDropdowns(sources, stdFiles, pageName = 'plot') {
-        const isSubcam = pageName.includes('subcam');
-        const prefix = isSubcam ? 'subcam' : '';
-        const idPrefix = prefix ? prefix + '' : '';
-
-        console.log(`Updating ${isSubcam ? 'SUBCAM' : 'FPOD'} std dropdowns with:`, sources.length, 'sources and', stdFiles.length, '_std files');
-
+    updateStdDropdowns(sources, stdFiles) {
+        console.log('Updating std dropdowns with:', sources.length, 'sources and', stdFiles.length, '_std files');
+        
         // Update source dropdown for std site comparison (DPM columns)
-        const sourceSelectStd1 = document.getElementById(idPrefix + 'sourceSelectStd1');
+        const sourceSelectStd1 = document.getElementById('sourceSelectStd1');
         if (sourceSelectStd1) {
             sourceSelectStd1.innerHTML = '<option value="">Select DPM column to plot...</option>';
             sources.forEach(source => {
@@ -3457,7 +3418,7 @@ class NavigationManager {
         }
 
         // Update sites dropdown for std site comparison (_std files)
-        const sitesSelectStd1 = document.getElementById(idPrefix + 'sitesSelectStd1');
+        const sitesSelectStd1 = document.getElementById('sitesSelectStd1');
         if (sitesSelectStd1) {
             sitesSelectStd1.innerHTML = '';
             stdFiles.forEach((file, index) => {
@@ -3474,7 +3435,7 @@ class NavigationManager {
         }
 
         // Update site dropdown for std source comparison (_std files)
-        const siteSelectStd2 = document.getElementById(idPrefix + 'siteSelectStd2');
+        const siteSelectStd2 = document.getElementById('siteSelectStd2');
         if (siteSelectStd2) {
             siteSelectStd2.innerHTML = '<option value="">Select a _std.csv file...</option>';
             stdFiles.forEach(file => {
@@ -3486,7 +3447,7 @@ class NavigationManager {
         }
 
         // Update sources dropdown for std source comparison
-        const sourcesSelectStd2 = document.getElementById(idPrefix + 'sourcesSelectStd2');
+        const sourcesSelectStd2 = document.getElementById('sourcesSelectStd2');
         if (sourcesSelectStd2) {
             sourcesSelectStd2.innerHTML = '';
             sources.forEach(source => {
@@ -4014,10 +3975,10 @@ class NavigationManager {
         return spacing;
     }
 
-formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {        // For 24hr file format - use time format when requested (check this FIRST)        if (formatType === "time") {            return sortedHours.map((hour) => {                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);                const hours = String(hourNum).padStart(2, "0");                return `${hours}:00`;            });        }        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {            // This is std file format with date_hour identifiers            return sortedHours.map(timeIdentifier => {                const [dateStr, hourStr] = timeIdentifier.split("_");                const date = new Date(dateStr + "T00:00:00Z");                const day = String(date.getDate()).padStart(2, "0");                const month = String(date.getMonth() + 1).padStart(2, "0");                const year = String(date.getFullYear()).slice(-2);                return `${day}/${month}/${year}`;            });        }        // For 24hr file format - use time format when requested
+formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {        // For 24hr file format - use time format when requested (check this FIRST)        if (formatType === "time") {            return sortedHours.map((hour) => {                const hourNum = parseInt(hour, 10);                const hours = String(hourNum).padStart(2, "0");                return `${hours}:00`;            });        }        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {            // This is std file format with date_hour identifiers            return sortedHours.map(timeIdentifier => {                const [dateStr, hourStr] = timeIdentifier.split("_");                const date = new Date(dateStr + "T00:00:00Z");                const day = String(date.getDate()).padStart(2, "0");                const month = String(date.getMonth() + 1).padStart(2, "0");                const year = String(date.getFullYear()).slice(-2);                return `${day}/${month}/${year}`;            });        }        // For 24hr file format - use time format when requested
         if (formatType === "time") {
             return sortedHours.map((hour) => {
-                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
+                const hourNum = parseInt(hour, 10);
                 const hours = String(hourNum).padStart(2, "0");
                 return `${hours}:00`;
             });
@@ -4394,7 +4355,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         });
 
         // Legend width: line sample (30px) + text width + padding
-        const legendWidth = maxTextWidth + 46; // Component-based: 8px padding + 24px icon + 6px gap + text + 8px padding
+        const legendWidth = Math.max(140, maxTextWidth + 60); // Minimum 140px, but expand as needed
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
@@ -4655,7 +4616,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         });
 
         // Legend width: line sample (30px) + text width + extra padding
-        const legendWidth = maxTextWidth + 46; // Component-based: 8px padding + 24px icon + 6px gap + text + 8px padding
+        const legendWidth = Math.max(120, maxTextWidth + 50); // Minimum 120px, expand as needed
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
