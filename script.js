@@ -595,7 +595,6 @@ class CSVManager {
 
         // Add conversion info to processing log if it exists
         if (conversionResult && conversionResult.metadata) {
-            this.addToProcessingLog(`✅ ${suffix.toUpperCase()} Conversion Complete`, 'success');
             this.addToProcessingLog(`📊 Input: ${conversionResult.metadata.inputRows || 0} rows`, 'info');
             this.addToProcessingLog(`📊 Output: ${conversionResult.metadata.outputRows || 0} rows`, 'info');
             if (conversionResult.metadata.dateRange) {
@@ -629,7 +628,6 @@ class CSVManager {
                         </p>
                     </div>
                     <div class="modal-actions">
-                        <button class="btn-primary" id="confirmSaveBtn">✅ Confirm & Save to Original Directory</button>
                         <button class="btn-secondary" id="cancelSaveBtn">❌ Cancel</button>
                     </div>
                 </div>
@@ -733,7 +731,6 @@ class CSVManager {
                         File: <strong>${fileName}</strong> • ${this.csvData.length} records, ${this.headers.length} columns
                     </div>
                     <div class="modal-actions">
-                        <button class="btn-primary" id="confirmDirectorySaveBtn" style="min-width: 180px;">✅ Save to Original Directory</button>
                         <button class="btn-secondary" id="cancelDirectorySaveBtn">❌ Cancel</button>
                     </div>
                 </div>
@@ -1048,7 +1045,6 @@ class CSVManager {
             console.warn('Missing required columns for', fileType, 'format:', missingColumns);
             this.showWarning(`This ${fileType} file is missing some expected columns: ${missingColumns.join(', ')}`);
         } else {
-            console.log('✅ File format validation passed for', fileType);
         }
 
         // Store file type for later use
@@ -1892,7 +1888,6 @@ class CSVManager {
                     break;
                 case 'success':
                     logLine.style.color = '#059669';
-                    logLine.textContent = `✅ ${logEntry}`;
                     break;
                 case 'warning':
                     logLine.style.color = '#d97706';
@@ -2026,7 +2021,6 @@ class CSVManager {
 
             dataValidation.innerHTML = `
                 <div style="font-weight: 500; margin-bottom: 4px;">📊 Sample Data Validation</div>
-                <div>✅ ${validCount} rows valid, ${issueCount > 0 ? `⚠️ ${issueCount} with issues` : ''}</div>
             `;
         }
 
@@ -2212,11 +2206,9 @@ class CSVManager {
             console.log('Calling processToStdFormat...');
             const stdData = this.processToStdFormat();
             
-            this.addToProcessingLog('✅ STD processing completed successfully', 'success');
             this.addToProcessingLog(`Result headers: ${stdData.headers.join(', ')}`);
             this.addToProcessingLog(`Result data rows: ${stdData.data.length}`);
             
-            console.log('✅ STD processing completed successfully');
             console.log('Result headers:', stdData.headers);
             console.log('Result data rows:', stdData.data.length);
             
@@ -2391,7 +2383,6 @@ class CSVManager {
             stdData.push(row);
         }
         
-        this.addToProcessingLog(`✅ Created ${stdData.length} data rows: ${validRowCount} with valid timestamps, ${missingTimestampCount} with invalid timestamps`);
         this.addToProcessingLog(`Replaced ${missingDataCount} missing data cells with '0'`);
 
         console.log('STEP 5: Validation - checking for columns before Time...');
@@ -2400,10 +2391,8 @@ class CSVManager {
             console.warn('WARNING: Time column is not first! Fixing...');
             // This shouldn't happen with our logic, but just in case
         } else {
-            console.log('✅ Time column is correctly positioned as first column');
         }
 
-        console.log(`✅ STD conversion complete: ${stdData.length} rows, ${stdHeaders.length} columns`);
         console.log('Sample data row:', stdData[0]);
 
         return {
@@ -2442,7 +2431,6 @@ class CSVManager {
                     console.log(`Sample ChunkEnd data: "${this.csvData[0][i]}"`);
                     if (this.isCombinedDateTimeColumn(i)) {
                         combinedColIndex = i;
-                        console.log(`✅ Confirmed ChunkEnd column at index ${i}`);
                         break; // Use combined column if found
                     } else {
                         console.log(`❌ ChunkEnd column validation failed at index ${i}`);
@@ -2485,7 +2473,6 @@ class CSVManager {
         
         // Return combined column index if found, otherwise separate columns
         if (combinedColIndex !== -1) {
-            console.log('✅ Using COMBINED date-time column');
             return { 
                 dateColIndex: combinedColIndex, 
                 timeColIndex: combinedColIndex, 
@@ -2494,7 +2481,6 @@ class CSVManager {
         }
 
         if (dateColIndex !== -1 && timeColIndex !== -1) {
-            console.log('✅ Using SEPARATE date and time columns');
         } else {
             console.log('❌ No valid date-time columns found!');
         }
@@ -2550,7 +2536,6 @@ class CSVManager {
                 console.log(`Pattern match result: ${matches ? 'MATCH' : 'NO MATCH'}`);
                 
                 if (matches) {
-                    console.log('✅ Found valid combined date-time format');
                     return true;
                 }
             } else if (value) {
@@ -2752,7 +2737,6 @@ class CSVManager {
         
         const detectedFormat = ddmmScore >= mmddScore ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
         console.log(`Format detection scores: DD/MM=${ddmmScore}, MM/DD=${mmddScore}`);
-        console.log(`✅ Detected combined format: ${detectedFormat}`);
         
         return detectedFormat;
     }
@@ -2923,7 +2907,6 @@ class CSVManager {
         }
 
         // Return ISO 8601 format
-        console.log(`✅ Successfully parsed "${combinedStr}" as ${date.toISOString()}`);
         return date.toISOString();
     }
 
@@ -3879,7 +3862,8 @@ class NavigationManager {
     }
 
     async updatePlotPageFileInfo(pageName = 'plot') {
-        console.log(`=== UPDATING ${pageName.toUpperCase()} PAGE FILE INFO ===`);
+        console.log("DEBUG: === PLOT PAGE FILE INFO UPDATE ===");        console.log("DEBUG: Page name:", pageName);
+console.log("DEBUG: Starting plot page file info update for", pageName);        console.log("DEBUG: Working directory files count:", this.workingDirectoryFiles?.length || 0);
         
         // Get file info from csvManager if available
         let fileList = csvManager && csvManager.workingDirFiles ? csvManager.workingDirFiles : [];
@@ -3914,14 +3898,13 @@ class NavigationManager {
         // Update status display
         this.updateStatusDisplay();
         
-        console.log('✅ Plot page file info update complete');
     }
 
     async extractSitesAndSources(fileList) {
         this.sites.clear();
         this.sources.clear();
-        this.hr24Files = []; // Store actual _24hr files
-        this.stdFiles = []; // Store actual _std files
+        this.nmaxFiles = []; // Store actual _nmax files
+        this.obvFiles = []; // Store actual _obvs files
         
         // First, get sources from column headers if we have loaded files
         if (csvManager && csvManager.headers && csvManager.headers.length > 0) {
@@ -3945,24 +3928,30 @@ class NavigationManager {
             await this.checkAllFilesForSources(fileList);
         }
         
-        // Find all _24hr.csv files and _std.csv files
+        // Find all _nmax.csv files and _obvs.csv files
+        console.log("DEBUG: Starting file detection, checking", fileList.length, "files");
+        console.log("🔍 DEBUG: Starting file detection process");        console.log("📂 DEBUG: Total files to check:", fileList.length);        fileList.forEach((file, index) => {            console.log(`📄 DEBUG: File ${index + 1}: ${file.name}`);        });
         fileList.forEach(file => {
-            const fileName = file.name.toLowerCase();
-            if (fileName.includes('24hr') && fileName.endsWith('.csv')) {
-                console.log(`Found _24hr file: ${file.name}`);
-                this.hr24Files.push(file);
+            console.log("DEBUG: Checking file:", file.name);
+            console.log(`🧪 DEBUG: Checking file: ${file.name}`);            const fileName = file.name.toLowerCase();            console.log(`🔤 DEBUG: Lowercase filename: ${fileName}`);            console.log(`🔍 DEBUG: Contains nmax? ${fileName.includes("nmax")}`);            console.log(`🔍 DEBUG: Contains obvs? ${fileName.includes("obvs")}`);            console.log(`📝 DEBUG: Ends with .csv? ${fileName.endsWith(".csv")}`);
+            if (fileName.includes('nmax') && fileName.endsWith('.csv')) {
+                console.log("DEBUG: FOUND NMAX FILE -", file.name);
+                console.log(`Found _nmax file: ${file.name}`);
+                this.nmaxFiles.push(file);
                 // Also add to sites for backward compatibility
                 this.sites.add(file.name);
-            } else if (fileName.includes('std') && fileName.endsWith('.csv')) {
-                console.log(`Found _std file: ${file.name}`);
-                this.stdFiles.push(file);
+            } else if (fileName.includes('obvs') && fileName.endsWith('.csv')) {
+                console.log("DEBUG: FOUND OBVS FILE -", file.name);
+                console.log(`Found _obvs file: ${file.name}`);
+                this.obvFiles.push(file);
             }
         });
         
-        console.log(`Found ${this.hr24Files.length} _24hr.csv files and ${this.stdFiles.length} _std.csv files`);
+        console.log(`Found ${this.nmaxFiles.length} _nmax.csv files and ${this.obvFiles.length} _obvs.csv files`);
+        console.log("📋 DEBUG: FINAL SUMMARY - About to call updateDropdowns");
 
         // Also check std files for additional column headers (they might have different columns)
-        if (this.stdFiles.length > 0) {
+        if (this.obvFiles.length > 0) {
             await this.checkStdFilesForSources();
         }
     }
@@ -4021,7 +4010,7 @@ class NavigationManager {
                 part.length > 1 && 
                 /[a-zA-Z]/.test(part) && 
                 !this.isDateLike(part) &&
-                !part.toLowerCase().includes('24hr') &&
+                !part.toLowerCase().includes('nmax') &&
                 !part.toLowerCase().includes('std')) {
                 
                 if (!sites.some(s => s.toLowerCase() === part.toLowerCase())) {
@@ -4084,7 +4073,7 @@ class NavigationManager {
         console.log('Checking std files for additional column headers...');
 
         // Check a few representative std files to extract column headers
-        for (const file of this.stdFiles.slice(0, 3)) { // Check first 3 std files
+        for (const file of this.obvFiles.slice(0, 3)) { // Check first 3 std files
             try {
                 console.log(`Checking std file: ${file.name}`);
                 const csvData = await this.parseCSVFile(file);
@@ -4110,15 +4099,18 @@ class NavigationManager {
     }
 
     updateDropdowns(pageName = 'plot') {
+        console.log("DEBUG: Updating dropdowns with", this.nmaxFiles?.length, "nmax files and", this.obvFiles?.length, "obvs files");
+        console.log("🎛️ DEBUG: Starting dropdown update process");        console.log("📊 DEBUG: Available sources:", Array.from(this.sources));        console.log("📁 DEBUG: Available nmaxFiles:", this.nmaxFiles?.length || 0);        console.log("📁 DEBUG: Available obvFiles:", this.obvFiles?.length || 0);
         const idPrefix = "";
         const sources = Array.from(this.sources).sort();
-        const hr24Files = this.hr24Files || [];
+        const nmaxFiles = this.nmaxFiles || [];
 
 
         // Update source dropdown for site comparison (DPM columns)
         const sourceSelect1 = document.getElementById(idPrefix + 'sourceSelect1');
         if (sourceSelect1) {
-            sourceSelect1.innerHTML = '<option value="">Select DPM column to plot...</option>';
+            console.log("🎯 DEBUG: Found sourceSelect1 dropdown, populating with sources");            console.log("📝 DEBUG: Sources to add:", sources);
+            sourceSelect1.innerHTML = '<option value="">Select variable to plot...</option>';
             sources.forEach(source => {
                 const option = document.createElement('option');
                 option.value = source;
@@ -4130,8 +4122,9 @@ class NavigationManager {
         // Update sites dropdown for site comparison (_24hr files)
         const sitesSelect1 = document.getElementById(idPrefix + 'sitesSelect1');
         if (sitesSelect1) {
+            console.log("🎯 DEBUG: Found sitesSelect1 dropdown, populating with nmax files");            console.log("📁 DEBUG: Nmax files to add:", nmaxFiles.map(f => f.name));
             sitesSelect1.innerHTML = '';
-            hr24Files.forEach(file => {
+            nmaxFiles.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
                 option.textContent = file.name; // Show full filename
@@ -4143,7 +4136,7 @@ class NavigationManager {
         const siteSelect2 = document.getElementById(idPrefix + 'siteSelect2');
         if (siteSelect2) {
             siteSelect2.innerHTML = '<option value="">Select a _24hr.csv file...</option>';
-            hr24Files.forEach(file => {
+            nmaxFiles.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
                 option.textContent = file.name; // Show full filename
@@ -4164,16 +4157,18 @@ class NavigationManager {
         }
 
         // Update std dropdowns
-        this.updateStdDropdowns(sources, this.stdFiles, pageName);
+        this.updateObvDropdowns(sources, this.obvFiles, pageName);
     }
 
-    updateStdDropdowns(sources, stdFiles, pageName = 'plot') {
+    updateObvDropdowns(sources, obvFiles, pageName = 'plot') {
+        console.log("🎛️ DEBUG: Starting obvs dropdown update process");        console.log("📊 DEBUG: Sources for obvs dropdowns:", sources);        console.log("📁 DEBUG: ObvFiles for dropdowns:", obvFiles?.length || 0);
         const idPrefix = "";
 
         // Update source dropdown for std site comparison (DPM columns)
         const sourceSelectStd1 = document.getElementById(idPrefix + 'sourceSelectStd1');
         if (sourceSelectStd1) {
-            sourceSelectStd1.innerHTML = '<option value="">Select DPM column to plot...</option>';
+            console.log("🎯 DEBUG: Found sourceSelectStd1 dropdown, populating with sources");
+            sourceSelectStd1.innerHTML = '<option value="">Select variable to plot...</option>';
             sources.forEach(source => {
                 const option = document.createElement('option');
                 option.value = source;
@@ -4190,15 +4185,16 @@ class NavigationManager {
         // Update sites dropdown for std site comparison (_std files)
         const sitesSelectStd1 = document.getElementById(idPrefix + 'sitesSelectStd1');
         if (sitesSelectStd1) {
+            console.log("🎯 DEBUG: Found sitesSelectStd1 dropdown, populating with obvs files");            console.log("📁 DEBUG: Obvs files to add:", obvFiles?.map(f => f.name) || []);
             sitesSelectStd1.innerHTML = '';
-            stdFiles.forEach((file, index) => {
+            obvFiles.forEach((file, index) => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
                 option.textContent = file.name;
                 sitesSelectStd1.appendChild(option);
 
                 // Auto-select first 2 files if available
-                if (index < 2 && stdFiles.length >= 2) {
+                if (index < 2 && obvFiles.length >= 2) {
                     option.selected = true;
                 }
             });
@@ -4208,7 +4204,7 @@ class NavigationManager {
         const siteSelectStd2 = document.getElementById(idPrefix + 'siteSelectStd2');
         if (siteSelectStd2) {
             siteSelectStd2.innerHTML = '<option value="">Select a _std.csv file...</option>';
-            stdFiles.forEach(file => {
+            obvFiles.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
                 option.textContent = file.name;
@@ -4266,10 +4262,10 @@ class NavigationManager {
 
             // Update std status displays
             if (availableStdFilesStatus) {
-                availableStdFilesStatus.textContent = `Found ${this.stdFiles.length} _std.csv files in working directory.`;
+                availableStdFilesStatus.textContent = `Found ${this.obvFiles.length} _obvs.csv files in working directory.`;
             }
             if (availableStdSitesStatus) {
-                const stdSites = this.stdFiles.map(f => f.name);
+                const stdSites = this.obvFiles.map(f => f.name);
                 availableStdSitesStatus.textContent = `Available Std Sites: ${stdSites.length > 0 ? stdSites.join(', ') : 'None detected'}`;
             }
             if (availableStdSourcesStatus) {
@@ -4335,7 +4331,7 @@ class NavigationManager {
             });
             
             if (siteData.length === 0) {
-                throw new Error('No _24hr files found for the selected sites');
+                throw new Error('No _nmax files found for the selected sites');
             }
 
             console.log('Creating plot...');
@@ -4351,7 +4347,7 @@ class NavigationManager {
                     <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
                     <p><strong>Could not generate plot:</strong> ${error.message}</p>
                     <p style="margin-top: 10px; font-size: 0.85rem;">
-                        Make sure the corresponding _24hr files exist for: ${sites.join(', ')}
+                        Make sure the corresponding _nmax files exist for: ${sites.join(', ')}
                     </p>
                     <p style="margin-top: 10px; font-size: 0.75rem; font-family: monospace;">
                         Debug: Available files: ${this.availableFiles?.map(f => f.name).join(', ') || 'None'}
@@ -4418,14 +4414,14 @@ class NavigationManager {
             (fileName) => {
                 const normalized = fileName.toLowerCase().replace(/[-\s]/g, '');
                 const siteNormalized = normalizedSite.replace(/[-\s]/g, '');
-                return normalized.includes(siteNormalized) && normalized.includes('24hr');
+                return normalized.includes(siteNormalized) && normalized.includes('nmax');
             },
             
             // Strategy 2: Match with original site name and 24hr variations
             (fileName) => {
                 const normalized = fileName.toLowerCase();
                 const siteVariations = this.getSiteVariations(site);
-                const has24hr = normalized.includes('24hr') || normalized.includes('_24hr') || normalized.includes('-24hr');
+                const has24hr = normalized.includes('nmax') || normalized.includes('_nmax') || normalized.includes('-nmax');
                 return siteVariations.some(variation => normalized.includes(variation.toLowerCase())) && has24hr;
             },
             
@@ -4433,7 +4429,7 @@ class NavigationManager {
             (fileName) => {
                 const parts = fileName.toLowerCase().split(/[_\-\.]/);
                 const siteVariations = this.getSiteVariations(site);
-                const has24hr = parts.some(part => part.includes('24hr'));
+                const has24hr = parts.some(part => part.includes('nmax'));
                 const hasSite = siteVariations.some(variation => 
                     parts.some(part => part.includes(variation.toLowerCase()))
                 );
@@ -5178,7 +5174,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             const siteData = await this.load24hrFileForSite(site, sources);
             
             if (!siteData) {
-                throw new Error(`No _24hr file found for site: ${site}`);
+                throw new Error(`No _nmax file found for site: ${site}`);
             }
 
             // Generate the plot
@@ -5191,7 +5187,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                     <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
                     <p><strong>Could not generate plot:</strong> ${error.message}</p>
                     <p style="margin-top: 10px; font-size: 0.85rem;">
-                        Make sure the corresponding _24hr file exists for: ${site}
+                        Make sure the corresponding _nmax file exists for: ${site}
                     </p>
                 </div>
             `;
@@ -5451,7 +5447,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             console.log('Loaded std site data:', siteData.length, 'files');
             
             if (siteData.length === 0) {
-                throw new Error('No _std files found for the selected sites');
+                throw new Error('No _obvs files found for the selected sites');
             }
 
             console.log('Creating std plot...');
@@ -5466,7 +5462,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                     <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
                     <p><strong>Could not generate plot:</strong> ${error.message}</p>
                     <p style="margin-top: 10px; font-size: 0.85rem;">
-                        Make sure the corresponding _std files exist for: ${sites.join(', ')}
+                        Make sure the corresponding _obvs files exist for: ${sites.join(', ')}
                     </p>
                 </div>
             `;
@@ -5483,7 +5479,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         for (const filename of selectedFilenames) {
             console.log(`Looking for std file: ${filename}`);
             // Find the file by exact filename match
-            const fileStd = this.stdFiles.find(file => file.name === filename);
+            const fileStd = this.obvFiles.find(file => file.name === filename);
             
             console.log(`Found std file for ${filename}:`, fileStd?.name || 'NOT FOUND');
             
@@ -5652,7 +5648,6 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             // Update output div
             outputDiv.innerHTML = `
                 <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
-                    <h4 style="color: #15803d; margin-bottom: 10px;">✅ Standard Site Comparison Plot Generated</h4>
                     <p style="margin-bottom: 15px;"><strong>Source:</strong> ${source} | <strong>Sites:</strong> ${sites.join(', ')}</p>
                 </div>
             `;
@@ -5691,9 +5686,9 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
 
         try {
             // Find the std file for the selected site
-            const siteFile = this.stdFiles.find(file => file.name === site);
+            const siteFile = this.obvFiles.find(file => file.name === site);
             if (!siteFile) {
-                throw new Error(`No _std file found for site: ${site}`);
+                throw new Error(`No _obvs file found for site: ${site}`);
             }
 
             // Parse the file data
@@ -5709,7 +5704,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                     <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
                     <p><strong>Could not generate plot:</strong> ${error.message}</p>
                     <p style="margin-top: 10px; font-size: 0.85rem;">
-                        Make sure the corresponding _std file exists for: ${site}
+                        Make sure the corresponding _obvs file exists for: ${site}
                     </p>
                 </div>
             `;
@@ -5794,7 +5789,6 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             // Update output div
             outputDiv.innerHTML = `
                 <div style="background: #f0fdf4; border: 1px solid #22c55e; border-radius: 6px; padding: 15px;">
-                    <h4 style="color: #15803d; margin-bottom: 10px;">✅ Standard Source Comparison Plot Generated</h4>
                     <p style="margin-bottom: 15px;"><strong>Site:</strong> ${site} | <strong>Sources:</strong> ${sources.join(', ')}</p>
                 </div>
             `;
