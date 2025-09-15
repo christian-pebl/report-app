@@ -60,6 +60,30 @@ When using standard plots with single file selection:
 
 **CRITICAL**: Currently this is NOT happening - the std plot is not reading and displaying the complete dataset when selecting a single file with one source variable.
 
+### Standard File Format Reference
+Here is a typical std file structure that the plotting functions should handle:
+
+```csv
+Time,Porpoise (DPM),Porpoise (Clicks),Dolphin (DPM),Dolphin (Clicks),Sonar (DPM),Sonar (Clicks)
+2024-07-31T08:59:00.000Z,0,0,0,0,3,1081
+2024-07-31T09:59:00.000Z,0,0,0,0,0,0
+2024-07-31T10:59:00.000Z,0,0,0,0,0,0
+2024-07-31T11:59:00.000Z,0,0,1,23,0,0
+```
+
+**Key Format Characteristics**:
+- **Time Column**: ISO 8601 timestamp format (`YYYY-MM-DDTHH:mm:ss.sssZ`)
+- **DPM Columns**: `Porpoise (DPM)`, `Dolphin (DPM)`, `Sonar (DPM)` - these contain the detection per minute values to plot
+- **Clicks Columns**: `Porpoise (Clicks)`, `Dolphin (Clicks)`, `Sonar (Clicks)` - supplementary data
+- **Data Values**: Numeric values (0, 1, 3, 23, 1081, etc.)
+
+**Implementation Requirements**:
+- When "Dolphin" is selected, read from `Dolphin (DPM)` column
+- When "Porpoise" is selected, read from `Porpoise (DPM)` column
+- When "Sonar" is selected, read from `Sonar (DPM)` column
+- Parse ISO timestamps to extract date/time for x-axis labeling
+- Plot ALL rows in the file, not just a subset
+
 ## Implementation Notes
 - These rules ensure consistent chart readability and meaningful data comparison
 - Chart titles should be left-aligned and positioned above the plotting area
