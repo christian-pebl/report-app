@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Logging Test - SUBCAMreport</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .test-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-height: 600px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+
+        .demo-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .status.ready { background: #e5e7eb; color: #374151; }
+        .status.running { background: #dbeafe; color: #1e40af; }
+        .status.success { background: #dcfce7; color: #166534; }
+        .status.error { background: #fee2e2; color: #dc2626; }
+
+        /* Include our processing log styles */
+        #processingLogContainer {
+            margin: 10px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: #f9fafb;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        #processingLogContainer .log-header {
+            padding: 12px;
+            background: #f3f4f6;
+            border-bottom: 1px solid #d1d5db;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        #processingLogContent {
+            padding: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            background: #ffffff;
+            color: #1f2937;
+            line-height: 1.5;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 8px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 Enhanced Raw to NMAX Logging System Test</h1>
+        <p>Testing step-by-step conversion tracking, progress bars, and validation feedback</p>
+    </div>
+
+    <div class="test-controls">
+        <button class="btn btn-primary" onclick="runEnhancedTest()">🚀 Run Enhanced Conversion Test</button>
+        <button class="btn btn-secondary" onclick="clearOutput()">🗑️ Clear Output</button>
+        <button class="btn btn-secondary" onclick="downloadLogs()">💾 Download Logs</button>
+    </div>
+
+    <div id="statusDiv" class="status ready">Ready to test enhanced logging system</div>
+
+    <!-- Mock processing log interface for demonstration -->
+    <div class="demo-container">
+        <h3>Live Conversion Progress</h3>
+        <div id="processingLogContainer" style="display: none;">
+            <div class="log-header">
+                <div style="display: flex; align-items: center;">
+                    <span id="logToggleIcon" style="margin-right: 8px;">▼</span>
+                    <span>Raw to NMAX Conversion Log</span>
+                    <span id="logStatus" style="font-size: 0.8rem; color: #6b7280; margin-left: 10px;"></span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="timeElapsed" style="font-size: 0.75rem; color: #6b7280; font-family: monospace;"></span>
+                    <span id="progressText" style="font-size: 0.75rem; color: #374151; font-weight: 500;"></span>
+                </div>
+            </div>
+            <div style="padding: 0 12px 8px 12px; background: #f3f4f6; border-bottom: 1px solid #d1d5db;">
+                <div class="progress-bar">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+            </div>
+            <div id="validationSection" style="padding: 12px; background: #ffffff; border-bottom: 1px solid #e5e7eb;"></div>
+            <div id="processingLogContent"></div>
+        </div>
+    </div>
+
+    <div class="demo-container">
+        <h3>Console Output</h3>
+        <div id="consoleOutput" class="test-output">Console output will appear here when test runs...</div>
+    </div>
+
+    <!-- Include our JavaScript files -->
+    <script src="js/conversion-engine.js"></script>
+    <script src="test_enhanced_logging.js"></script>
+
+    <script>
+        let testResults = null;
+        let mockUI = null;
+
+        // Mock UI implementation for testing
+        class MockUI {
+            constructor() {
+                this.processingLogs = [];
+            }
+
+            updateProgress(progressInfo) {
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                const timeElapsed = document.getElementById('timeElapsed');
+                const logStatus = document.getElementById('logStatus');
+
+                if (progressFill) {
+                    progressFill.style.width = `${progressInfo.progress || 0}%`;
+                }
+
+                if (progressText) {
+                    progressText.textContent = progressInfo.stepName || 'Processing...';
+                }
+
+                if (timeElapsed && progressInfo.elapsed) {
+                    const seconds = (progressInfo.elapsed / 1000).toFixed(1);
+                    timeElapsed.textContent = `${seconds}s`;
+                }
+
+                if (logStatus && progressInfo.step && progressInfo.totalSteps) {
+                    logStatus.textContent = `Step ${progressInfo.step}/${progressInfo.totalSteps}`;
+                }
+            }
+
+            addEnhancedLogEntry(entry) {
+                const logContent = document.getElementById('processingLogContent');
+                if (!logContent) return;
+
+                const logLine = document.createElement('div');
+                logLine.style.cssText = `
+                    margin-bottom: 3px;
+                    padding: 2px 0;
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                `;
+
+                const timestamp = document.createElement('span');
+                timestamp.style.cssText = `
+                    color: #6b7280;
+                    font-size: 0.7rem;
+                    min-width: 70px;
+                    font-family: monospace;
+                `;
+                const time = new Date(entry.timestamp).toLocaleTimeString();
+                timestamp.textContent = time;
+
+                const stepIndicator = document.createElement('span');
+                if (entry.step) {
+                    stepIndicator.style.cssText = `
+                        color: #3b82f6;
+                        font-size: 0.7rem;
+                        min-width: 20px;
+                        font-weight: 500;
+                    `;
+                    stepIndicator.textContent = `S${entry.step}`;
+                }
+
+                const message = document.createElement('span');
+                message.style.cssText = `
+                    flex: 1;
+                    line-height: 1.3;
+                `;
+
+                switch (entry.level) {
+                    case 'ERROR':
+                        message.style.color = '#dc2626';
+                        break;
+                    case 'SUCCESS':
+                        message.style.color = '#059669';
+                        break;
+                    case 'WARNING':
+                        message.style.color = '#d97706';
+                        break;
+                    case 'DEBUG':
+                        message.style.color = '#6b7280';
+                        break;
+                    default:
+                        message.style.color = '#374151';
+                }
+
+                message.textContent = entry.message;
+
+                logLine.appendChild(timestamp);
+                if (entry.step) logLine.appendChild(stepIndicator);
+                logLine.appendChild(message);
+
+                logContent.appendChild(logLine);
+                logContent.scrollTop = logContent.scrollHeight;
+            }
+
+            displayValidationResults(validation) {
+                const validationSection = document.getElementById('validationSection');
+                if (!validationSection) return;
+
+                validationSection.innerHTML = '';
+
+                const complianceScore = validation.formatCompliance || 0;
+                const complianceColor = complianceScore >= 80 ? '#059669' : complianceScore >= 60 ? '#d97706' : '#dc2626';
+
+                const complianceHeader = document.createElement('div');
+                complianceHeader.style.cssText = `
+                    font-weight: 600;
+                    margin-bottom: 12px;
+                    color: #374151;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                `;
+
+                complianceHeader.innerHTML = `
+                    📋 Format Validation
+                    <span style="color: ${complianceColor}; font-size: 0.9rem;">
+                        ${complianceScore}% compliant
+                    </span>
+                `;
+
+                const columnGrid = document.createElement('div');
+                columnGrid.style.cssText = `
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                    gap: 8px;
+                    margin: 12px 0;
+                `;
+
+                if (validation.columnValidation) {
+                    validation.columnValidation.forEach(col => {
+                        const colItem = document.createElement('div');
+                        colItem.style.cssText = `
+                            display: flex;
+                            align-items: center;
+                            gap: 6px;
+                            padding: 4px 8px;
+                            background: ${col.present && !col.note ? '#f0fdf4' : col.note ? '#fffbeb' : '#fef2f2'};
+                            border-radius: 4px;
+                            font-size: 0.8rem;
+                        `;
+
+                        colItem.innerHTML = `
+                            <span style="font-size: 0.9rem;">${col.status}</span>
+                            <span style="color: #374151;">${col.column}</span>
+                            ${col.note ? `<span style="color: #d97706; font-size: 0.7rem;">(${col.note})</span>` : ''}
+                        `;
+
+                        columnGrid.appendChild(colItem);
+                    });
+                }
+
+                validationSection.appendChild(complianceHeader);
+                validationSection.appendChild(columnGrid);
+            }
+        }
+
+        // Override console.log to capture output
+        const originalConsoleLog = console.log;
+        const consoleOutput = document.getElementById('consoleOutput');
+
+        console.log = function(...args) {
+            originalConsoleLog.apply(console, args);
+            const message = args.join(' ');
+            consoleOutput.textContent += message + '\n';
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        };
+
+        async function runEnhancedTest() {
+            const statusDiv = document.getElementById('statusDiv');
+            const logContainer = document.getElementById('processingLogContainer');
+
+            try {
+                statusDiv.className = 'status running';
+                statusDiv.textContent = '🚀 Running enhanced conversion test...';
+
+                logContainer.style.display = 'block';
+
+                // Clear previous results
+                document.getElementById('processingLogContent').innerHTML = '';
+                document.getElementById('validationSection').innerHTML = '';
+
+                // Initialize mock UI
+                mockUI = new MockUI();
+
+                console.log('🧪 Starting Enhanced Logging Test');
+                console.log('=================================');
+
+                // Create converter with enhanced logging
+                const converter = new SUBCAMConverter();
+
+                converter.logger.setProgressCallback((update) => {
+                    if (update.type === 'log') {
+                        mockUI.addEnhancedLogEntry(update.entry);
+                        console.log(`[${update.entry.level}] S${update.entry.step || 0}: ${update.entry.message}`);
+                    } else {
+                        mockUI.updateProgress(update);
+                        console.log(`📊 Progress: ${update.progress}% - ${update.stepName} (${(update.elapsed/1000).toFixed(1)}s)`);
+                    }
+                });
+
+                // Load test data
+                const response = await fetch('./test-data/test_raw.csv');
+                const csvText = await response.text();
+
+                console.log('📁 Test data loaded, starting conversion...');
+
+                // Run conversion
+                const startTime = Date.now();
+                testResults = await converter.convertRawToNmax(csvText);
+                const endTime = Date.now();
+
+                if (testResults.success) {
+                    // Display validation results
+                    if (testResults.validation) {
+                        mockUI.displayValidationResults(testResults.validation);
+                    }
+
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ Test completed successfully in ${(endTime - startTime)}ms`;
+
+                    console.log('');
+                    console.log('🎉 CONVERSION SUCCESSFUL!');
+                    console.log('========================');
+                    console.log('📊 Input rows:', testResults.metadata.inputRows);
+                    console.log('📊 Output rows:', testResults.metadata.outputRows);
+                    console.log('📋 Format compliance:', testResults.validation.formatCompliance + '%');
+                    console.log('⏱️ Processing time:', testResults.metadata.processingTime + 'ms');
+
+                } else {
+                    throw new Error(testResults.error || 'Conversion failed');
+                }
+
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Test failed: ${error.message}`;
+                console.log('❌ TEST FAILED:', error.message);
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('consoleOutput').textContent = 'Console cleared...';
+            document.getElementById('processingLogContent').innerHTML = '';
+            document.getElementById('validationSection').innerHTML = '';
+
+            const statusDiv = document.getElementById('statusDiv');
+            statusDiv.className = 'status ready';
+            statusDiv.textContent = 'Ready to test enhanced logging system';
+
+            const logContainer = document.getElementById('processingLogContainer');
+            logContainer.style.display = 'none';
+        }
+
+        function downloadLogs() {
+            if (!testResults) {
+                alert('No test results to download. Please run the test first.');
+                return;
+            }
+
+            const logData = {
+                testTimestamp: new Date().toISOString(),
+                conversionResults: testResults,
+                consoleOutput: document.getElementById('consoleOutput').textContent
+            };
+
+            const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `enhanced_logging_test_${new Date().toISOString().substr(0,19).replace(/[T:]/g, '_')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize page
+        console.log('🌐 Enhanced Logging Test Page Ready');
+        console.log('Click "Run Enhanced Conversion Test" to start testing');
+    </script>
+</body>
+</html>

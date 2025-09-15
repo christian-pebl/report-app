@@ -1,0 +1,118 @@
+File Name,Adjusted Date and Time,Timestamps (HH:MM:SS),Event Observation,Quantity (Nmax),Notes,Common Name,Order,Family,Genus,Species,Lowest Order Scientific Name,Confidence Level (1-5),Quality of Video (1-5),"Where on Screen (1-9, 3x3 grid top left to lower right)",Analysis Date,Analysis by Person,Adjusted Date / Time
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:00:36,3 fish,3,cod ,cod ,,,Gadus,morhua,Gadus morhua,3.0,4.0,2,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:00:47,1 fish,1,"unknown flatfish, order Pleuronectiformes",flatfish,Pleuronectiformes,,,,Pleuronectiformes,5.0,1.0,5,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:01:10,1 fish,1,cod ,cod ,,,Gadus,morhua,Gadus morhua,1.0,2.0,4,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:01:20,2 fish,2,cod ,cod ,,,Gadus,morhua,Gadus morhua,2.0,2.0,1,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:01:28,1 fish,1,cod ,cod ,,,Gadus,morhua,Gadus morhua,4.0,3.0,4,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:01:36,1 fish,1,cod ,cod ,,,Gadus,morhua,Gadus morhua,1.0,1.0,4,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_09-00-40.mp4,2024-08-01 09:00:40,00:01:51,1 fish,1,cod ,cod ,,,Gadus,morhua,Gadus morhua,1.0,1.0,4,,A Krishna,2020-08-01 09:00:40
+SUBCAM_ALG_2020-01-22_12-00-40.mp4,2024-08-01 12:00:40,00:00:03,1 benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,7,,A Krishna,2020-08-01 12:00:40
+SUBCAM_ALG_2020-01-22_12-00-40.mp4,2024-08-01 12:00:40,00:00:08,2 benthic,2,"unknown, too turbid",,,,,,,,,9,,A Krishna,2020-08-01 12:00:40
+SUBCAM_ALG_2020-01-22_12-00-40.mp4,2024-08-01 12:00:40,00:00:43,1 goby,1,"dragonet, family Callionymus ",dragonet,,,Callionymus ,,,1.0,2.0,8,,A Krishna,2020-08-01 12:00:40
+SUBCAM_ALG_2020-01-22_12-00-40.mp4,2024-08-01 12:00:40,00:00:53,1 benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,2.0,7,,A Krishna,2020-08-01 12:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:47,large school of fish,5+,"30+ individuals, stay wholly/partially on screen between 00:00:00 and 00:01:34",cod,,,Gadus,morhua,Gadus morhua,3.0,3.0,1-9,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:10,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,1.0,9,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:23,1 crab,1,hermit crab,hermit crab ,,Pagurus,,,Pagurus,5.0,2.0,7,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:12,1 crab,1,"unable to ID, too far away",,,,,,,,,4,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:07,1 tiny crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,8,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:00:53,1 benthic,1,whelk,whelk,,,,,,2.0,1.0,8,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:01:33,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,5.0,3.0,9,,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:01:40,3 fish,3,cod ,cod,,,Gadus,morhua,Gadus morhua,5.0,5.0,"4,7",,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_09-00-40.mp4,2024-08-02 09:00:40,00:01:43,8 fish,8,cod ,cod,,,Gadus,morhua,Gadus morhua,4.0,4.0,"1,2,4",,A Krishna,2020-08-02 09:00:40
+SUBCAM_ALG_2020-01-23_12-00-40.mp4,2024-08-02 12:00:40,00:00:01,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,1.0,4,,A Krishna,2020-08-02 12:00:40
+SUBCAM_ALG_2020-01-23_12-00-40.mp4,2024-08-02 12:00:40,00:00:38,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,3.0,8,,A Krishna,2020-08-02 12:00:40
+SUBCAM_ALG_2020-01-23_12-00-40.mp4,2024-08-02 12:00:40,00:00:55,1 benthic,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,4,,A Krishna,2020-08-02 12:00:40
+SUBCAM_ALG_2020-01-23_12-00-40.mp4,2024-08-02 12:00:40,00:01:14,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,5.0,3.0,7,,A Krishna,2020-08-02 12:00:40
+SUBCAM_ALG_2020-01-24_09-00-41.mp4,2024-08-03 09:00:41,00:00:05,tiny crab,1,"unable to ID, too far away",,,,,,,,,5,,A Krishna,2020-08-03 09:00:41
+SUBCAM_ALG_2020-01-24_09-00-41.mp4,2024-08-03 09:00:41,00:00:19,tiny crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,1.0,5,,A Krishna,2020-08-03 09:00:41
+SUBCAM_ALG_2020-01-24_09-00-41.mp4,2024-08-03 09:00:41,00:01:10,2 tiny crabs,2,"have been in frame longer, hermit crabs?",hermit crab,,Pagurus,,,Pagurus,2.0,1.0,4,,A Krishna,2020-08-03 09:00:41
+SUBCAM_ALG_2020-01-24_09-00-41.mp4,2024-08-03 09:00:41,00:01:34,1 crab,1,"sticks out one leg, hermit crab",hermit crab,,Pagurus,,,Pagurus,3.0,3.0,8,,A Krishna,2020-08-03 09:00:41
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:00:02,big crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,5.0,8,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:00:04,1 small crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,2.0,9,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:00:55,4 fish,4,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,4.0,2.0,1,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:01:06,"7 fish, some same",7,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,4.0,4.0,"1,2",,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:01:24,1 same schooling fish,1,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,4.0,4.0,3,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:01:31,1 benthic non-flat fish,1,"moves with little schooches, dragonet? ",dragonet,,,Callionymus ,,,2.0,1.0,7,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-25_12-00-40.mp4,2024-08-04 12:00:40,00:01:32,5 same schooling fish,5,scad ,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,4.0,2.0,1-3,,A Krishna,2020-08-04 12:00:40
+SUBCAM_ALG_2020-01-26_09-00-40.mp4,2024-08-05 09:00:40,00:00:06,2 crabs,2,hermit crabs,hermit crab,,Pagurus,,,Pagurus,5.0,4.0,8,,A Krishna,2020-08-05 09:00:40
+SUBCAM_ALG_2020-01-26_09-00-40.mp4,2024-08-05 09:00:40,00:00:27,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,3.0,1.0,5,,A Krishna,2020-08-05 09:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:02,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,4.0,8,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:05,1 benthic non-flat fish,1,sand goby ,sand goby ,,,Pomatoschistus ,,,3.0,1.0,8,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:09,1 benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,1.0,4,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:16,1 slow moving small benthic,1,"whelk by movement, cannot see shape to ID further ",whelk,,,,,,3.0,1.0,8,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:25,1 crab,1,unable to ID,,,,,,,,,5,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:00:56,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,5,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:01:00,1 crab,1,"unable to ID, too far away",,,,,,,,,4,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:01:45,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,3.0,2.0,9,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-26_12-00-40.mp4,2024-08-05 12:00:40,00:01:51,gurnard,1,grey gurnard ,grey gurnard ,,,Eutrigla ,gurnardus,Eutrigla  gurnardus,4.0,5.0,7,,A Krishna,2020-08-05 12:00:40
+SUBCAM_ALG_2020-01-27_09-00-41.mp4,2024-08-06 09:00:41,00:00:37,1 benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,4,,A Krishna,2020-08-06 09:00:41
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:00:01,1 flatfish,1,"unkown, flush to seabed but doesn't move like flatfish",,,,,,,,,4,,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:00:25,1 huge group of small fish,200,scad ,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,3.0,5.0,1-6,,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:00:30,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,8,,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:00:41,"1 group fish, likely same as above",15,"estimated nmax, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,4.0,5.0,"2,3,5,6",,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:01:23,"1 group fish, likely same as above",8,"estimated nmax, very blurry, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,2.0,3.0,"3,6,9",,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-27_12-00-40.mp4,2024-08-06 12:00:40,00:01:52,"1 huge group small fish, likely same as above",200,estimated nmax,scad ,,,Trachurus ,trachurus ,Trachurus  trachurus ,2.0,5.0,"2,3,5,6",,A Krishna,2020-08-06 12:00:40
+SUBCAM_ALG_2020-01-28_09-00-40.mp4,2024-08-07 09:00:40,00:00:08,1 benthic non-flat fish,1,sand goby,sand goby,,,Pomatoschistus ,,,3.0,2.0,8,,A Krishna,2020-08-07 09:00:40
+SUBCAM_ALG_2020-01-28_09-00-40.mp4,2024-08-07 09:00:40,00:01:09,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,8,,A Krishna,2020-08-07 09:00:40
+SUBCAM_ALG_2020-01-29_09-00-40.mp4,2024-08-08 09:00:40,00:00:01,group of fish,8,"estimated nmax, turbidity underestimate, scad, stays on camera whole time",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,5.0,"1,2,4,5",,A Krishna,2020-08-08 09:00:40
+SUBCAM_ALG_2020-01-30_09-00-40.mp4,2024-08-09 09:00:40,00:00:02,1 flatfish,1,turbot,turbot,,,Psetta,maxima,Psetta maxima,4.0,4.0,"8,9",,A Krishna,2020-08-09 09:00:40
+SUBCAM_ALG_2020-01-30_09-00-40.mp4,2024-08-09 09:00:40,00:00:02,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,4.0,8,,A Krishna,2020-08-09 09:00:40
+SUBCAM_ALG_2020-01-30_09-00-40.mp4,2024-08-09 09:00:40,00:01:09,1 dragonet? ,1,dragonet,dragonet,,,Callionymus ,,,3.0,3.0,7,,A Krishna,2020-08-09 09:00:40
+SUBCAM_ALG_2020-01-31_09-00-40.mp4,2024-08-10 09:00:40,00:01:02,1 snail?,1,whelk,whelk,,,,,,2.0,2.0,8,,A Krishna,2020-08-10 09:00:40
+SUBCAM_ALG_2020-01-31_09-00-40.mp4,2024-08-10 09:00:40,00:01:03,1 snail?,1,whelk,whelk,,,,,,4.0,3.0,9,,A Krishna,2020-08-10 09:00:40
+SUBCAM_ALG_2020-01-31_09-00-40.mp4,2024-08-10 09:00:40,00:01:12,1 crab,1,"non-hermit crab, sideways moving",,,,,,,,,4,,A Krishna,2020-08-10 09:00:40
+SUBCAM_ALG_2020-02-01_09-00-41.mp4,2024-08-11 09:00:41,00:00:08,3 hermit crabs,3,"hermit crabs, one in seven unmoving",hermit crab,,Pagurus,,,Pagurus,5.0,5.0,"7,8",,A Krishna,2020-08-11 09:00:41
+SUBCAM_ALG_2020-02-01_09-00-41.mp4,2024-08-11 09:00:41,00:00:31,1 hermit crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,2.0,9,,A Krishna,2020-08-11 09:00:41
+SUBCAM_ALG_2020-02-01_09-00-41.mp4,2024-08-11 09:00:41,00:01:19,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,4,,A Krishna,2020-08-11 09:00:41
+SUBCAM_ALG_2020-02-01_12-00-41.mp4,2024-08-11 12:00:41,00:00:01,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,4.0,7,,A Krishna,2020-08-11 12:00:41
+SUBCAM_ALG_2020-02-01_12-00-41.mp4,2024-08-11 12:00:41,00:00:15,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,3.0,7,,A Krishna,2020-08-11 12:00:41
+SUBCAM_ALG_2020-02-01_12-00-41.mp4,2024-08-11 12:00:41,00:00:17,1 tiny benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,8,,A Krishna,2020-08-11 12:00:41
+SUBCAM_ALG_2020-02-01_12-00-41.mp4,2024-08-11 12:00:41,00:00:39,1 benthic fish?,1,goby shaped,sand goby,,,Pomatoschistus ,,,1.0,1.0,8,,A Krishna,2020-08-11 12:00:41
+SUBCAM_ALG_2020-02-01_12-00-41.mp4,2024-08-11 12:00:41,00:00:52,1 small sideways crab,1,"sideways crab moving legs towards mouth, feeding, further taxonomy unknown",,,,,,,,,8,,A Krishna,2020-08-11 12:00:41
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:00:01,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,1.0,8,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:00:34,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,1.0,9,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:00:49,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,1.0,5,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:00:56,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,3.0,4,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:00:58,1 small goby,1,sand goby,sand goby,,,Pomatoschistus ,,,3.0,2.0,7,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-02_09-00-40.mp4,2024-08-12 09:00:40,00:01:10,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,9,,A Krishna,2020-08-12 09:00:40
+SUBCAM_ALG_2020-02-03_09-00-41.mp4,2024-08-13 09:00:41,00:00:12,2 hermit crabs,2,hermit crabs,hermit crab,,Pagurus,,,Pagurus,4.0,3.0,8,,A Krishna,2020-08-13 09:00:41
+SUBCAM_ALG_2020-02-03_09-00-41.mp4,2024-08-13 09:00:41,00:00:15,1 hermit crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,3.0,9,,A Krishna,2020-08-13 09:00:41
+SUBCAM_ALG_2020-02-03_09-00-41.mp4,2024-08-13 09:00:41,00:00:55,1 benthic fish,1,twospot goby,twospot goby,,,Gobiusculus ,flavescens,Gobiusculus  flavescens,3.0,3.0,7,,A Krishna,2020-08-13 09:00:41
+SUBCAM_ALG_2020-02-03_09-00-41.mp4,2024-08-13 09:00:41,00:01:21,1 flat fish,1,"flounder, potential reversal of eyes to the left side, opaque white belly ",flounder,,,Platichthys ,flesus,Platichthys  flesus,2.0,2.0,9,,A Krishna,2020-08-13 09:00:41
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:00:15,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,8,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:00:39,1 crab,1,hermit crab ,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,8,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:00:42,1 small crab,1,"unknown, too turbid",,,,,,,,,9,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:00:54,1 benthic fish,1,can't re-spot,,,,,,,,,7/8,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:01:01,1 benthic snail?,1,whelk ,whelk,,,,,,3.0,2.0,8,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-07_12-00-40.mp4,2024-08-17 12:00:40,00:01:38,1 unknown benthic,1,whelk ,whelk,,,,,,2.0,1.0,4,,A Krishna,2020-08-17 12:00:40
+SUBCAM_ALG_2020-02-08_12-00-41.mp4,2024-08-18 12:00:41,00:00:00,1 hermit crab,1,"unmoving, hermit crab",hermit crab,,Pagurus,,,Pagurus,3.0,1.0,8,,A Krishna,2020-08-18 12:00:41
+SUBCAM_ALG_2020-02-08_12-00-41.mp4,2024-08-18 12:00:41,00:00:03,2 fish,2,"swam across screen, very blurry, unknown",,,,,,,,,9,,A Krishna,2020-08-18 12:00:41
+SUBCAM_ALG_2020-02-08_12-00-41.mp4,2024-08-18 12:00:41,00:00:42,school of medium to large fish,14,"14 ish, very blurry, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,2.0,1.0,"9,5",,A Krishna,2020-08-18 12:00:41
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:02,1 crab,1,unknown crab,,,,,,,,,9,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:18,2 gurnard?,2,dragonet ,dragonet ,,,Callionymus ,,,4.0,3.0,4,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:27,1 flatfish,1,dragonet ,dragonet ,,,Callionymus ,,,5.0,2.0,9,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:37,1 goby,1,sand goby ,sand goby ,,,Pomatoschistus ,,,4.0,3.0,7,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:47,1 goby,1,sand goby ,sand goby ,,,Pomatoschistus ,,,4.0,3.0,8,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:00:59,1 gurnard?,1,dragonet ,dragonet ,,,Callionymus ,,,4.0,2.0,4,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:01:18,1 skinny fish,1,twospot goby,twospot goby,,,Gobiusculus ,flavescens,Gobiusculus  flavescens,4.0,3.0,8,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-10_09-00-40.mp4,2024-08-20 09:00:40,00:01:32,1 gurnard?,1,dragonet ,dragonet ,,,Callionymus ,,,4.0,3.0,4,,A Krishna,2020-08-20 09:00:40
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:00:02,school of medium/large fish,15,"~15, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,5.0,"3,5,6",,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:00:15,1 benthic fish,1,spotted dragonet,spotted dragonet,,,Callionymus ,maculatus ,Callionymus  maculatus ,3.0,4.0,7,,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:00:39,"3 fish, likely same school",3,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,3.0,5,,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:00:46,"2 fish, likely same school",2,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,3.0,2,,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:00:51,"5 fish, likely same school",5,"drifting onto screen with current, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,4.0,"5,7,9",,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:01:23,huge school of likely same species,100+,"100+ individuals?, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,4.0,"3,6",,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-19_09-00-41.mp4,2024-08-29 09:00:41,00:01:37,"6 fish, likely same school",6,"drifting across screen, scad",scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,3.0,"5,7,9",,A Krishna,2020-08-29 09:00:41
+SUBCAM_ALG_2020-02-20_09-00-40.mp4,2024-08-30 09:00:40,00:00:01,2 fish,2,scad,scad,,,Trachurus ,trachurus ,Trachurus  trachurus ,5.0,3.0,6,,A Krishna,2020-08-30 09:00:40
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:00:01,1 fish,1,"only can see fins and body spines, sea scorpion",Long-spined sea scorpion or Bull rout,,,Myoxocephalus/Taurulus ,scorpius/bubalis,Myoxocephalus/Taurulus  scorpius/bubalis,3.0,5.0,3,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:00:03,2 shelled benthics,2,hermit crabs,hermit crab,,Pagurus,,,Pagurus,4.0,2.0,5,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:00:05,shelled benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,9,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:00:44,1 large crab?,1,"behind seaweed, sideways crab",sideways crab,,,,,,,,4,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:01:05,1 medium/large crab,1,"sitting still but wiggling leg/antennae, unknown crab",,,,,,,,,8,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-22_09-00-41.mp4,2024-09-01 09:00:41,00:01:25,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,2.0,1.0,9,,A Krishna,2020-09-01 09:00:41
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:00:07,1 sideways crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,4.0,3.0,5/8,,A Krishna,2020-09-02 09:00:40
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:00:52,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,2.0,5,,A Krishna,2020-09-02 09:00:40
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:01:01,1 benthic,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,3.0,2.0,5,,A Krishna,2020-09-02 09:00:40
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:01:06,1 goby,1,sand goby,sand goby,,,Pomatoschistus ,,,4.0,2.0,5,,A Krishna,2020-09-02 09:00:40
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:01:12,1 crab,1,hermit crab,hermit crab,,Pagurus,,,Pagurus,5.0,3.0,5,,A Krishna,2020-09-02 09:00:40
+SUBCAM_ALG_2020-02-23_09-00-40.mp4,2024-09-02 09:00:40,00:01:39,1 tiny crab,1,"upper left corner, hermit crab",hermit crab,,Pagurus,,,Pagurus,3.0,2.0,9,,A Krishna,2020-09-02 09:00:40

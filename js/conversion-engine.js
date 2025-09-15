@@ -18,28 +18,51 @@ class SUBCAMConverter {
      */
     async convertRawToNmax(csvText, options = {}) {
         try {
-            this.logger.log('Starting _raw to _nmax conversion');
+            this.logger.log('🚀 Starting _raw to _nmax conversion');
 
-            // 1. Parse and normalize data
+            // STEP 1: Parse and validate CSV format
+            this.logger.setCurrentStep(1, 'Parsing CSV and validating format');
             const rawData = this.parseCSV(csvText);
+
+            // Validate format on first 5 rows for performance
+            const sampleData = rawData.slice(0, 5);
+            const headers = Object.keys(rawData[0] || {});
+            const validation = this.logger.validateRawFileFormat(headers, sampleData);
+
+            this.logger.success(`CSV parsed successfully: ${rawData.length} rows`, {
+                headers: headers.length,
+                formatCompliance: validation.formatCompliance
+            });
+
+            // STEP 2: Normalize and clean data
+            this.logger.setCurrentStep(2, 'Normalizing and cleaning data');
             const normalizedData = this.normalizeRawData(rawData);
+            this.logger.success(`Data normalized: ${normalizedData.length} valid records`);
 
-            // 2. Apply quality filters
+            // STEP 3: Apply quality filters
+            this.logger.setCurrentStep(3, 'Applying quality filters');
             const filteredData = this.applyQualityFilters(normalizedData, options);
+            const filterRatio = ((filteredData.length / normalizedData.length) * 100).toFixed(1);
+            this.logger.success(`Quality filters applied: ${filteredData.length} records passed (${filterRatio}%)`);
 
-            // 3. Calculate per-clip Nmax
+            // STEP 4: Calculate per-clip Nmax
+            this.logger.setCurrentStep(4, 'Calculating per-clip Nmax values');
             const perClipData = this.calculatePerClipNmax(filteredData);
+            this.logger.success(`Per-clip Nmax calculated for ${Object.keys(perClipData).length} unique clips`);
 
-            // 4. Aggregate to daily species totals
+            // STEP 5: Aggregate to daily species totals
+            this.logger.setCurrentStep(5, 'Aggregating daily species totals');
             const dailySpecies = this.aggregateDailySpecies(perClipData);
+            this.logger.success(`Daily aggregation complete: ${dailySpecies.length} daily species records`);
 
-            // 5. Calculate summary metrics
+            // STEP 6: Calculate summary metrics and validate
+            this.logger.setCurrentStep(6, 'Calculating summary metrics and validating output');
             const result = this.calculateNmaxSummaryMetrics(dailySpecies);
-
-            // 6. Validate output
             this.validateNmaxOutput(result);
+            this.logger.success(`Output validation complete: ${result.length} final records`);
 
-            this.logger.log('_raw to _nmax conversion completed successfully');
+            const totalElapsed = Date.now() - this.logger.startTime;
+            this.logger.success(`🎉 _raw to _nmax conversion completed successfully in ${totalElapsed}ms`);
 
             return {
                 success: true,
@@ -49,9 +72,12 @@ class SUBCAMConverter {
                     outputRows: result.length,
                     dateRange: this.getDateRange(result),
                     speciesCount: this.getSpeciesCount(result),
-                    processingTime: Date.now()
+                    processingTime: totalElapsed,
+                    formatValidation: validation,
+                    conversionSteps: this.logger.totalSteps
                 },
-                logs: this.logger.getLogs()
+                logs: this.logger.getLogs(),
+                validation: this.logger.validationResults
             };
 
         } catch (error) {
@@ -752,27 +778,258 @@ class SUBCAMConverter {
 class ConversionLogger {
     constructor() {
         this.logs = [];
+        this.startTime = Date.now();
+        this.currentStep = null;
+        this.totalSteps = 6;
+        this.validationResults = {
+            formatCompliance: 0,
+            columnValidation: [],
+            dataValidation: []
+        };
+        this.progressCallback = null;
     }
 
-    log(message) {
+    setProgressCallback(callback) {
+        this.progressCallback = callback;
+    }
+
+    setCurrentStep(stepNumber, stepName) {
+        this.currentStep = { number: stepNumber, name: stepName };
+        this.updateProgress();
+    }
+
+    updateProgress() {
+        if (this.progressCallback && this.currentStep) {
+            const elapsed = Date.now() - this.startTime;
+            const progress = (this.currentStep.number / this.totalSteps) * 100;
+            this.progressCallback({
+                step: this.currentStep.number,
+                totalSteps: this.totalSteps,
+                stepName: this.currentStep.name,
+                progress: Math.round(progress),
+                elapsed: elapsed
+            });
+        }
+    }
+
+    log(message, level = 'INFO', metadata = {}) {
         const entry = {
             timestamp: new Date().toISOString(),
-            level: 'INFO',
-            message: message
+            level: level,
+            message: message,
+            step: this.currentStep ? this.currentStep.number : null,
+            stepName: this.currentStep ? this.currentStep.name : null,
+            metadata: metadata,
+            elapsed: Date.now() - this.startTime
         };
         this.logs.push(entry);
         console.log(`[${entry.timestamp}] ${entry.level}: ${entry.message}`);
+
+        // Trigger UI update if callback exists
+        if (this.progressCallback) {
+            this.progressCallback({ type: 'log', entry: entry });
+        }
     }
 
-    error(message, error) {
+    success(message, metadata = {}) {
+        this.log(`✅ ${message}`, 'SUCCESS', metadata);
+    }
+
+    warning(message, metadata = {}) {
+        this.log(`⚠️ ${message}`, 'WARNING', metadata);
+    }
+
+    debug(message, metadata = {}) {
+        this.log(`🔍 ${message}`, 'DEBUG', metadata);
+    }
+
+    error(message, error = null, metadata = {}) {
         const entry = {
             timestamp: new Date().toISOString(),
             level: 'ERROR',
-            message: message,
-            error: error ? error.toString() : null
+            message: `❌ ${message}`,
+            error: error ? error.toString() : null,
+            step: this.currentStep ? this.currentStep.number : null,
+            stepName: this.currentStep ? this.currentStep.name : null,
+            metadata: metadata,
+            elapsed: Date.now() - this.startTime
         };
         this.logs.push(entry);
         console.error(`[${entry.timestamp}] ${entry.level}: ${entry.message}`, error);
+
+        // Trigger UI update if callback exists
+        if (this.progressCallback) {
+            this.progressCallback({ type: 'log', entry: entry });
+        }
+    }
+
+    /**
+     * Validate raw file format and structure
+     * @param {Array} headers - CSV headers
+     * @param {Array} sampleData - First few rows of data
+     * @returns {Object} - Validation results with compliance score
+     */
+    validateRawFileFormat(headers, sampleData = []) {
+        this.log('🔍 Starting raw file format validation...', 'INFO');
+
+        // Expected columns for SUBCAM raw files
+        const expectedColumns = [
+            'File Name',
+            'Adjusted Date and Time',
+            'Timestamps (HH:MM:SS)',
+            'Event Observation',
+            'Quantity (Nmax)',
+            'Notes',
+            'Common Name',
+            'Order',
+            'Family',
+            'Genus',
+            'Species',
+            'Lowest Order Scientific Name',
+            'Confidence Level (1-5)',
+            'Quality of Video (1-5)',
+            'Where on Screen (1-9, 3x3 grid top left to lower right)',
+            'Analysis Date',
+            'Analysis by Person',
+            'Adjusted Date / Time'
+        ];
+
+        const validationResults = {
+            formatCompliance: 0,
+            columnValidation: [],
+            dataValidation: [],
+            recommendations: []
+        };
+
+        // Column validation
+        let matchedColumns = 0;
+        expectedColumns.forEach(expectedCol => {
+            const found = headers.some(header =>
+                header.trim().toLowerCase() === expectedCol.toLowerCase()
+            );
+
+            validationResults.columnValidation.push({
+                column: expectedCol,
+                present: found,
+                status: found ? '✅' : '❌'
+            });
+
+            if (found) {
+                matchedColumns++;
+                this.success(`Column found: ${expectedCol}`);
+            } else {
+                this.warning(`Missing expected column: ${expectedCol}`);
+            }
+        });
+
+        // Check for unexpected columns
+        headers.forEach(header => {
+            const expected = expectedColumns.some(expectedCol =>
+                header.trim().toLowerCase() === expectedCol.toLowerCase()
+            );
+
+            if (!expected) {
+                this.warning(`Unexpected column found: ${header}`);
+                validationResults.columnValidation.push({
+                    column: header,
+                    present: true,
+                    status: '⚠️',
+                    note: 'Unexpected column'
+                });
+            }
+        });
+
+        // Calculate compliance score
+        validationResults.formatCompliance = Math.round((matchedColumns / expectedColumns.length) * 100);
+
+        // Data validation on sample rows
+        if (sampleData.length > 0) {
+            this.log('🔍 Validating sample data...', 'INFO');
+
+            sampleData.forEach((row, index) => {
+                const rowValidation = this.validateSampleRow(row, index + 1, headers);
+                validationResults.dataValidation.push(rowValidation);
+            });
+        }
+
+        // Generate recommendations
+        if (validationResults.formatCompliance < 80) {
+            validationResults.recommendations.push(
+                'File format compliance is below 80%. Please check column headers match expected SUBCAM format.'
+            );
+        }
+
+        if (validationResults.formatCompliance < 50) {
+            validationResults.recommendations.push(
+                'Format compliance is critically low. This may not be a valid SUBCAM raw file.'
+            );
+        }
+
+        // Check for common issues
+        const missingCritical = validationResults.columnValidation
+            .filter(col => !col.present && ['File Name', 'Adjusted Date and Time', 'Common Name'].includes(col.column));
+
+        if (missingCritical.length > 0) {
+            validationResults.recommendations.push(
+                `Critical columns missing: ${missingCritical.map(c => c.column).join(', ')}. These are required for conversion.`
+            );
+        }
+
+        // Check for data quality issues
+        const dataIssues = validationResults.dataValidation.filter(v => v.issues.length > 0);
+        if (dataIssues.length > 2) {
+            validationResults.recommendations.push(
+                `${dataIssues.length} rows have data quality issues. Check date formats, numeric values, and required fields.`
+            );
+        }
+
+        this.validationResults = validationResults;
+        this.success(`Format validation complete. Compliance: ${validationResults.formatCompliance}%`);
+
+        return validationResults;
+    }
+
+    /**
+     * Validate individual data row
+     */
+    validateSampleRow(row, rowNumber, headers) {
+        const validation = {
+            row: rowNumber,
+            issues: [],
+            status: '✅'
+        };
+
+        // Check for empty critical fields
+        const criticalFields = ['File Name', 'Adjusted Date and Time', 'Common Name'];
+        criticalFields.forEach(field => {
+            const value = row[field];
+            if (!value || value.toString().trim() === '') {
+                validation.issues.push(`Empty ${field}`);
+                validation.status = '❌';
+            }
+        });
+
+        // Validate date format
+        const dateField = row['Adjusted Date and Time'];
+        if (dateField) {
+            const datePattern = /^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/;
+            if (!datePattern.test(dateField.toString().trim())) {
+                validation.issues.push('Invalid date format');
+                validation.status = '⚠️';
+            }
+        }
+
+        // Validate numeric fields
+        const numericFields = ['Confidence Level (1-5)', 'Quality of Video (1-5)'];
+        numericFields.forEach(field => {
+            const value = row[field];
+            if (value && isNaN(parseFloat(value))) {
+                validation.issues.push(`Non-numeric value in ${field}`);
+                validation.status = '⚠️';
+            }
+        });
+
+        return validation;
     }
 
     getLogs() {

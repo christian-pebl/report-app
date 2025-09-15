@@ -433,22 +433,44 @@ class CSVManager {
             return;
         }
 
-        this.showSuccess('Generating NMAX format... This may take a moment.');
+        // Clear previous log and prepare for new conversion
+        this.clearProcessingLog();
+        this.updateProgress({ progress: 0, stepName: 'Initializing conversion...', elapsed: 0 });
+
+        this.showSuccess('🚀 Starting Raw to NMAX conversion...');
 
         setTimeout(async () => {
             try {
                 // Load the raw file
+                this.updateProgress({ progress: 5, stepName: 'Loading raw file...', elapsed: 100 });
                 const rawData = await this.readFileAsText(rawFile);
                 const csvData = this.parseCSV(rawData);
 
                 // Convert raw data to CSV format for conversion engine
                 const csvText = this.createCSVFromData(this.headers, this.csvData);
 
-                // Use conversion engine to convert to NMAX
+                // Create converter with progress callback
                 const converter = new SUBCAMConverter();
+
+                // Set up progress tracking
+                converter.logger.setProgressCallback((update) => {
+                    if (update.type === 'log') {
+                        this.addEnhancedLogEntry(update.entry);
+                    } else {
+                        // Progress update
+                        this.updateProgress(update);
+                    }
+                });
+
+                // Perform conversion
                 const result = await converter.convertRawToNmax(csvText);
 
                 if (result.success) {
+                    // Display validation results
+                    if (result.validation) {
+                        this.displayValidationResults(result.validation);
+                    }
+
                     // Convert result back to our format
                     const nmaxCSV = converter.dataToCSV(result.data);
                     const nmaxData = this.parseCSV(nmaxCSV);
@@ -456,11 +478,19 @@ class CSVManager {
                     // Show converted data with preview controls
                     const convertedFileName = `${baseName}_nmax.csv`;
                     this.showConvertedDataPreview(convertedFileName, 'nmax', baseName, fileInfo, result);
+
+                    // Final success message
+                    const processingTime = (result.metadata.processingTime / 1000).toFixed(2);
+                    this.addToProcessingLog(`🎉 Conversion completed successfully in ${processingTime}s`, 'success');
+                    this.addToProcessingLog(`📊 ${result.metadata.inputRows} input rows → ${result.metadata.outputRows} output rows`, 'success');
+
                 } else {
                     throw new Error(result.error || 'NMAX conversion failed');
                 }
             } catch (error) {
                 console.error('NMAX conversion error:', error);
+                this.updateProgress({ progress: 0, stepName: 'Conversion failed', elapsed: 0 });
+                this.addToProcessingLog(`❌ Conversion failed: ${error.message}`, 'error');
                 this.showError(`NMAX conversion failed: ${error.message}`);
             }
         }, 500);
@@ -1682,31 +1712,36 @@ class CSVManager {
     createProcessingLogInterface() {
         // Check if processing log already exists
         let logContainer = document.getElementById('processingLogContainer');
-        
+
         if (!logContainer) {
-            // Create the collapsible log interface
+            // Create the enhanced collapsible log interface
             logContainer = document.createElement('div');
             logContainer.id = 'processingLogContainer';
             logContainer.style.cssText = `
                 margin: 10px 0;
                 border: 1px solid #d1d5db;
-                border-radius: 6px;
+                border-radius: 8px;
                 background: #f9fafb;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             `;
-            
+
             const logHeader = document.createElement('div');
             logHeader.style.cssText = `
-                padding: 8px 12px;
+                padding: 12px;
                 background: #f3f4f6;
                 border-bottom: 1px solid #d1d5db;
                 cursor: pointer;
                 display: flex;
+                justify-content: space-between;
                 align-items: center;
                 font-size: 0.9rem;
                 font-weight: 500;
                 color: #374151;
             `;
-            
+
+            const logHeaderLeft = document.createElement('div');
+            logHeaderLeft.style.cssText = 'display: flex; align-items: center;';
+
             const toggleIcon = document.createElement('span');
             toggleIcon.id = 'logToggleIcon';
             toggleIcon.textContent = '▶';
@@ -1715,36 +1750,118 @@ class CSVManager {
                 transition: transform 0.2s;
                 font-size: 0.8rem;
             `;
-            
+
             const logTitle = document.createElement('span');
-            logTitle.textContent = 'Processing Log (Click to expand/collapse)';
-            
-            logHeader.appendChild(toggleIcon);
-            logHeader.appendChild(logTitle);
-            
+            logTitle.textContent = 'Raw to NMAX Conversion Log';
+
+            const logStatus = document.createElement('span');
+            logStatus.id = 'logStatus';
+            logStatus.style.cssText = `
+                font-size: 0.8rem;
+                color: #6b7280;
+                margin-left: 10px;
+            `;
+
+            logHeaderLeft.appendChild(toggleIcon);
+            logHeaderLeft.appendChild(logTitle);
+            logHeaderLeft.appendChild(logStatus);
+
+            // Progress and timing info
+            const logHeaderRight = document.createElement('div');
+            logHeaderRight.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+            const timeElapsed = document.createElement('span');
+            timeElapsed.id = 'timeElapsed';
+            timeElapsed.style.cssText = `
+                font-size: 0.75rem;
+                color: #6b7280;
+                font-family: monospace;
+            `;
+
+            const progressText = document.createElement('span');
+            progressText.id = 'progressText';
+            progressText.style.cssText = `
+                font-size: 0.75rem;
+                color: #374151;
+                font-weight: 500;
+            `;
+
+            logHeaderRight.appendChild(timeElapsed);
+            logHeaderRight.appendChild(progressText);
+
+            logHeader.appendChild(logHeaderLeft);
+            logHeader.appendChild(logHeaderRight);
+
+            // Progress bar
+            const progressContainer = document.createElement('div');
+            progressContainer.id = 'progressContainer';
+            progressContainer.style.cssText = `
+                padding: 0 12px 8px 12px;
+                background: #f3f4f6;
+                border-bottom: 1px solid #d1d5db;
+            `;
+
+            const progressBar = document.createElement('div');
+            progressBar.style.cssText = `
+                width: 100%;
+                height: 6px;
+                background: #e5e7eb;
+                border-radius: 3px;
+                overflow: hidden;
+            `;
+
+            const progressFill = document.createElement('div');
+            progressFill.id = 'progressFill';
+            progressFill.style.cssText = `
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+                border-radius: 3px;
+                transition: width 0.3s ease;
+            `;
+
+            progressBar.appendChild(progressFill);
+            progressContainer.appendChild(progressBar);
+
+            // Validation results section
+            const validationSection = document.createElement('div');
+            validationSection.id = 'validationSection';
+            validationSection.style.cssText = `
+                padding: 12px;
+                background: #ffffff;
+                border-bottom: 1px solid #e5e7eb;
+                display: none;
+            `;
+
+            // Log content
             const logContent = document.createElement('div');
             logContent.id = 'processingLogContent';
             logContent.style.cssText = `
                 display: none;
                 padding: 12px;
-                max-height: 300px;
+                max-height: 400px;
                 overflow-y: auto;
                 font-family: 'Courier New', monospace;
                 font-size: 0.8rem;
                 background: #ffffff;
                 color: #1f2937;
-                line-height: 1.4;
+                line-height: 1.5;
+                border-bottom-left-radius: 8px;
+                border-bottom-right-radius: 8px;
             `;
-            
+
             logHeader.addEventListener('click', () => {
                 const isHidden = logContent.style.display === 'none';
                 logContent.style.display = isHidden ? 'block' : 'none';
+                validationSection.style.display = isHidden ? 'block' : 'none';
                 toggleIcon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
             });
-            
+
             logContainer.appendChild(logHeader);
+            logContainer.appendChild(progressContainer);
+            logContainer.appendChild(validationSection);
             logContainer.appendChild(logContent);
-            
+
             // Insert after the table controls but before the table wrapper
             const tableControls = document.querySelector('.table-controls');
             const tableWrapper = document.querySelector('.table-wrapper');
@@ -1798,6 +1915,241 @@ class CSVManager {
         if (logContent) {
             logContent.innerHTML = '';
         }
+
+        // Reset progress and validation displays
+        this.updateProgress({ progress: 0, stepName: 'Ready', elapsed: 0 });
+        this.clearValidationDisplay();
+    }
+
+    /**
+     * Update progress bar and timing information
+     */
+    updateProgress(progressInfo) {
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const timeElapsed = document.getElementById('timeElapsed');
+        const logStatus = document.getElementById('logStatus');
+
+        if (progressFill) {
+            progressFill.style.width = `${progressInfo.progress || 0}%`;
+        }
+
+        if (progressText) {
+            progressText.textContent = progressInfo.stepName || 'Processing...';
+        }
+
+        if (timeElapsed && progressInfo.elapsed) {
+            const seconds = (progressInfo.elapsed / 1000).toFixed(1);
+            timeElapsed.textContent = `${seconds}s`;
+        }
+
+        if (logStatus && progressInfo.step && progressInfo.totalSteps) {
+            logStatus.textContent = `Step ${progressInfo.step}/${progressInfo.totalSteps}`;
+        }
+    }
+
+    /**
+     * Display validation results in the validation section
+     */
+    displayValidationResults(validation) {
+        const validationSection = document.getElementById('validationSection');
+        if (!validationSection) return;
+
+        validationSection.innerHTML = '';
+
+        // Compliance score
+        const complianceHeader = document.createElement('div');
+        complianceHeader.style.cssText = `
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+
+        const complianceScore = validation.formatCompliance || 0;
+        const complianceColor = complianceScore >= 80 ? '#059669' : complianceScore >= 60 ? '#d97706' : '#dc2626';
+
+        complianceHeader.innerHTML = `
+            📋 Format Validation
+            <span style="color: ${complianceColor}; font-size: 0.9rem;">
+                ${complianceScore}% compliant
+            </span>
+        `;
+
+        // Column validation grid
+        const columnGrid = document.createElement('div');
+        columnGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 8px;
+            margin: 12px 0;
+        `;
+
+        if (validation.columnValidation) {
+            validation.columnValidation.forEach(col => {
+                const colItem = document.createElement('div');
+                colItem.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 8px;
+                    background: ${col.present && !col.note ? '#f0fdf4' : col.note ? '#fffbeb' : '#fef2f2'};
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                `;
+
+                colItem.innerHTML = `
+                    <span style="font-size: 0.9rem;">${col.status}</span>
+                    <span style="color: #374151;">${col.column}</span>
+                    ${col.note ? `<span style="color: #d97706; font-size: 0.7rem;">(${col.note})</span>` : ''}
+                `;
+
+                columnGrid.appendChild(colItem);
+            });
+        }
+
+        // Data validation summary
+        const dataValidation = document.createElement('div');
+        if (validation.dataValidation && validation.dataValidation.length > 0) {
+            const issueCount = validation.dataValidation.filter(v => v.issues.length > 0).length;
+            const validCount = validation.dataValidation.length - issueCount;
+
+            dataValidation.style.cssText = `
+                margin-top: 12px;
+                padding: 8px;
+                background: ${issueCount > 0 ? '#fffbeb' : '#f0fdf4'};
+                border-radius: 4px;
+                font-size: 0.8rem;
+            `;
+
+            dataValidation.innerHTML = `
+                <div style="font-weight: 500; margin-bottom: 4px;">📊 Sample Data Validation</div>
+                <div>✅ ${validCount} rows valid, ${issueCount > 0 ? `⚠️ ${issueCount} with issues` : ''}</div>
+            `;
+        }
+
+        validationSection.appendChild(complianceHeader);
+        validationSection.appendChild(columnGrid);
+        if (validation.dataValidation?.length > 0) {
+            validationSection.appendChild(dataValidation);
+        }
+
+        // Display recommendations if any
+        if (validation.recommendations && validation.recommendations.length > 0) {
+            const recommendationsDiv = document.createElement('div');
+            recommendationsDiv.style.cssText = `
+                margin-top: 12px;
+                padding: 10px;
+                background: #fef3c7;
+                border: 1px solid #f59e0b;
+                border-radius: 6px;
+                font-size: 0.8rem;
+            `;
+
+            const recHeader = document.createElement('div');
+            recHeader.style.cssText = 'font-weight: 600; margin-bottom: 6px; color: #92400e;';
+            recHeader.textContent = '💡 Recommendations';
+
+            const recList = document.createElement('ul');
+            recList.style.cssText = 'margin: 0; padding-left: 16px; color: #92400e;';
+
+            validation.recommendations.forEach(rec => {
+                const recItem = document.createElement('li');
+                recItem.textContent = rec;
+                recItem.style.marginBottom = '4px';
+                recList.appendChild(recItem);
+            });
+
+            recommendationsDiv.appendChild(recHeader);
+            recommendationsDiv.appendChild(recList);
+            validationSection.appendChild(recommendationsDiv);
+        }
+    }
+
+    /**
+     * Clear validation display
+     */
+    clearValidationDisplay() {
+        const validationSection = document.getElementById('validationSection');
+        if (validationSection) {
+            validationSection.innerHTML = '';
+        }
+    }
+
+    /**
+     * Enhanced log entry method with metadata support
+     */
+    addEnhancedLogEntry(entry) {
+        const logContent = document.getElementById('processingLogContent');
+        if (!logContent) return;
+
+        const logLine = document.createElement('div');
+        logLine.style.cssText = `
+            margin-bottom: 3px;
+            padding: 2px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        `;
+
+        // Timestamp
+        const timestamp = document.createElement('span');
+        timestamp.style.cssText = `
+            color: #6b7280;
+            font-size: 0.7rem;
+            min-width: 70px;
+            font-family: monospace;
+        `;
+        const time = new Date(entry.timestamp).toLocaleTimeString();
+        timestamp.textContent = time;
+
+        // Step indicator
+        const stepIndicator = document.createElement('span');
+        if (entry.step) {
+            stepIndicator.style.cssText = `
+                color: #3b82f6;
+                font-size: 0.7rem;
+                min-width: 20px;
+                font-weight: 500;
+            `;
+            stepIndicator.textContent = `S${entry.step}`;
+        }
+
+        // Message
+        const message = document.createElement('span');
+        message.style.cssText = `
+            flex: 1;
+            line-height: 1.3;
+        `;
+
+        // Style based on level
+        switch (entry.level) {
+            case 'ERROR':
+                message.style.color = '#dc2626';
+                break;
+            case 'SUCCESS':
+                message.style.color = '#059669';
+                break;
+            case 'WARNING':
+                message.style.color = '#d97706';
+                break;
+            case 'DEBUG':
+                message.style.color = '#6b7280';
+                break;
+            default:
+                message.style.color = '#374151';
+        }
+
+        message.textContent = entry.message;
+
+        logLine.appendChild(timestamp);
+        if (entry.step) logLine.appendChild(stepIndicator);
+        logLine.appendChild(message);
+
+        logContent.appendChild(logLine);
+        logContent.scrollTop = logContent.scrollHeight;
     }
 
     exportCSV() {
