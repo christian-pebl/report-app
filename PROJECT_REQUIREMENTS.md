@@ -84,6 +84,24 @@ Time,Porpoise (DPM),Porpoise (Clicks),Dolphin (DPM),Dolphin (Clicks),Sonar (DPM)
 - Parse ISO timestamps to extract date/time for x-axis labeling
 - Plot ALL rows in the file, not just a subset
 
+### X-Axis Time Label Spacing Requirements
+For std plots with potentially large datasets spanning days/weeks/months:
+
+**Intelligent Label Density**:
+- Time labels on the x-axis should be adjusted to show a sensible amount spanning the entire axis
+- Labels must not overlap or crowd the x-axis
+- Implement dynamic spacing based on dataset size and plot width
+- Show representative time points across the full data range
+
+**Suggested Spacing Logic**:
+- For datasets with < 50 time points: Show every 2nd-4th label
+- For datasets with 50-200 time points: Show every 5th-10th label
+- For datasets with 200+ time points: Show every 10th-20th label
+- Always include first and last time points for context
+- Maintain 45-degree rotation to prevent overlap
+
+**Current Issue**: Time labels may overlap when displaying complete std datasets with many time points (days/weeks of hourly data).
+
 ## Implementation Notes
 - These rules ensure consistent chart readability and meaningful data comparison
 - Chart titles should be left-aligned and positioned above the plotting area

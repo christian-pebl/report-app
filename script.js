@@ -3965,6 +3965,21 @@ class NavigationManager {
         return hourlyData;
     }
 
+    calculateOptimalLabelSpacing(dataSize) {
+        // Calculate intelligent spacing based on dataset size to prevent label crowding
+        if (dataSize < 50) {
+            return 2; // Show every 2nd label
+        } else if (dataSize < 100) {
+            return 4; // Show every 4th label
+        } else if (dataSize < 200) {
+            return 8; // Show every 8th label
+        } else if (dataSize < 500) {
+            return 15; // Show every 15th label
+        } else {
+            return 25; // Show every 25th label for very large datasets
+        }
+    }
+
     formatTimePointsAsDateLabels(sortedHours, sampleSiteData) {
         // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")
         if (sortedHours.length > 0 && sortedHours[0].includes('_')) {
@@ -4167,8 +4182,9 @@ class NavigationManager {
             ctx.lineTo(x, plotArea.bottom + 5);
             ctx.stroke();
             
-            // Label (show every 2 hours to avoid crowding) - rotated at 45 degrees
-            if (i % 2 === 0) {
+            // Label with intelligent spacing to avoid crowding - rotated at 45 degrees
+            const labelSpacing = this.calculateOptimalLabelSpacing(hours.length);
+            if (i % labelSpacing === 0 || i === hours.length - 1) { // Always show first, last, and spaced labels
                 ctx.save();
                 ctx.translate(x, plotArea.bottom + 20);
                 ctx.rotate(-Math.PI / 4); // -45 degrees
@@ -4208,7 +4224,8 @@ class NavigationManager {
         
         // Add vertical gridlines for X-axis major ticks (faint)
         // Use the xStep already declared above
-        for (let i = 2; i < hours.length - 1; i += 2) { // Skip first and last, show every 2 hours
+        const gridSpacing = this.calculateOptimalLabelSpacing(hours.length);
+        for (let i = gridSpacing; i < hours.length - 1; i += gridSpacing) { // Skip first and last, use intelligent spacing
             const x = plotArea.left + (i * xStep);
             ctx.beginPath();
             ctx.moveTo(x, plotArea.top);
@@ -5092,7 +5109,9 @@ class NavigationManager {
         hours.forEach((hour, index) => {
             const x = plotArea.left + (index + 0.5) * xStep;
 
-            if (index % 2 === 0) { // Show every other date to avoid crowding - rotated at 45 degrees
+            // Show dates with intelligent spacing to avoid crowding - rotated at 45 degrees
+            const labelSpacing = this.calculateOptimalLabelSpacing(hours.length);
+            if (index % labelSpacing === 0 || index === hours.length - 1) { // Always show first, last, and spaced labels
                 ctx.save();
                 ctx.translate(x, plotArea.bottom + 20);
                 ctx.rotate(-Math.PI / 4); // -45 degrees
