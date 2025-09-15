@@ -147,12 +147,19 @@ class SUBCAMConverter {
      * @returns {Array} - Parsed data rows
      */
     parseCSV(csvText) {
+        this.logger.log(`DEBUG: CSV input length: ${csvText.length} characters`);
+        this.logger.log(`DEBUG: First 200 chars: ${csvText.substring(0, 200)}`);
+
         const lines = csvText.trim().split('\n');
+        this.logger.log(`DEBUG: Total lines after split: ${lines.length}`);
+
         if (lines.length < 2) {
             throw new Error('CSV must contain header row and at least one data row');
         }
 
-        const headers = lines[0].split(',').map(h => h.trim());
+        const headers = this.parseCSVLine(lines[0]).map(h => h.trim());
+        this.logger.log(`DEBUG: Parsed headers (${headers.length}): ${JSON.stringify(headers)}`);
+
         const data = [];
 
         for (let i = 1; i < lines.length; i++) {
@@ -163,6 +170,11 @@ class SUBCAMConverter {
                     row[header] = values[index];
                 });
                 data.push(row);
+            } else {
+                this.logger.log(`DEBUG: Row ${i} skipped - expected ${headers.length} columns, got ${values.length}`);
+                if (i <= 3) { // Log first few problematic rows for debugging
+                    this.logger.log(`DEBUG: Row ${i} content: ${JSON.stringify(values)}`);
+                }
             }
         }
 
@@ -185,6 +197,7 @@ class SUBCAMConverter {
 
             if (char === '"') {
                 inQuotes = !inQuotes;
+                // Don't include the quote character in the output
             } else if (char === ',' && !inQuotes) {
                 values.push(current.trim());
                 current = '';
@@ -460,6 +473,12 @@ class SUBCAMConverter {
      * @returns {Array} - Complete _nmax format data
      */
     calculateNmaxSummaryMetrics(speciesData) {
+        // Add null/empty check to prevent crashes
+        if (!speciesData || speciesData.length === 0) {
+            this.logger.warning('⚠️ No species data available for summary metrics calculation');
+            return [];
+        }
+
         const result = speciesData.map(row => ({ ...row }));
 
         // Get species columns (exclude Date)
