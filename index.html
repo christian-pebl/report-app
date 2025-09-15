@@ -99,7 +99,7 @@
 
         <main>
             <!-- Working Directory File Browser -->
-            <div class="file-browser" id="fileBrowser" style="display: none;">
+            <div class="file-browser hidden" id="fileBrowser">
                 <div class="file-browser-header">
                     <h3>📁 Working Directory Files</h3>
                     <div class="file-browser-controls">
@@ -115,7 +115,7 @@
                 </div>
             </div>
 
-            <div class="file-info-compact" id="fileInfoCompact" style="display: none;">
+            <div class="file-info-compact hidden" id="fileInfoCompact">
                 <button id="fileInfoToggle" class="info-toggle">ℹ️</button>
                 <div id="fileInfoDropdown" class="info-dropdown hidden">
                     <h3>File Information</h3>
@@ -123,18 +123,18 @@
                 </div>
             </div>
 
-            <div class="plot-section" id="plotSection" style="display: none;">
+            <div class="plot-section hidden" id="plotSection">
                 <div class="plot-controls">
                     <h3 id="plotTitle">Time Series Plot</h3>
                     <div class="controls">
                         <span id="plotInfo"></span>
                         <div class="control-buttons">
                             <button id="toggleTableBtn" class="btn-secondary">📄 Show Table</button>
-                            <button id="confirmSavePlotBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="confirmSavePlotBtn" class="btn-primary hidden">✅ Confirm & Save</button>
                         </div>
                     </div>
                 </div>
-                <div class="variable-controls" id="variableControls" style="display: none;">
+                <div class="variable-controls hidden" id="variableControls">
                     <h4>Select Variables to Plot:</h4>
                     <div id="variableCheckboxes"></div>
                 </div>
@@ -143,14 +143,14 @@
                 </div>
             </div>
 
-            <div class="table-section" id="tableSection" style="display: none;">
+            <div class="table-section hidden" id="tableSection">
                 <div class="table-controls">
                     <h3 id="dataTitle">CSV Data</h3>
                     <div class="controls">
                         <span id="recordCount"></span>
                         <div class="control-buttons">
-                            <button id="toggleViewBtn" class="btn-secondary" style="display: none;">📊 Show Plot</button>
-                            <button id="confirmSaveBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="toggleViewBtn" class="btn-secondary hidden">📊 Show Plot</button>
+                            <button id="confirmSaveBtn" class="btn-primary hidden">✅ Confirm & Save</button>
                             <button id="exportBtn" class="btn-secondary">Export Current</button>
                         </div>
                     </div>
@@ -320,7 +320,7 @@
 
         <main>
             <!-- Working Directory File Browser -->
-            <div class="file-browser" id="subcamFileBrowser" style="display: none;">
+            <div class="file-browser hidden" id="subcamFileBrowser">
                 <div class="file-browser-header">
                     <h3>📁 SUBCAM Working Directory Files</h3>
                     <div class="file-browser-controls">
@@ -336,7 +336,7 @@
                 </div>
             </div>
 
-            <div class="file-info-compact" id="subcamFileInfoCompact" style="display: none;">
+            <div class="file-info-compact hidden" id="subcamFileInfoCompact">
                 <button id="subcamFileInfoToggle" class="info-toggle">ℹ️</button>
                 <div id="subcamFileInfoDropdown" class="info-dropdown hidden">
                     <h3>File Information</h3>
@@ -344,18 +344,18 @@
                 </div>
             </div>
 
-            <div class="plot-section" id="subcamPlotSection" style="display: none;">
+            <div class="plot-section hidden" id="subcamPlotSection">
                 <div class="plot-controls">
                     <h3 id="subcamPlotTitle">Time Series Plot</h3>
                     <div class="controls">
                         <span id="subcamPlotInfo"></span>
                         <div class="control-buttons">
                             <button id="subcamToggleTableBtn" class="btn-secondary">📄 Show Table</button>
-                            <button id="subcamConfirmSavePlotBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="subcamConfirmSavePlotBtn" class="btn-primary hidden">✅ Confirm & Save</button>
                         </div>
                     </div>
                 </div>
-                <div class="variable-controls" id="subcamVariableControls" style="display: none;">
+                <div class="variable-controls hidden" id="subcamVariableControls">
                     <h4>Select Variables to Plot:</h4>
                     <div id="subcamVariableCheckboxes"></div>
                 </div>
@@ -364,14 +364,14 @@
                 </div>
             </div>
 
-            <div class="table-section" id="subcamTableSection" style="display: none;">
+            <div class="table-section hidden" id="subcamTableSection">
                 <div class="table-controls">
                     <h3 id="subcamDataTitle">CSV Data</h3>
                     <div class="controls">
                         <span id="subcamRecordCount"></span>
                         <div class="control-buttons">
-                            <button id="subcamToggleViewBtn" class="btn-secondary" style="display: none;">📊 Show Plot</button>
-                            <button id="subcamConfirmSaveBtn" class="btn-primary" style="display: none;">✅ Confirm & Save</button>
+                            <button id="subcamToggleViewBtn" class="btn-secondary hidden">📊 Show Plot</button>
+                            <button id="subcamConfirmSaveBtn" class="btn-primary hidden">✅ Confirm & Save</button>
                             <button id="subcamExportBtn" class="btn-secondary">Export Current</button>
                         </div>
                     </div>
