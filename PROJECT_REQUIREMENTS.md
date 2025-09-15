@@ -93,14 +93,19 @@ For std plots with potentially large datasets spanning days/weeks/months:
 - Implement dynamic spacing based on dataset size and plot width
 - Show representative time points across the full data range
 
-**Suggested Spacing Logic**:
-- For datasets with < 50 time points: Show every 2nd-4th label
-- For datasets with 50-200 time points: Show every 5th-10th label
-- For datasets with 200+ time points: Show every 10th-20th label
+**Optimal Spacing Logic**:
+- Target exactly 8-12 labels across the entire x-axis length
+- Calculate spacing dynamically: `spacing = Math.ceil(dataSize / 10)`
 - Always include first and last time points for context
 - Maintain 45-degree rotation to prevent overlap
 
-**Current Issue**: Time labels may overlap when displaying complete std datasets with many time points (days/weeks of hourly data).
+**Examples**:
+- 24 time points → every 3rd label → 8 labels total
+- 100 time points → every 10th label → 10 labels total
+- 500 time points → every 50th label → 10 labels total
+- 1000 time points → every 100th label → 10 labels total
+
+**Goal**: Clean, readable x-axis with minimal label density regardless of dataset size.
 
 ## Implementation Notes
 - These rules ensure consistent chart readability and meaningful data comparison

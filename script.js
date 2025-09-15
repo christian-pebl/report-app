@@ -3966,18 +3966,13 @@ class NavigationManager {
     }
 
     calculateOptimalLabelSpacing(dataSize) {
-        // Calculate intelligent spacing based on dataset size to prevent label crowding
-        if (dataSize < 50) {
-            return 2; // Show every 2nd label
-        } else if (dataSize < 100) {
-            return 4; // Show every 4th label
-        } else if (dataSize < 200) {
-            return 8; // Show every 8th label
-        } else if (dataSize < 500) {
-            return 15; // Show every 15th label
-        } else {
-            return 25; // Show every 25th label for very large datasets
-        }
+        // Calculate spacing to show only 8-12 labels across the entire x-axis
+        const targetLabelCount = 10; // Aim for ~10 labels total
+        const spacing = Math.max(1, Math.ceil(dataSize / targetLabelCount));
+
+        console.log(`Dataset size: ${dataSize}, calculated spacing: ${spacing}, estimated labels: ${Math.ceil(dataSize / spacing)}`);
+
+        return spacing;
     }
 
     formatTimePointsAsDateLabels(sortedHours, sampleSiteData) {
@@ -4266,8 +4261,8 @@ class NavigationManager {
         ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
         ctx.fillStyle = '#555555';
         
-        // X-axis label
-        ctx.fillText('Time of day (hours)', plotArea.left + plotArea.width / 2, plotArea.bottom + 40);
+        // X-axis label (positioned lower to avoid overlap with rotated tick labels)
+        ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 60);
         
         // Left Y-axis label (moved much more RIGHT towards center)
         ctx.save();
@@ -5121,9 +5116,9 @@ class NavigationManager {
             }
         });
 
-        // X-axis title
+        // X-axis title (positioned lower to avoid overlap with rotated tick labels)
         ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
-        ctx.fillText('Hour of Day', plotArea.left + plotArea.width / 2, plotArea.bottom + 50);
+        ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 70);
 
         // Left Y-axis labels (DPM)
         ctx.textAlign = 'right';
