@@ -3364,6 +3364,7 @@ class NavigationManager {
     }
 
     updateDropdowns(pageName = 'plot') {
+        const idPrefix = "";
         const sources = Array.from(this.sources).sort();
         const hr24Files = this.hr24Files || [];
 
@@ -3421,6 +3422,7 @@ class NavigationManager {
     }
 
     updateStdDropdowns(sources, stdFiles, pageName = 'plot') {
+        const idPrefix = "";
 
         // Update source dropdown for std site comparison (DPM columns)
         const sourceSelectStd1 = document.getElementById(idPrefix + 'sourceSelectStd1');
