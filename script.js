@@ -4355,7 +4355,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         });
 
         // Legend width: line sample (30px) + text width + padding
-        const legendWidth = Math.max(80, maxTextWidth + 35); // Minimum 140px, but expand as needed
+        const legendWidth = maxTextWidth + 46; // Component-based: 8px padding + 24px icon + 6px gap + text + 8px padding
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
@@ -4616,7 +4616,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         });
 
         // Legend width: line sample (30px) + text width + extra padding
-        const legendWidth = Math.max(80, maxTextWidth + 35); // Minimum 120px, expand as needed
+        const legendWidth = maxTextWidth + 46; // Component-based: 8px padding + 24px icon + 6px gap + text + 8px padding
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
 
         // Draw legend background box with transparency
