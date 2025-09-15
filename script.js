@@ -4607,17 +4607,29 @@ class NavigationManager {
     drawSourcePlotLegend(ctx, plotData, plotArea) {
         const legendX = plotArea.left + 20;
         const legendY = plotArea.top + 20;
-        
-        // Calculate legend box dimensions
-        const legendPadding = 6; // Reduced from 10 to 6 for more compact layout
+
+        // Calculate legend box dimensions dynamically based on text content
+        const legendPadding = 10; // Increased for better visual padding
         const lineHeight = 20;
-        const legendWidth = 140;
+
+        // Set font for measurement
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+        // Measure the width of all legend text to determine optimal box size
+        let maxTextWidth = 0;
+        plotData.forEach((sourceData) => {
+            const textWidth = ctx.measureText(sourceData.source).width;
+            maxTextWidth = Math.max(maxTextWidth, textWidth);
+        });
+
+        // Legend width: line sample (30px) + text width + extra padding
+        const legendWidth = Math.max(120, maxTextWidth + 50); // Minimum 120px, expand as needed
         const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
-        
+
         // Draw legend background box with transparency
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // White with 30% transparency
         ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
-        
+
         // Draw legend border
         ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
         ctx.lineWidth = 0.5; // Reduced from 1 to 0.5 for thinner border
@@ -5226,10 +5238,31 @@ class NavigationManager {
         const legendX = plotArea.left + 20;
         const legendY = plotArea.top + 20;
 
-        // Calculate legend box dimensions - doubled for both line types
-        const legendPadding = 8;
+        // Calculate legend box dimensions dynamically - doubled for both line types
+        const legendPadding = 12; // Increased for better visual padding
         const lineHeight = 18;
-        const legendWidth = 200;
+
+        // Set font for measurement
+        ctx.font = '12px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+        // Measure the width of all legend text to determine optimal box size
+        let maxTextWidth = 0;
+        plotData.forEach((site) => {
+            // Check both DPM and % labels (they will be displayed)
+            const dpmText = `${site.site} (DPM)`;
+            const percentText = `${site.site} (% day detected)`;
+            const dpmWidth = ctx.measureText(dpmText).width;
+            const percentWidth = ctx.measureText(percentText).width;
+            maxTextWidth = Math.max(maxTextWidth, dpmWidth, percentWidth);
+        });
+
+        // Account for headers "DPM Values" and "% Day Detected"
+        const headerWidth1 = ctx.measureText("DPM Values").width;
+        const headerWidth2 = ctx.measureText("% Day Detected").width;
+        maxTextWidth = Math.max(maxTextWidth, headerWidth1, headerWidth2);
+
+        // Legend width: line sample (30px) + text width + extra padding
+        const legendWidth = Math.max(180, maxTextWidth + 60); // Minimum 180px for dual axis
         const legendHeight = (plotData.length * lineHeight * 2) + (legendPadding * 2) + 25; // Extra space for headers
 
         // Draw legend background box with transparency
