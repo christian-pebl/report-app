@@ -201,3 +201,43 @@ Status: [Current Action Description]...
 - Builds confidence in the process
 - Makes complex tasks feel manageable
 - Demonstrates systematic approach
+
+---
+
+## 🚨 CRITICAL DEVELOPMENT RULES
+
+### NEVER Commit Without User Testing First
+**NEVER commit or push any code changes without explicit user approval after testing.**
+
+**Required Process:**
+1. Make code changes
+2. Ask user to test functionality first
+3. Wait for user confirmation: "It works, commit it"
+4. Only then commit and push
+
+**Why This Rule Exists:**
+- User needs to verify changes work in their environment
+- Prevents committing broken code
+- Maintains user confidence in development process
+- Avoids having to revert commits
+
+**What I Just Did Wrong:**
+- Made a fix for plot page functionality
+- Committed and pushed WITHOUT user testing first
+- This violates the testing-first rule
+
+**Correct Workflow:**
+```
+✅ Make changes
+✅ "Please test the plot page now - do the dropdowns work?"
+✅ User tests: "Yes, it works!"
+✅ Then commit: git commit -m "fix: description"
+
+❌ WRONG: Make changes → commit immediately
+```
+
+**Exception:** Only commit without testing for:
+- Pure documentation updates
+- Comment-only changes
+- Non-functional text changes
+
