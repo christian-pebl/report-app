@@ -784,20 +784,131 @@ class CSVManager {
     }
 
     parseCSV(csvContent) {
-        console.log('=== PARSING CSV ===');
+        console.log('=== PARSING CROP CSV ===');
         console.log('CSV content length:', csvContent.length);
-        
+
         const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
         console.log('Total lines after filtering:', lines.length);
-        
+
         if (lines.length === 0) {
             this.showError('The CSV file appears to be empty.');
             return;
         }
 
-        // Parse headers
+        // Detect file type and handle accordingly
+        const fileType = this.detectCropFileType(lines, this.fileName);
+        console.log('Detected CROP file type:', fileType);
+
+        if (fileType === 'Summary') {
+            this.parseCropSummaryCSV(lines);
+        } else if (fileType === 'Individual') {
+            this.parseCropIndividualCSV(lines);
+        } else {
+            // Fallback to standard CSV parsing
+            this.parseStandardCSV(lines);
+        }
+    }
+
+    detectCropFileType(lines, fileName = '') {
+        // Check filename patterns first
+        if (fileName.includes('Summary') || fileName.includes('summary')) {
+            return 'Summary';
+        }
+        if (fileName.includes('Indiv') || fileName.includes('Individual') || fileName.includes('indiv')) {
+            return 'Individual';
+        }
+
+        // Check content patterns
+        if (lines.length > 0) {
+            const firstLine = lines[0].toLowerCase();
+
+            // Summary files have preamble like "lb:kg conversion,0.454"
+            if (firstLine.includes('lb:kg') || firstLine.includes('conversion')) {
+                return 'Summary';
+            }
+
+            // Check for common Individual file headers
+            if (firstLine.includes('blade id') || firstLine.includes('subset')) {
+                return 'Individual';
+            }
+
+            // Check for common Summary file headers (after potential preamble)
+            const secondLine = lines.length > 1 ? lines[1].toLowerCase() : '';
+            if (secondLine.includes('fw in bag') || secondLine.includes('fertility') || secondLine.includes('fouling')) {
+                return 'Summary';
+            }
+        }
+
+        return 'Unknown';
+    }
+
+    parseCropSummaryCSV(lines) {
+        console.log('=== PARSING CROP SUMMARY CSV ===');
+
+        // Extract metadata from preamble (first line)
+        const preambleLine = lines[0];
+        const preambleData = this.parseCSVLine(preambleLine);
+
+        // Store metadata
+        this.fileMetadata = {};
+        if (preambleData.length >= 2 && preambleData[0].toLowerCase().includes('lb:kg')) {
+            this.fileMetadata.lbToKgConversion = parseFloat(preambleData[1]) || 0.454;
+            console.log('Found lb:kg conversion factor:', this.fileMetadata.lbToKgConversion);
+        }
+
+        // Parse headers from second line
+        if (lines.length < 2) {
+            this.showError('Summary CSV file is missing header row after preamble.');
+            return;
+        }
+
+        this.headers = this.parseCSVLine(lines[1]);
+        this.fileType = 'Summary';
+
+        // Parse data rows starting from line 2
+        this.csvData = [];
+        for (let i = 2; i < lines.length; i++) {
+            const row = this.parseCSVLine(lines[i]);
+            if (row.length > 0 && row.some(cell => cell.trim() !== '')) {
+                // Process and validate row data
+                const processedRow = this.processCropDataRow(row, this.headers, 'Summary');
+                this.csvData.push(processedRow);
+            }
+        }
+
+        console.log('Summary CSV parsed:', this.csvData.length, 'records');
+    }
+
+    parseCropIndividualCSV(lines) {
+        console.log('=== PARSING CROP INDIVIDUAL CSV ===');
+
+        // Standard CSV parsing for Individual files (no preamble)
         this.headers = this.parseCSVLine(lines[0]);
-        
+        this.fileType = 'Individual';
+        this.fileMetadata = {};
+
+        // Parse data rows
+        this.csvData = [];
+        for (let i = 1; i < lines.length; i++) {
+            const row = this.parseCSVLine(lines[i]);
+            if (row.length > 0 && row.some(cell => cell.trim() !== '')) {
+                // Process and validate row data
+                const processedRow = this.processCropDataRow(row, this.headers, 'Individual');
+                this.csvData.push(processedRow);
+            }
+        }
+
+        console.log('Individual CSV parsed:', this.csvData.length, 'records');
+    }
+
+    parseStandardCSV(lines) {
+        console.log('=== PARSING STANDARD CSV ===');
+
+        // Fallback to original parsing logic
+        this.headers = this.parseCSVLine(lines[0]);
+        this.fileType = 'Standard';
+        this.fileMetadata = {};
+
         // Parse data rows
         this.csvData = [];
         for (let i = 1; i < lines.length; i++) {
@@ -812,6 +923,61 @@ class CSVManager {
         }
     }
 
+    processCropDataRow(row, headers, fileType) {
+        // Ensure row has same number of columns as headers
+        while (row.length < headers.length) {
+            row.push('');
+        }
+
+        // Process specific data types for CROP files
+        const processedRow = [...row];
+
+        for (let i = 0; i < headers.length; i++) {
+            const header = headers[i].toLowerCase();
+            const value = row[i];
+
+            // Parse dates with day-first format (DD/MM/YY)
+            if (header === 'date' && value) {
+                processedRow[i] = this.parseDayFirstDate(value);
+            }
+            // Parse numeric values
+            else if (this.isNumericColumn(header) && value && value.trim() !== '') {
+                const numValue = parseFloat(value);
+                processedRow[i] = isNaN(numValue) ? value : numValue;
+            }
+        }
+
+        return processedRow;
+    }
+
+    parseDayFirstDate(dateStr) {
+        // Parse DD/MM/YY format (day-first)
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+            const day = parseInt(parts[0]);
+            const month = parseInt(parts[1]) - 1; // Month is 0-indexed
+            let year = parseInt(parts[2]);
+
+            // Handle 2-digit years (assume 20XX)
+            if (year < 100) {
+                year += 2000;
+            }
+
+            const date = new Date(year, month, day);
+            return isNaN(date.getTime()) ? dateStr : date.toISOString().split('T')[0];
+        }
+        return dateStr;
+    }
+
+    isNumericColumn(header) {
+        return header.includes('(cm)') ||
+               header.includes('(lb)') ||
+               header.includes('kg/m') ||
+               header.includes('%') ||
+               header.includes('# ') ||
+               header.includes('blade id') ||
+               header === 'blade id';
+    }
     parseCSVLine(line) {
         const result = [];
         let current = '';
@@ -853,28 +1019,7 @@ class CSVManager {
         const recordCount = this.csvData.length;
         const columnCount = this.headers.length;
         
-        fileDetails.innerHTML = `
-            <div class="file-detail">
-                <strong>File Name</strong>
-                ${file.name}
-            </div>
-            <div class="file-detail">
-                <strong>File Size</strong>
-                ${fileSize} KB
-            </div>
-            <div class="file-detail">
-                <strong>Records</strong>
-                ${recordCount}
-            </div>
-            <div class="file-detail">
-                <strong>Columns</strong>
-                ${columnCount}
-            </div>
-            <div class="file-detail">
-                <strong>Last Modified</strong>
-                ${new Date(file.lastModified).toLocaleString()}
-            </div>
-        `;
+// Create file type badge and metadata info        const fileTypeBadge = this.createFileTypeBadge();        const metadataInfo = this.createMetadataInfo();        const validationResult = this.validateCropData();                let validationHtml = "";        if (validationResult.errors.length > 0 || validationResult.warnings.length > 0) {            const statusClass = validationResult.errors.length > 0 ? "errors" : "warnings";            const statusText = validationResult.errors.length > 0 ?                 `${validationResult.errors.length} errors found` :                 `${validationResult.warnings.length} warnings found`;            validationHtml = `<div class="validation-summary ${statusClass}">${statusText}</div>`;        } else {            validationHtml = `<div class="validation-summary valid">✓ Data validation passed</div>`;        }                fileDetails.innerHTML = `            <div class="file-detail">                <strong>File Name</strong>                ${file.name} ${fileTypeBadge}            </div>            <div class="file-detail">                <strong>File Size</strong>                ${fileSize} KB            </div>            <div class="file-detail">                <strong>Records</strong>                ${recordCount}            </div>            <div class="file-detail">                <strong>Columns</strong>                ${columnCount}            </div>            ${metadataInfo}            <div class="file-detail">                <strong>Last Modified</strong>                ${new Date(file.lastModified).toLocaleString()}            </div>            ${validationHtml}        `;
         
         fileInfoCompact.style.display = 'block';
     }
