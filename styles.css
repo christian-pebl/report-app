@@ -424,6 +424,56 @@ header p {
     font-size: 0.8rem;
 }
 
+/* SUBCAM File Type Badges */
+.file-type-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.file-type-raw {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+}
+
+.file-type-nmax {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+    border: 1px solid #ce93d8;
+}
+
+.file-type-obvs {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    border: 1px solid #81c784;
+}
+
+.subcam-info {
+    border-left: 3px solid #2B7A78;
+    background-color: #f0fcfc !important;
+}
+
+/* SUBCAM Table Title Styling */
+.table-title-main {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1d1d1f;
+}
+
+.table-title-sub {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #666;
+    margin-top: 4px;
+}
+
 .plot-section {
     background: white;
     border-radius: 8px;

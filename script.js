@@ -784,20 +784,22 @@ class CSVManager {
     }
 
     parseCSV(csvContent) {
-        console.log('=== PARSING CSV ===');
+        console.log('=== PARSING SUBCAM CSV ===');
         console.log('CSV content length:', csvContent.length);
-        
+
         const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line);
         console.log('Total lines after filtering:', lines.length);
-        
+
         if (lines.length === 0) {
             this.showError('The CSV file appears to be empty.');
             return;
         }
 
-        // Parse headers
+        // Parse and normalize headers
         this.headers = this.parseCSVLine(lines[0]);
-        
+        this.headers = this.normalizeHeaders(this.headers);
+        console.log('Normalized headers:', this.headers);
+
         // Parse data rows
         this.csvData = [];
         for (let i = 1; i < lines.length; i++) {
@@ -810,6 +812,9 @@ class CSVManager {
                 this.csvData.push(row);
             }
         }
+
+        // Validate SUBCAM file format
+        this.validateSUBCAMFormat();
     }
 
     parseCSVLine(line) {
@@ -845,19 +850,147 @@ class CSVManager {
         return result;
     }
 
+    normalizeHeaders(headers) {
+        console.log('=== NORMALIZING HEADERS ===');
+        console.log('Original headers:', headers);
+
+        const normalizedHeaders = headers
+            .filter(header => header && header.trim()) // Remove empty headers
+            .map(header => {
+                // Replace NBSP with regular space
+                let normalized = header.replace(/\xa0/g, ' ');
+
+                // Trim whitespace
+                normalized = normalized.trim();
+
+                // Collapse multiple spaces
+                normalized = normalized.replace(/\s+/g, ' ');
+
+                // Apply synonym/typo corrections
+                const synonyms = {
+                    'Cummilative New Unique Organisms': 'Cumulative New Unique Organisms',
+                    'Total_Observations': 'Total Observations',
+                    'Cumulative_Observations': 'Cumulative Observations',
+                    'Unique_Organisms_Observed_Today': 'Unique Organisms Observed Today'
+                };
+
+                if (synonyms[normalized]) {
+                    normalized = synonyms[normalized];
+                }
+
+                return normalized;
+            })
+            .filter(header => {
+                // Drop index artifacts and placeholder columns
+                return !header.startsWith('Unnamed:') && header !== '-';
+            });
+
+        console.log('Normalized headers:', normalizedHeaders);
+        return normalizedHeaders;
+    }
+
+    validateSUBCAMFormat() {
+        console.log('=== VALIDATING SUBCAM FORMAT ===');
+        console.log('File name:', this.fileName);
+
+        // Determine file type from filename
+        const fileType = this.determineSUBCAMFileType(this.fileName);
+        console.log('Detected file type:', fileType);
+
+        if (!fileType) {
+            console.warn('Could not determine SUBCAM file type from filename');
+            return;
+        }
+
+        // Validate required columns based on file type
+        const requiredColumns = this.getRequiredColumns(fileType);
+        const missingColumns = requiredColumns.filter(col =>
+            !this.headers.some(header => header.toLowerCase().includes(col.toLowerCase()))
+        );
+
+        if (missingColumns.length > 0) {
+            console.warn('Missing required columns for', fileType, 'format:', missingColumns);
+            this.showWarning(`This ${fileType} file is missing some expected columns: ${missingColumns.join(', ')}`);
+        } else {
+            console.log('✅ File format validation passed for', fileType);
+        }
+
+        // Store file type for later use
+        this.fileType = fileType;
+    }
+
+    determineSUBCAMFileType(filename) {
+        if (!filename) return null;
+
+        const lowerName = filename.toLowerCase();
+        if (lowerName.includes('_raw.csv')) return 'raw';
+        if (lowerName.includes('_nmax.csv')) return 'nmax';
+        if (lowerName.includes('_obvs.csv')) return 'obvs';
+
+        return null;
+    }
+
+    getRequiredColumns(fileType) {
+        const requiredColumns = {
+            'raw': [
+                'File Name', 'Timestamps', 'Event Observation', 'Quantity',
+                'Common Name', 'Family', 'Lowest Order Scientific Name',
+                'Confidence Level', 'Quality of Video', 'Notes'
+            ],
+            'nmax': [
+                'Date', 'Total Observations', 'Cumulative Observations',
+                'All Unique Organisms Observed Today', 'New Unique Organisms Today',
+                'Cumulative New Unique Organisms', 'Cumulative Unique Species'
+            ],
+            'obvs': [
+                'Date', 'Total Observations', 'Unique Organisms Observed Today',
+                'New Unique Organisms Today', 'Cumulative Unique Species'
+            ]
+        };
+
+        return requiredColumns[fileType] || [];
+    }
+
+    showWarning(message) {
+        console.warn('Warning:', message);
+        // You could add a visual warning to the UI here if desired
+    }
+
     displayFileInfo(file) {
         const fileInfoCompact = document.getElementById('fileInfoCompact');
         const fileDetails = document.getElementById('fileDetails');
-        
+
         const fileSize = (file.size / 1024).toFixed(2);
         const recordCount = this.csvData.length;
         const columnCount = this.headers.length;
-        
+
+        // Parse SUBCAM filename for additional information
+        const fileInfo = this.parseSUBCAMFilename(file.name);
+
+        let subcamInfo = '';
+        if (fileInfo.valid) {
+            subcamInfo = `
+                <div class="file-detail subcam-info">
+                    <strong>File Type</strong>
+                    <span class="file-type-badge file-type-${fileInfo.type}">${fileInfo.type.toUpperCase()}</span>
+                </div>
+                <div class="file-detail">
+                    <strong>Project/Site</strong>
+                    ${fileInfo.projectOrSite}${fileInfo.variant ? ` (Variant: ${fileInfo.variant})` : ''}
+                </div>
+                <div class="file-detail">
+                    <strong>Period</strong>
+                    ${fileInfo.period}
+                </div>
+            `;
+        }
+
         fileDetails.innerHTML = `
             <div class="file-detail">
                 <strong>File Name</strong>
                 ${file.name}
             </div>
+            ${subcamInfo}
             <div class="file-detail">
                 <strong>File Size</strong>
                 ${fileSize} KB
@@ -875,7 +1008,7 @@ class CSVManager {
                 ${new Date(file.lastModified).toLocaleString()}
             </div>
         `;
-        
+
         fileInfoCompact.style.display = 'block';
     }
 
@@ -1374,9 +1507,23 @@ class CSVManager {
         plotSection.style.display = 'none';
         tableSection.style.display = 'block';
         
-        // Update table title with filename
+        // Update table title with SUBCAM-specific information
         if (this.fileName) {
-            dataTitle.textContent = this.fileName;
+            const fileInfo = this.parseSUBCAMFilename(this.fileName);
+            if (fileInfo.valid) {
+                const typeDescriptions = {
+                    'raw': 'Per-Event Annotations',
+                    'nmax': 'Daily Nmax Aggregates',
+                    'obvs': 'Daily Observation Aggregates'
+                };
+                const description = typeDescriptions[fileInfo.type] || 'SUBCAM Data';
+                dataTitle.innerHTML = `
+                    <span class="table-title-main">${this.fileName}</span>
+                    <span class="table-title-sub">${description} • ${fileInfo.projectOrSite} • ${fileInfo.period}</span>
+                `;
+            } else {
+                dataTitle.textContent = this.fileName;
+            }
         }
         
         // Add or update processing log interface
@@ -3019,7 +3166,7 @@ class NavigationManager {
     }
 
     updateSliderThumb(pageName) {
-        // Update FPOD slider
+        // Update SUBCAM slider
         const fpodContainer = document.querySelector('.fpod-container');
         const fpodThumb = fpodContainer?.querySelector('.slider-thumb');
 
@@ -3227,7 +3374,7 @@ class NavigationManager {
         console.log(`  Analyzing filename: ${baseName}`);
         
         // Strategy 1: Standard format - site after second underscore
-        // Example: FPOD_Alga_Control-S_2504-2506 -> Control-S
+        // Example: SUBCAM_Alga_Control-S_2504-2506 -> Control-S
         const parts = baseName.split('_');
         if (parts.length >= 3) {
             const potentialSite = parts[2];
@@ -3272,7 +3419,7 @@ class NavigationManager {
         
         // Strategy 3: Look for parts that look like site names (contains letters and possibly dashes)
         parts.forEach((part, index) => {
-            if (index > 0 && // Skip first part (usually FPOD)
+            if (index > 0 && // Skip first part (usually SUBCAM)
                 part.length > 1 && 
                 /[a-zA-Z]/.test(part) && 
                 !this.isDateLike(part) &&
@@ -3296,13 +3443,84 @@ class NavigationManager {
 
     extractSiteNameFromFilename(filename) {
         // Extract site name from filename: take text between 2nd and 4th underscore (PROJECT_REQUIREMENTS)
-        // Example: FPOD_Alga_Control-S_2406-2407_24hr.csv -> Control-S_2406-2407
+        // Example: SUBCAM_Alga_Control-S_2406-2407_24hr.csv -> Control-S_2406-2407
         const parts = filename.split('_');
         if (parts.length >= 4) {
             return parts.slice(2, 4).join('_');
         }
         // Fallback to the filename if extraction fails
         return filename.replace(/\.(csv|CSV)$/, '');
+    }
+
+    parseSUBCAMFilename(filename) {
+        console.log('=== PARSING SUBCAM FILENAME ===');
+        console.log('Filename:', filename);
+
+        // Pattern: ID_Subcam_<ProjectOrSite>[_W]_<YYMM-YYMM | YYMM_YYMM>_<type>.csv
+        // Remove .csv extension
+        const nameWithoutExt = filename.replace(/\.csv$/i, '');
+        const parts = nameWithoutExt.split('_');
+
+        console.log('Filename parts:', parts);
+
+        if (parts.length < 4) {
+            console.warn('Filename does not match expected SUBCAM pattern');
+            return {
+                id: parts[0] || '',
+                projectOrSite: '',
+                variant: null,
+                period: '',
+                type: '',
+                valid: false
+            };
+        }
+
+        // Extract components
+        const id = parts[0]; // Usually "ID"
+        const subcam = parts[1]; // Should be "Subcam"
+
+        // Find the type (raw/nmax/obvs) - it's always the last part
+        const type = parts[parts.length - 1];
+
+        // Find the period (date range) - it's the second-to-last part
+        const period = parts[parts.length - 2];
+
+        // Everything between subcam and period is project/site (may include variant)
+        const projectSiteParts = parts.slice(2, parts.length - 2);
+
+        let projectOrSite = '';
+        let variant = null;
+
+        if (projectSiteParts.length > 0) {
+            // Check if last part is a variant (single letter like 'W')
+            const lastPart = projectSiteParts[projectSiteParts.length - 1];
+            if (lastPart.length === 1 && /^[A-Z]$/.test(lastPart)) {
+                variant = lastPart;
+                projectOrSite = projectSiteParts.slice(0, -1).join('_');
+            } else {
+                projectOrSite = projectSiteParts.join('_');
+            }
+        }
+
+        // Validate period format (YYMM-YYMM or YYMM_YYMM)
+        const periodValid = /^\d{4}[-_]\d{4}$/.test(period);
+
+        // Validate type
+        const typeValid = ['raw', 'nmax', 'obvs'].includes(type.toLowerCase());
+
+        const result = {
+            id,
+            subcam,
+            projectOrSite,
+            variant,
+            period,
+            type: type.toLowerCase(),
+            valid: periodValid && typeValid,
+            parts
+        };
+
+        console.log('Parsed result:', result);
+        return result;
     }
 
     async checkAllFilesForSources(fileList) {

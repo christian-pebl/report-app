@@ -1,5 +1,49 @@
 # Claude Assistant Guidelines for Report App Development
 
+## 🚀 Session Startup Instructions
+
+### **Automatic Repository Dashboard**
+**When user opens Claude Code, IMMEDIATELY:**
+
+1. **Scan both repositories** (DataApp and report-app) for current status
+2. **Generate live repository overview** showing:
+   - Current branches and branch status
+   - Last 5 commits with dates and branch info
+   - Recent activity summary
+   - Which repository has most recent work
+
+3. **Present dashboard format:**
+```
+## 📊 Repository Status Dashboard - christian-pebl Account
+
+### **DataApp Repository**
+*github.com/christian-pebl/DataApp*
+- Current Branch: [branch] (*)
+- Last Activity: [date]
+- Recent Focus: [summary of recent commits]
+
+### **report-app Repository** 
+*github.com/christian-pebl/report-app*
+- Current Branch: [branch] (*)
+- Last Activity: [date] 
+- Recent Focus: [summary of recent commits]
+
+## Recommendation
+Continue working on: [repository with most recent activity or user preference]
+```
+
+4. **Ask user:** "Where would you like to continue working today?"
+
+### **Dashboard Commands**
+- Use git commands to fetch latest repository information
+- Check branch status, recent commits, and activity
+- Present concise, actionable overview
+- Help user decide which project to work on
+
+---
+# Restoring original content...
+# Claude Assistant Guidelines for Report App Development
+
 ## Universal Project Documentation Requirements
 
 ### Essential Project Files
