@@ -642,7 +642,7 @@ header p {
     align-items: center;
 }
 
-.fpod-container, .subcam-container {
+.fpod-container {
     display: flex;
     align-items: center;
 }
@@ -746,13 +746,6 @@ header p {
     transform: translateX(56px);
 }
 
-.slider-icon[data-page="subcam-reformat"].active ~ .slider-track .slider-thumb {
-    transform: translateX(0);
-}
-
-.slider-icon[data-page="subcam-plot"].active ~ .slider-track .slider-thumb {
-    transform: translateX(56px);
-}
 
 /* Page Content */
 .page-content {
@@ -948,11 +941,9 @@ header p {
         height: 27px;
     }
 
-    .slider-icon[data-page="plot"].active ~ .slider-track .slider-thumb,
-    .slider-icon[data-page="subcam-plot"].active ~ .slider-track .slider-thumb {
+    .slider-icon[data-page="plot"].active ~ .slider-track .slider-thumb {
         transform: translateX(46px);
     }
-    
     .form-row {
         grid-template-columns: 1fr;
         gap: 15px;

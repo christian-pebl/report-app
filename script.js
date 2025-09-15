@@ -2957,7 +2957,7 @@ class CSVManager {
 // Navigation functionality
 class NavigationManager {
     constructor() {
-        this.currentPage = 'subcam-reformat';
+        this.currentPage = 'reformat';
         this.availableFiles = [];
         this.sites = new Set();
         this.sources = new Set();
@@ -3002,7 +3002,7 @@ class NavigationManager {
         this.currentPage = pageName;
 
         // If switching to plot page, update file info
-        if (pageName === 'plot' || pageName === 'subcam-plot') {
+        if (pageName === 'plot') {
             console.log(`Switching to ${pageName} page - refreshing file information...`);
 
             // Force refresh the file list from csvManager
@@ -3023,21 +3023,14 @@ class NavigationManager {
         const fpodContainer = document.querySelector('.fpod-container');
         const fpodThumb = fpodContainer?.querySelector('.slider-thumb');
 
-        // Update SUBCAM slider
-        const subcamContainer = document.querySelector('.subcam-container');
-        const subcamThumb = subcamContainer?.querySelector('.slider-thumb');
-
-        if (pageName === 'reformat' || pageName === 'subcam-reformat') {
+        if (pageName === 'reformat') {
             // Reset both thumbs, then set active one
             if (fpodThumb) fpodThumb.style.transform = 'translateX(0px)';
-            if (subcamThumb) subcamThumb.style.transform = 'translateX(0px)';
-        } else if (pageName === 'plot' || pageName === 'subcam-plot') {
+        } else if (pageName === 'plot') {
             // Reset both thumbs, then set active one
             if (fpodThumb) fpodThumb.style.transform = 'translateX(56px)';
-            if (subcamThumb) subcamThumb.style.transform = 'translateX(56px)';
         }
     }
-
     initializePlotPage() {
         // Initialize dropdowns and button event listeners
         this.initializeComparisonControls();
@@ -3374,11 +3367,6 @@ class NavigationManager {
         const sources = Array.from(this.sources).sort();
         const hr24Files = this.hr24Files || [];
 
-        const isSubcam = pageName.includes('subcam');
-        const prefix = isSubcam ? 'subcam' : '';
-        const idPrefix = prefix ? prefix + '' : '';
-
-        console.log(`Updating ${isSubcam ? 'SUBCAM' : 'FPOD'} dropdowns with:`, sources.length, 'sources and', hr24Files.length, '_24hr files');
 
         // Update source dropdown for site comparison (DPM columns)
         const sourceSelect1 = document.getElementById(idPrefix + 'sourceSelect1');
@@ -3433,11 +3421,6 @@ class NavigationManager {
     }
 
     updateStdDropdowns(sources, stdFiles, pageName = 'plot') {
-        const isSubcam = pageName.includes('subcam');
-        const prefix = isSubcam ? 'subcam' : '';
-        const idPrefix = prefix ? prefix + '' : '';
-
-        console.log(`Updating ${isSubcam ? 'SUBCAM' : 'FPOD'} std dropdowns with:`, sources.length, 'sources and', stdFiles.length, '_std files');
 
         // Update source dropdown for std site comparison (DPM columns)
         const sourceSelectStd1 = document.getElementById(idPrefix + 'sourceSelectStd1');
