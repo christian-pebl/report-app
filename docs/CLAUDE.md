@@ -163,3 +163,41 @@ git commit -m "docs: Update project requirements for feature X - $(date '+%Y-%m-
 ---
 
 *This file helps ensure consistent development practices and comprehensive documentation for the CSV Data Visualization Tool project.*
+## Progress Tracking Guidelines
+
+### When to Use Progress Indicators
+For complex, multi-step processes that will take time, **ALWAYS ask the user** if they want a progress bar before starting:
+
+**Complex Process Examples:**
+- Multi-file operations (cleanup, refactoring, migration)
+- Code generation with multiple steps  
+- Database operations or large data processing
+- Build processes or deployment sequences
+- Testing suites with multiple test files
+
+**Ask Before Starting:**
+```
+"This is a complex process with X steps that will take some time. 
+Would you like me to show a progress bar to track completion?"
+```
+
+### Progress Bar Format
+When using progress bars, use this format:
+
+```
+Progress: [████████████████████░░░░░░░░░░░░░░░░░░░░] 75% (6/8)
+Phase: [Current Phase Name]
+Status: [Current Action Description]...
+```
+
+### TodoWrite Tool Integration
+- Use TodoWrite to track progress through complex processes
+- Update todo status in real-time (pending → in_progress → completed)
+- Mark todos complete immediately after finishing each step
+- Provide clear, actionable todo descriptions
+
+### Benefits
+- Keeps user informed during long operations
+- Builds confidence in the process
+- Makes complex tasks feel manageable
+- Demonstrates systematic approach
