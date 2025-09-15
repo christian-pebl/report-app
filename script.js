@@ -112,11 +112,11 @@ class CSVManager {
         
         const handleConfirmSave = () => {
             if (!this.pendingConversion) return;
-            
-            const { fileName, suffix, baseName, fileInfo } = this.pendingConversion;
-            
+
+            const { fileName, suffix, baseName, fileInfo, conversionResult } = this.pendingConversion;
+
             // Show confirmation dialog with directory guidance
-            this.showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, () => {
+            this.showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, conversionResult, () => {
                 // Save the file
                 this.autoSaveConvertedFile(fileName, suffix);
                 
@@ -314,20 +314,20 @@ class CSVManager {
 
             // Create convert buttons with progressive logic
             const hasRaw = fileInfo.versions.has('raw') || fileInfo.versions.has('original');
-            const hasStd = fileInfo.versions.has('std');
-            const has24hr = fileInfo.versions.has('24hr');
+            const hasNmax = fileInfo.versions.has('nmax');
+            const hasObvs = fileInfo.versions.has('obvs');
             const canConvert = fileInfo.versions.size > 0; // Has at least one version to convert from
 
             let convertButtons = '';
             if (canConvert) {
-                // Only show STD conversion if we have raw but no STD
-                if (hasRaw && !hasStd) {
-                    convertButtons += `<button class="btn-small btn-convert" onclick="csvManager.generateStdFromBrowser('${fileInfo.baseName}')">⚡ STD</button>`;
+                // SUBCAM conversions - show if we have raw but missing nmax/obvs
+                if (hasRaw && !hasNmax) {
+                    convertButtons += `<button class="btn-small btn-convert" onclick="csvManager.generateNmaxFromBrowser('${fileInfo.baseName}')">⚡ NMAX</button>`;
                 }
-                // Only show 24HR conversion if we have STD but no 24HR
-                if (hasStd && !has24hr) {
-                    convertButtons += `<button class="btn-small btn-convert" onclick="csvManager.generate24hrFromBrowser('${fileInfo.baseName}')">⚡ 24HR</button>`;
+                if (hasRaw && !hasObvs) {
+                    convertButtons += `<button class="btn-small btn-convert" onclick="csvManager.generateObvsFromBrowser('${fileInfo.baseName}')">⚡ OBVS</button>`;
                 }
+
             }
 
             fileItem.innerHTML = `
@@ -358,6 +358,8 @@ class CSVManager {
         const colorMap = {
             'original': 'version-original',
             'raw': 'version-raw',
+            'nmax': 'version-nmax',
+            'obvs': 'version-obvs',
             'std': 'version-std',
             '24hr': 'version-24hr',
             'processed': 'version-processed',
@@ -417,60 +419,107 @@ class CSVManager {
         }
     }
 
-    generateStdFromBrowser(baseName) {
+
+
+    generateNmaxFromBrowser(baseName) {
+        console.log('🔄 Generating NMAX from browser for:', baseName);
         const fileInfo = this.fileInfos.get(baseName);
         if (!fileInfo || fileInfo.versions.size === 0) return;
 
-        // Always use the raw file for conversion
+        // Use the raw file for NMAX conversion
         let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('original');
         if (!rawFile) {
-            // If no raw file, use first available as fallback
-            rawFile = Array.from(fileInfo.versions.values())[0];
+            this.showError('No raw file found for NMAX conversion');
+            return;
         }
-        
-        // Load the raw file first
-        this.handleFileUpload(rawFile);
-        
-        // Then convert it to STD
-        setTimeout(() => {
-            this.convertToStdFormat();
-            
-            // Show converted data with preview controls
-            const convertedFileName = `${baseName}_std.csv`;
-            this.showConvertedDataPreview(convertedFileName, 'std', baseName, fileInfo);
+
+        this.showSuccess('Generating NMAX format... This may take a moment.');
+
+        setTimeout(async () => {
+            try {
+                // Load the raw file
+                const rawData = await this.readFileAsText(rawFile);
+                const csvData = this.parseCSV(rawData);
+
+                // Convert raw data to CSV format for conversion engine
+                const csvText = this.createCSVFromData(this.headers, this.csvData);
+
+                // Use conversion engine to convert to NMAX
+                const converter = new SUBCAMConverter();
+                const result = await converter.convertRawToNmax(csvText);
+
+                if (result.success) {
+                    // Convert result back to our format
+                    const nmaxCSV = converter.dataToCSV(result.data);
+                    const nmaxData = this.parseCSV(nmaxCSV);
+
+                    // Show converted data with preview controls
+                    const convertedFileName = `${baseName}_nmax.csv`;
+                    this.showConvertedDataPreview(convertedFileName, 'nmax', baseName, fileInfo, result);
+                } else {
+                    throw new Error(result.error || 'NMAX conversion failed');
+                }
+            } catch (error) {
+                console.error('NMAX conversion error:', error);
+                this.showError(`NMAX conversion failed: ${error.message}`);
+            }
         }, 500);
     }
 
-    generate24hrFromBrowser(baseName) {
+    generateObvsFromBrowser(baseName) {
+        console.log('🔄 Generating OBVS from browser for:', baseName);
         const fileInfo = this.fileInfos.get(baseName);
         if (!fileInfo || fileInfo.versions.size === 0) return;
 
-        // Always use the STD file for 24HR conversion (not raw)
-        let stdFile = fileInfo.versions.get('std');
-        if (!stdFile) {
-            this.showError('STD file must be created first before generating 24HR averages.');
+        // Use the raw file for OBVS conversion
+        let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('original');
+        if (!rawFile) {
+            this.showError('No raw file found for OBVS conversion');
             return;
         }
-        
-        console.log('Using STD file for 24HR conversion:', stdFile.name);
-        
-        // Load the STD file first
-        this.handleFileUpload(stdFile);
-        
-        // Then convert it to 24hr average
-        setTimeout(() => {
-            this.convertTo24hrAverage();
-            
-            // Show converted data with preview controls
-            const convertedFileName = `${baseName}_24hr.csv`;
-            this.showConvertedDataPreview(convertedFileName, '24hr', baseName, fileInfo);
+
+        this.showSuccess('Generating OBVS format... This may take a moment.');
+
+        setTimeout(async () => {
+            try {
+                // Load the raw file
+                const rawData = await this.readFileAsText(rawFile);
+                const csvData = this.parseCSV(rawData);
+
+                // Convert raw data to CSV format for conversion engine
+                const csvText = this.createCSVFromData(this.headers, this.csvData);
+
+                // Use conversion engine to convert to OBVS
+                const converter = new SUBCAMConverter();
+                const result = await converter.convertRawToObvs(csvText);
+
+                if (result.success) {
+                    // Convert result back to our format
+                    const obvsCSV = converter.dataToCSV(result.data);
+                    const obvsData = this.parseCSV(obvsCSV);
+
+                    // Show converted data with preview controls
+                    const convertedFileName = `${baseName}_obvs.csv`;
+                    this.showConvertedDataPreview(convertedFileName, 'obvs', baseName, fileInfo, result);
+                } else {
+                    throw new Error(result.error || 'OBVS conversion failed');
+                }
+            } catch (error) {
+                console.error('OBVS conversion error:', error);
+                this.showError(`OBVS conversion failed: ${error.message}`);
+            }
         }, 500);
     }
 
-    showConvertedDataPreview(fileName, suffix, baseName, fileInfo) {
+    showConvertedDataPreview(fileName, suffix, baseName, fileInfo, conversionResult = null) {
+        console.log('📋 Showing converted data preview:', { fileName, suffix, conversionResult });
+
         // Update the table title to show the converted file name
         const dataTitle = document.getElementById('dataTitle');
-        dataTitle.textContent = fileName;
+        dataTitle.innerHTML = `
+            <span class="table-title-main">${fileName}</span>
+            <span class="table-title-sub">🔄 Converted ${suffix.toUpperCase()} Format • Preview Mode</span>
+        `;
         
         // Show the table with converted data
         this.renderTable();
@@ -491,10 +540,41 @@ class CSVManager {
             baseName,
             fileInfo,
             data: [...this.csvData],
-            headers: [...this.headers]
+            headers: [...this.headers],
+            conversionResult
         };
-        
-        this.showSuccess(`Converted to ${suffix.toUpperCase()} format! Review the data and click "Confirm & Save" to save the file.`);
+
+        // Show conversion statistics if available
+        if (conversionResult && conversionResult.metadata) {
+            const meta = conversionResult.metadata;
+            let statsMessage = `Converted to ${suffix.toUpperCase()} format! `;
+            if (meta.inputRows && meta.outputRows) {
+                statsMessage += `${meta.inputRows} input rows → ${meta.outputRows} output rows. `;
+            }
+            if (meta.dateRange) {
+                statsMessage += `Date range: ${meta.dateRange.start} to ${meta.dateRange.end} (${meta.dateRange.days} days). `;
+            }
+            if (meta.speciesCount) {
+                statsMessage += `${meta.speciesCount} species detected. `;
+            }
+            statsMessage += 'Review the data and click "Confirm & Save" to save the file.';
+            this.showSuccess(statsMessage);
+        } else {
+            this.showSuccess(`Converted to ${suffix.toUpperCase()} format! Review the data and click "Confirm & Save" to save the file.`);
+        }
+
+        // Add conversion info to processing log if it exists
+        if (conversionResult && conversionResult.metadata) {
+            this.addToProcessingLog(`✅ ${suffix.toUpperCase()} Conversion Complete`, 'success');
+            this.addToProcessingLog(`📊 Input: ${conversionResult.metadata.inputRows || 0} rows`, 'info');
+            this.addToProcessingLog(`📊 Output: ${conversionResult.metadata.outputRows || 0} rows`, 'info');
+            if (conversionResult.metadata.dateRange) {
+                this.addToProcessingLog(`📅 Date range: ${conversionResult.metadata.dateRange.start} to ${conversionResult.metadata.dateRange.end}`, 'info');
+            }
+            if (conversionResult.metadata.speciesCount) {
+                this.addToProcessingLog(`🐟 Species detected: ${conversionResult.metadata.speciesCount}`, 'info');
+            }
+        }
     }
 
     showSaveConfirmation(fileName, suffix, baseName, fileInfo) {
@@ -574,23 +654,49 @@ class CSVManager {
         });
     }
 
-    showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, onConfirm) {
+    showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, conversionResult, onConfirm) {
+        // Handle both old and new function signature for backward compatibility
+        if (typeof conversionResult === 'function') {
+            onConfirm = conversionResult;
+            conversionResult = null;
+        }
+
         // Create compact confirmation dialog
         const modal = document.createElement('div');
         modal.className = 'modal';
+
+        // Build conversion statistics display
+        let conversionStats = '';
+        if (conversionResult && conversionResult.metadata) {
+            const meta = conversionResult.metadata;
+            conversionStats = `
+                <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; color: #0369a1;">📊 Conversion Summary</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; color: #0369a1;">
+                        ${meta.inputRows ? `<div><strong>Input rows:</strong> ${meta.inputRows}</div>` : ''}
+                        ${meta.outputRows ? `<div><strong>Output rows:</strong> ${meta.outputRows}</div>` : ''}
+                        ${meta.speciesCount ? `<div><strong>Species:</strong> ${meta.speciesCount}</div>` : ''}
+                        ${meta.dateRange ? `<div><strong>Date range:</strong> ${meta.dateRange.days} days</div>` : ''}
+                    </div>
+                    ${meta.dateRange ? `<div style="font-size: 12px; color: #0369a1; margin-top: 8px; font-style: italic;">${meta.dateRange.start} to ${meta.dateRange.end}</div>` : ''}
+                </div>
+            `;
+        }
+
         modal.innerHTML = `
             <div class="modal-content" style="max-width: 550px;">
                 <div class="modal-header">
                     <h2>💾 Save ${fileName}</h2>
                 </div>
                 <div class="modal-body">
+                    ${conversionStats}
                     <div class="save-instructions" style="background-color: #e8f4fd; border: 1px solid #bee5eb; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
                         <h4 style="margin: 0 0 10px 0; color: #0c5460;">📁 Important: Save Location</h4>
                         <p style="margin: 0 0 10px 0; color: #0c5460; font-size: 14px;">
                             <strong>Please save this file in the same directory/folder where you loaded your original CSV files.</strong>
                         </p>
                         <p style="margin: 0; color: #0c5460; font-size: 13px; font-style: italic;">
-                            This keeps all related files (raw, _std, _24hr) organized together for easy access when plotting.
+                            This keeps all related files (raw, _nmax, _obvs, _std, _24hr) organized together for easy access when plotting.
                         </p>
                     </div>
                     <div style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">
@@ -1568,6 +1674,9 @@ class CSVManager {
         
         // Scroll to table
         tableSection.scrollIntoView({ behavior: 'smooth' });
+
+        // Trigger conversion system integration for _raw files
+        this.triggerConversionSystem();
     }
 
     createProcessingLogInterface() {
@@ -3099,6 +3208,143 @@ class CSVManager {
             successDiv.remove();
         }, 3000);
     }
+
+    parseSUBCAMFilename(filename) {
+        console.log('=== PARSING SUBCAM FILENAME ===');
+        console.log('Filename:', filename);
+
+        // Pattern: ID_Subcam_<ProjectOrSite>[_W]_<YYMM-YYMM | YYMM_YYMM>_<type>.csv
+        // Remove .csv extension
+        const nameWithoutExt = filename.replace(/\.csv$/i, '');
+        const parts = nameWithoutExt.split('_');
+
+        console.log('Filename parts:', parts);
+
+        if (parts.length < 4) {
+            console.warn('Filename does not match expected SUBCAM pattern');
+            return {
+                id: parts[0] || '',
+                projectOrSite: '',
+                variant: null,
+                period: '',
+                type: '',
+                valid: false
+            };
+        }
+
+        // Extract components
+        const id = parts[0]; // Usually "ID"
+        const subcam = parts[1]; // Should be "Subcam"
+
+        // Find the type (raw/nmax/obvs) - it's always the last part
+        const type = parts[parts.length - 1];
+
+        // Find the period (date range) - it's the second-to-last part
+        const period = parts[parts.length - 2];
+
+        // Everything between subcam and period is project/site (may include variant)
+        const projectSiteParts = parts.slice(2, parts.length - 2);
+
+        let projectOrSite = '';
+        let variant = null;
+
+        if (projectSiteParts.length > 0) {
+            // Check if last part is a variant (single letter like 'W')
+            const lastPart = projectSiteParts[projectSiteParts.length - 1];
+            if (lastPart.length === 1 && /^[A-Z]$/.test(lastPart)) {
+                variant = lastPart;
+                projectOrSite = projectSiteParts.slice(0, -1).join('_');
+            } else {
+                projectOrSite = projectSiteParts.join('_');
+            }
+        }
+
+        // Validate period format (YYMM-YYMM or YYMM_YYMM)
+        const periodValid = /^\d{4}[-_]\d{4}$/.test(period);
+
+        // Validate type
+        const typeValid = ['raw', 'nmax', 'obvs'].includes(type.toLowerCase());
+
+        const result = {
+            id,
+            subcam,
+            projectOrSite,
+            variant,
+            period,
+            type: type.toLowerCase(),
+            valid: periodValid && typeValid,
+            parts
+        };
+
+        console.log('Parsed result:', result);
+        return result;
+    }
+
+    createCSVFromData(headers, data) {
+        // Create CSV content from headers and data arrays
+        const csvRows = [headers.join(',')];
+
+        data.forEach(row => {
+            const values = row.map(value => {
+                // Quote values that contain commas
+                if (typeof value === 'string' && value.includes(',')) {
+                    return `"${value}"`;
+                }
+                return value || '';
+            });
+            csvRows.push(values.join(','));
+        });
+
+        return csvRows.join('\n');
+    }
+
+    triggerConversionSystem() {
+        // Check if this is a _raw file and trigger conversion UI
+        if (this.fileName && this.headers && this.csvData) {
+            const fileInfo = this.parseSUBCAMFilename(this.fileName);
+
+            if (fileInfo.valid && fileInfo.type === 'raw') {
+                console.log('🔍 DEBUG: Preparing data for conversion system');
+                console.log('📊 Raw data stats:', {
+                    fileName: this.fileName,
+                    headerCount: this.headers?.length,
+                    dataRowCount: this.csvData?.length,
+                    sampleHeaders: this.headers?.slice(0, 5),
+                    sampleRow: this.csvData?.[0]?.slice(0, 5)
+                });
+
+                // Prepare data for conversion system
+                const fileData = {
+                    fileName: this.fileName,
+                    headers: this.headers,
+                    data: this.csvData.map(row => {
+                        const rowObj = {};
+                        this.headers.forEach((header, index) => {
+                            rowObj[header] = row[index] || '';
+                        });
+                        return rowObj;
+                    })
+                };
+
+                console.log('📋 Prepared fileData structure:', {
+                    fileName: fileData.fileName,
+                    headerCount: fileData.headers?.length,
+                    dataCount: fileData.data?.length,
+                    sampleData: fileData.data?.slice(0, 2)
+                });
+
+                // Dispatch event for conversion UI to pick up
+                const event = new CustomEvent('fileLoaded', {
+                    detail: fileData
+                });
+                document.dispatchEvent(event);
+
+                console.log('🔄 Triggered conversion system for _raw file:', this.fileName);
+                console.log('📤 Event dispatched with detail:', event.detail);
+            }
+        }
+    }
+
 }
 
 // Navigation functionality
@@ -3452,76 +3698,6 @@ class NavigationManager {
         return filename.replace(/\.(csv|CSV)$/, '');
     }
 
-    parseSUBCAMFilename(filename) {
-        console.log('=== PARSING SUBCAM FILENAME ===');
-        console.log('Filename:', filename);
-
-        // Pattern: ID_Subcam_<ProjectOrSite>[_W]_<YYMM-YYMM | YYMM_YYMM>_<type>.csv
-        // Remove .csv extension
-        const nameWithoutExt = filename.replace(/\.csv$/i, '');
-        const parts = nameWithoutExt.split('_');
-
-        console.log('Filename parts:', parts);
-
-        if (parts.length < 4) {
-            console.warn('Filename does not match expected SUBCAM pattern');
-            return {
-                id: parts[0] || '',
-                projectOrSite: '',
-                variant: null,
-                period: '',
-                type: '',
-                valid: false
-            };
-        }
-
-        // Extract components
-        const id = parts[0]; // Usually "ID"
-        const subcam = parts[1]; // Should be "Subcam"
-
-        // Find the type (raw/nmax/obvs) - it's always the last part
-        const type = parts[parts.length - 1];
-
-        // Find the period (date range) - it's the second-to-last part
-        const period = parts[parts.length - 2];
-
-        // Everything between subcam and period is project/site (may include variant)
-        const projectSiteParts = parts.slice(2, parts.length - 2);
-
-        let projectOrSite = '';
-        let variant = null;
-
-        if (projectSiteParts.length > 0) {
-            // Check if last part is a variant (single letter like 'W')
-            const lastPart = projectSiteParts[projectSiteParts.length - 1];
-            if (lastPart.length === 1 && /^[A-Z]$/.test(lastPart)) {
-                variant = lastPart;
-                projectOrSite = projectSiteParts.slice(0, -1).join('_');
-            } else {
-                projectOrSite = projectSiteParts.join('_');
-            }
-        }
-
-        // Validate period format (YYMM-YYMM or YYMM_YYMM)
-        const periodValid = /^\d{4}[-_]\d{4}$/.test(period);
-
-        // Validate type
-        const typeValid = ['raw', 'nmax', 'obvs'].includes(type.toLowerCase());
-
-        const result = {
-            id,
-            subcam,
-            projectOrSite,
-            variant,
-            period,
-            type: type.toLowerCase(),
-            valid: periodValid && typeValid,
-            parts
-        };
-
-        console.log('Parsed result:', result);
-        return result;
-    }
 
     async checkAllFilesForSources(fileList) {
         console.log('Checking all files for column headers...');

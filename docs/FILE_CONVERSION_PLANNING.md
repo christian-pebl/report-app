@@ -349,6 +349,239 @@ def validate_nmax_output(df):
 
 ---
 
+## _raw to _obvs Conversion
+
+### Goal
+Transform per-event annotations (_raw) into daily observation counts (_obvs) with one row per date and columns for summary metrics and per-species daily event counts.
+
+### Key Difference from _nmax
+Unlike _nmax conversion which uses maximum individuals per clip, _obvs conversion counts the **number of observation events** per species per day. Each row in the raw data represents one observation event.
+
+### 1. Input Requirements & Assumptions
+
+#### Same as _nmax Conversion:
+- Uses identical input schema and normalization as _raw → _nmax conversion
+- Same timestamp parsing priority and timezone handling
+- Same taxon selection logic and text normalization
+- Same quality filtering options (Confidence Level, Quality of Video)
+
+#### Key Difference:
+- **Quantity (Nmax)** field is not used in calculations
+- Focus is on **counting events**, not maximum individuals
+
+### 2. Event Counting Logic
+
+#### Core Algorithm:
+For each combination of:
+- **Date** (local date from timestamp)
+- **Taxon** (normalized species identifier)
+
+Count: **Number of rows (observation events)** that occurred on that date for that taxon
+
+#### No Clip-Level Aggregation:
+Unlike _nmax, there is no intermediate per-clip step. Each row in the raw data represents one observation event and contributes directly to the daily count.
+
+### 3. Daily Metrics Calculation
+
+For each date, calculate:
+
+#### Basic Counts:
+- **Total Observations** = Sum of all species event counts for that day
+- **Unique Organisms Observed Today** = Count of species with events > 0
+
+#### New Species Detection:
+- **New Unique Organisms Today** = Species that appear for first time in dataset
+- Track first occurrence date for each taxon
+
+#### Cumulative Metrics (sorted by ascending date):
+- **Cumulative Observations** = Running sum of Total Observations *(optional)*
+- **Cumulative Unique Species** = Running count of distinct species seen so far
+
+### 4. Output Schema (_obvs format)
+
+#### Column Order (left to right):
+```
+Date | Total Observations | Unique Organisms Observed Today | New Unique Organisms Today | Cumulative Unique Species | [Cumulative Observations] | [Species Columns...]
+```
+
+#### Data Types:
+- **Date**: YYYY-MM-DD (ISO format, Europe/London local date)
+- **All numeric fields**: Integer ≥ 0
+- **Species columns**: Integer ≥ 0 (daily event count for that species)
+
+#### Format Specifications:
+- CSV with UTF-8 encoding
+- Comma delimiter
+- Header row present
+- No `Unnamed:*` or placeholder `-` columns
+- Species columns sorted alphabetically by normalized taxon names
+- Cumulative Observations is optional (can be included or omitted)
+
+### 5. Implementation Pseudocode
+
+```python
+import pandas as pd
+import numpy as np
+import pytz
+
+def convert_raw_to_obvs(raw_path, obvs_path, min_confidence=None, min_quality=None, include_cumulative_obs=True):
+    """Convert _raw CSV to _obvs format with daily event counts"""
+
+    # 1. Load and normalize data (reuse from _nmax conversion)
+    df = load_and_normalize_raw(raw_path)
+
+    # 2. Apply quality filters if specified
+    if min_confidence and 'Confidence Level' in df.columns:
+        df = df[df['Confidence Level'] >= min_confidence]
+    if min_quality and 'Quality of Video' in df.columns:
+        df = df[df['Quality of Video'] >= min_quality]
+
+    # 3. Count observation events per day/species
+    events = (df.groupby([df["event_ts"].dt.date.rename("Date"), "taxon"])
+              .size()
+              .reset_index(name="events"))
+
+    # 4. Pivot to wide format with species columns
+    wide = events.pivot(index="Date", columns="taxon", values="events").fillna(0).astype(int)
+
+    # 5. Calculate summary metrics
+    result = wide.copy()
+    result["Total Observations"] = result.sum(axis=1)
+    result["Unique Organisms Observed Today"] = (wide > 0).sum(axis=1)
+
+    # 6. Sort by date for cumulative calculations
+    result = result.sort_index()
+
+    # 7. Calculate new species and cumulative metrics
+    seen = (wide > 0)
+    first_seen = seen.idxmax()  # First date each species appears
+
+    # New unique organisms per day
+    new_unique = pd.Series(0, index=result.index)
+    for species, first_date in first_seen.items():
+        if pd.notna(first_date) and seen.loc[first_date, species]:
+            new_unique.loc[first_date] += 1
+
+    result["New Unique Organisms Today"] = new_unique.astype(int)
+    result["Cumulative Unique Species"] = seen.cumsum().clip(upper=1).sum(axis=1).astype(int)
+
+    # Optional cumulative observations
+    if include_cumulative_obs:
+        result["Cumulative Observations"] = result["Total Observations"].cumsum()
+
+    # 8. Order columns: summary metrics first, then species alphabetically
+    summary_cols = [
+        "Total Observations",
+        "Unique Organisms Observed Today",
+        "New Unique Organisms Today",
+        "Cumulative Unique Species"
+    ]
+    if include_cumulative_obs:
+        summary_cols.append("Cumulative Observations")
+
+    species_cols = sorted([c for c in result.columns if c not in summary_cols])
+    result = result[summary_cols + species_cols]
+
+    # 9. Validate output
+    validate_obvs_output(result, include_cumulative_obs)
+
+    # 10. Write to file
+    result.to_csv(obvs_path, index_label="Date", encoding="utf-8")
+
+    return result
+
+def validate_obvs_output(df, include_cumulative_obs=True):
+    """Validate _obvs output meets all requirements"""
+
+    summary_cols = [
+        "Total Observations", "Unique Organisms Observed Today",
+        "New Unique Organisms Today", "Cumulative Unique Species"
+    ]
+    if include_cumulative_obs:
+        summary_cols.append("Cumulative Observations")
+
+    species_cols = [c for c in df.columns if c not in summary_cols]
+
+    # Type and value validation
+    assert (df >= 0).all().all(), "All values must be >= 0"
+    assert df.index.is_unique, "Each date must appear exactly once"
+
+    # Monotonic validation
+    assert (df["Cumulative Unique Species"].diff().fillna(0) >= 0).all(), "Cumulative Unique Species must be non-decreasing"
+    if include_cumulative_obs:
+        assert (df["Cumulative Observations"].diff().fillna(0) >= 0).all(), "Cumulative Observations must be non-decreasing"
+
+    # Consistency validation
+    assert (df["Total Observations"] == df[species_cols].sum(axis=1)).all(), "Total Observations must equal sum of species columns"
+
+    # Unique organisms validation
+    assert (df["Unique Organisms Observed Today"] == (df[species_cols] > 0).sum(axis=1)).all(), "Unique Organisms count must match species with >0 events"
+
+    print("✅ All _obvs validation checks passed")
+```
+
+### 6. Key Differences from _nmax
+
+| Aspect | **_nmax** | **_obvs** |
+|--------|-----------|-----------|
+| **Core Metric** | Maximum individuals per clip | Number of observation events |
+| **Calculation** | `max(Quantity)` per clip, then sum across clips | Direct count of rows/events |
+| **Aggregation** | Two-step: clip-level → daily | Single-step: event-level → daily |
+| **Use of Quantity** | Required for calculations | Ignored (not used) |
+| **Biological Meaning** | Peak abundance per deployment | Observation frequency/effort |
+
+### 7. Validation & Quality Assurance
+
+#### Type Validation:
+- All count fields must be integers ≥ 0
+- Dates must be valid ISO format
+- No missing values in required columns
+
+#### Logical Validation:
+- **Monotonic**: Cumulative Unique Species must be non-decreasing
+- **Consistency**: Total Observations = sum of all species columns
+- **Uniqueness**: Exactly one row per date
+- **Species counts**: Unique Organisms Observed Today = count of species columns > 0
+
+#### Optional Quality Filters:
+- Same as _nmax: filter by Confidence Level and Quality of Video
+
+### 8. Use Cases & Applications
+
+#### When to Use _obvs vs _nmax:
+- **_obvs**: When you want to measure observation **frequency** or **effort**
+  - How many times was each species observed?
+  - What was the observation rate over time?
+  - Measure of detection events regardless of group size
+
+- **_nmax**: When you want to measure **abundance** or **biomass**
+  - What was the peak count of individuals?
+  - Population estimates and density calculations
+  - Biological abundance metrics
+
+### 9. Testing & Validation Checklist
+
+#### Pre-conversion Validation:
+- [ ] Raw file contains required columns (same as _nmax)
+- [ ] Timestamps are parseable
+- [ ] At least some rows have valid taxon identifiers
+
+#### Post-conversion Validation:
+- [ ] Output has expected date range
+- [ ] All numeric fields are integers ≥ 0
+- [ ] Cumulative Unique Species is monotonic
+- [ ] Total Observations equals sum of species columns
+- [ ] Unique Organisms count matches species with >0 events
+- [ ] No duplicate dates
+- [ ] Event counts are reasonable (not unexpectedly high/low)
+
+#### Manual Spot Checks:
+- [ ] Pick a date and manually count events for a species in raw data
+- [ ] Verify Total Observations calculation for sample dates
+- [ ] Check that first occurrence dates for new species are correct
+
+---
+
 ## Implementation Notes
 
 ### Performance Considerations:

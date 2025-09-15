@@ -75,6 +75,84 @@
                 <p>Upload and visualize your CSV data</p>
             </header>
 
+            <!-- File Conversion Section -->
+            <div class="conversion-section hidden" id="conversionSection">
+                <div class="section-header">
+                    <h3>🔄 SUBCAM File Conversion</h3>
+                    <p>Convert _raw CSV files to _nmax or _obvs formats</p>
+                </div>
+
+                <div class="conversion-container">
+                    <div class="conversion-card">
+                        <div class="card-header">
+                            <h4>File Conversion Options</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="conversionTypeSelect">Conversion Type:</label>
+                                    <select id="conversionTypeSelect" class="form-control">
+                                        <option value="">Select conversion type...</option>
+                                        <option value="_nmax">_raw → _nmax (Daily Maximum Counts)</option>
+                                        <option value="_obvs">_raw → _obvs (Daily Observation Events)</option>
+                                    </select>
+                                    <small class="help-text">Choose between abundance counts (Nmax) or observation frequency (Events)</small>
+                                </div>
+                            </div>
+
+                            <div class="quality-filters hidden" id="qualityFilters">
+                                <h5>Quality Filters (Optional)</h5>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="minConfidenceSelect">Minimum Confidence Level:</label>
+                                        <select id="minConfidenceSelect" class="form-control">
+                                            <option value="">No filter</option>
+                                            <option value="1">1 - Very Low</option>
+                                            <option value="2">2 - Low</option>
+                                            <option value="3">3 - Medium</option>
+                                            <option value="4">4 - High</option>
+                                            <option value="5">5 - Very High</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="minQualitySelect">Minimum Video Quality:</label>
+                                        <select id="minQualitySelect" class="form-control">
+                                            <option value="">No filter</option>
+                                            <option value="1">1 - Very Poor</option>
+                                            <option value="2">2 - Poor</option>
+                                            <option value="3">3 - Fair</option>
+                                            <option value="4">4 - Good</option>
+                                            <option value="5">5 - Excellent</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="button-row">
+                                <button id="validateDataBtn" class="btn-secondary" disabled>📋 Validate Data</button>
+                                <button id="convertFileBtn" class="btn-primary" disabled>🔄 Convert File</button>
+                                <button id="downloadResultBtn" class="btn-success hidden" disabled>💾 Download Result</button>
+                            </div>
+
+                            <div id="conversionProgress" class="progress-container hidden">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="conversionProgressFill"></div>
+                                </div>
+                                <div class="progress-text" id="conversionProgressText">Processing...</div>
+                            </div>
+
+                            <div id="conversionResults" class="results-container hidden">
+                                <!-- Results will be displayed here -->
+                            </div>
+
+                            <div id="validationResults" class="validation-container hidden">
+                                <!-- Validation results will be displayed here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         <main>
             <!-- Working Directory File Browser -->
             <div class="file-browser hidden" id="fileBrowser">
@@ -292,6 +370,9 @@
 
     </div>
 
+    <script src="js/conversion-engine.js"></script>
+    <script src="js/validation.js"></script>
+    <script src="js/conversion-ui.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,12 @@
+File Name,Timestamps (HH:MM:SS),Adjusted Date and Time,Event Observation,Quantity (Nmax),Common Name,Lowest Order Scientific Name,Confidence Level,Quality of Video,Where on Screen
+EDGE_CASE_01.mp4,00:00:01,2024-03-06 00:00:01,Midnight observation,1,Test Species A,Testus speciesus,5,5,5
+EDGE_CASE_01.mp4,23:59:59,2024-03-06 23:59:59,End of day observation,2,Test Species A,Testus speciesus,5,5,5
+EDGE_CASE_02.mp4,12:00:00,2024-03-07 12:00:00,Observation with negative quantity,-5,Test Species B,,4,4,4
+EDGE_CASE_02.mp4,12:01:00,2024-03-07 12:01:00,Observation with zero quantity,0,Test Species B,,4,4,4
+EDGE_CASE_03.mp4,15:30:00,2024-03-08 15:30:00,Missing scientific name,3,Test Species C,,3,3,3
+EDGE_CASE_03.mp4,15:31:00,2024-03-08 15:31:00,Missing common name,4,,Testus missingcommon,3,3,3
+EDGE_CASE_04.mp4,10:00:00,,Observation with missing timestamp,1,Test Species D,Testus timestampus,2,2,2
+EDGE_CASE_05.mp4,11:00:00,2024-03-09 11:00:00,Low confidence observation,1,Test Species E,Testus lowconfidence,1,1,1
+EDGE_CASE_05.mp4,11:01:00,2024-03-09 11:01:00,Low quality observation,1,Test Species F,Testus lowquality,5,1,1
+DUPLICATE_NAME.mp4,14:00:00,2024-03-10 14:00:00,First file with same name,5,Test Species G,Testus duplicatus,5,5,5
+DUPLICATE_NAME.mp4,14:01:00,2024-03-10 14:01:00,Second observation same file,3,Test Species G,Testus duplicatus,5,5,5

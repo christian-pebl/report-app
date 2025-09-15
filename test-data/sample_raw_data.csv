@@ -1,0 +1,37 @@
+File Name,Timestamps (HH:MM:SS),Adjusted Date and Time,Event Observation,Quantity (Nmax),Common Name,Lowest Order Scientific Name,Confidence Level,Quality of Video,Where on Screen,Order,Family,Genus,Species
+SUBCAM_Site_A_20240301.mp4,08:15:23,2024-03-01 08:15:23,School of fish observed swimming left to right,15,Whiting,Merlangius merlangus,4,5,5,Gadiformes,Gadidae,Merlangius,merlangus
+SUBCAM_Site_A_20240301.mp4,08:22:14,2024-03-01 08:22:14,Individual crab walking across seabed,1,Edible Crab,Cancer pagurus,5,4,7,Decapoda,Cancridae,Cancer,pagurus
+SUBCAM_Site_A_20240301.mp4,09:33:45,2024-03-01 09:33:45,Small group of flatfish partially buried,3,Common Sole,Solea solea,3,3,6,Pleuronectiformes,Soleidae,Solea,solea
+SUBCAM_Site_A_20240301.mp4,10:12:08,2024-03-01 10:12:08,Large school passing through frame,25,Whiting,Merlangius merlangus,5,5,4,Gadiformes,Gadidae,Merlangius,merlangus
+SUBCAM_Site_B_20240301.mp4,11:45:33,2024-03-01 11:45:33,Single dogfish near bottom,1,Lesser Spotted Dogfish,Scyliorhinus canicula,4,4,3,Carcharhiniformes,Scyliorhinidae,Scyliorhinus,canicula
+SUBCAM_Site_B_20240301.mp4,13:18:29,2024-03-01 13:18:29,Hermit crabs in shells,4,Common Hermit Crab,Pagurus bernhardus,5,5,8,Decapoda,Paguridae,Pagurus,bernhardus
+SUBCAM_Site_C_20240301.mp4,14:56:12,2024-03-01 14:56:12,Ray gliding over substrate,1,Thornback Ray,Raja clavata,4,4,2,Rajiformes,Rajidae,Raja,clavata
+SUBCAM_Site_C_20240301.mp4,16:23:55,2024-03-01 16:23:55,Small school of juvenile fish,8,Sprat,Sprattus sprattus,3,3,5,Clupeiformes,Clupeidae,Sprattus,sprattus
+SUBCAM_Site_A_20240302.mp4,07:30:18,2024-03-02 07:30:18,Individual whiting feeding on bottom,1,Whiting,Merlangius merlangus,5,5,6,Gadiformes,Gadidae,Merlangius,merlangus
+SUBCAM_Site_A_20240302.mp4,08:45:22,2024-03-02 08:45:22,Pair of crabs interacting,2,Edible Crab,Cancer pagurus,4,4,4,Decapoda,Cancridae,Cancer,pagurus
+SUBCAM_Site_A_20240302.mp4,09:15:44,2024-03-02 09:15:44,New species - first observation,1,Cod,Gadus morhua,5,5,3,Gadiformes,Gadidae,Gadus,morhua
+SUBCAM_Site_B_20240302.mp4,10:33:17,2024-03-02 10:33:17,School of small fish,12,Sprat,Sprattus sprattus,4,4,7,Clupeiformes,Clupeidae,Sprattus,sprattus
+SUBCAM_Site_B_20240302.mp4,11:22:39,2024-03-02 11:22:39,Multiple flatfish on substrate,5,Plaice,Pleuronectes platessa,4,3,9,Pleuronectiformes,Pleuronectidae,Pleuronectes,platessa
+SUBCAM_Site_C_20240302.mp4,13:44:26,2024-03-02 13:44:26,Dogfish swimming near camera,1,Lesser Spotted Dogfish,Scyliorhinus canicula,5,5,1,Carcharhiniformes,Scyliorhinidae,Scyliorhinus,canicula
+SUBCAM_Site_C_20240302.mp4,15:17:53,2024-03-02 15:17:53,Large ray feeding,1,Thornback Ray,Raja clavata,5,4,6,Rajiformes,Rajidae,Raja,clavata
+SUBCAM_Site_A_20240303.mp4,06:55:31,2024-03-03 06:55:31,Early morning crab activity,3,Edible Crab,Cancer pagurus,4,3,5,Decapoda,Cancridae,Cancer,pagurus
+SUBCAM_Site_A_20240303.mp4,08:12:14,2024-03-03 08:12:14,Small group of cod,2,Cod,Gadus morhua,5,5,4,Gadiformes,Gadidae,Gadus,morhua
+SUBCAM_Site_A_20240303.mp4,09:38:47,2024-03-03 09:38:47,Mixed species school,18,Whiting;Sprat,Merlangius merlangus;Sprattus sprattus,3,4,6,Mixed,Mixed,Mixed,Mixed
+SUBCAM_Site_B_20240303.mp4,10:44:19,2024-03-03 10:44:19,Hermit crab cluster,6,Common Hermit Crab,Pagurus bernhardus,5,4,7,Decapoda,Paguridae,Pagurus,bernhardus
+SUBCAM_Site_B_20240303.mp4,12:26:05,2024-03-03 12:26:05,New species sighting,1,Common Dab,Limanda limanda,4,4,8,Pleuronectiformes,Pleuronectidae,Limanda,limanda
+SUBCAM_Site_C_20240303.mp4,14:15:38,2024-03-03 14:15:38,Sole partially buried,1,Common Sole,Solea solea,3,3,2,Pleuronectiformes,Soleidae,Solea,solea
+SUBCAM_Site_C_20240303.mp4,16:52:21,2024-03-03 16:52:21,Multiple dogfish,3,Lesser Spotted Dogfish,Scyliorhinus canicula,4,4,9,Carcharhiniformes,Scyliorhinidae,Scyliorhinus,canicula
+SUBCAM_Site_A_20240304.mp4,07:18:33,2024-03-04 07:18:33,Large whiting school,22,Whiting,Merlangius merlangus,5,5,5,Gadiformes,Gadidae,Merlangius,merlangus
+SUBCAM_Site_A_20240304.mp4,08:34:16,2024-03-04 08:34:16,Plaice group feeding,4,Plaice,Pleuronectes platessa,4,4,3,Pleuronectiformes,Pleuronectidae,Pleuronectes,platessa
+SUBCAM_Site_A_20240304.mp4,09:47:29,2024-03-04 09:47:29,Ray encounter,1,Thornback Ray,Raja clavata,5,5,7,Rajiformes,Rajidae,Raja,clavata
+SUBCAM_Site_B_20240304.mp4,11:23:42,2024-03-04 11:23:42,Crab territorial behavior,2,Edible Crab,Cancer pagurus,4,3,6,Decapoda,Cancridae,Cancer,pagurus
+SUBCAM_Site_B_20240304.mp4,13:16:55,2024-03-04 13:16:55,Cod hunting behavior,1,Cod,Gadus morhua,5,4,4,Gadiformes,Gadidae,Gadus,morhua
+SUBCAM_Site_C_20240304.mp4,14:42:18,2024-03-04 14:42:18,Sprat school,15,Sprat,Sprattus sprattus,4,4,8,Clupeiformes,Clupeidae,Sprattus,sprattus
+SUBCAM_Site_C_20240304.mp4,16:08:31,2024-03-04 16:08:31,Dab on sandy bottom,1,Common Dab,Limanda limanda,3,3,1,Pleuronectiformes,Pleuronectidae,Limanda,limanda
+SUBCAM_Site_A_20240305.mp4,06:42:14,2024-03-05 06:42:14,Dawn activity - multiple species,7,Mixed Species,Multiple taxa,2,3,5,Multiple,Multiple,Multiple,Multiple
+SUBCAM_Site_A_20240305.mp4,08:19:37,2024-03-05 08:19:37,Hermit crab movement,1,Common Hermit Crab,Pagurus bernhardus,5,5,6,Decapoda,Paguridae,Pagurus,bernhardus
+SUBCAM_Site_A_20240305.mp4,09:54:23,2024-03-05 09:54:23,Sole behavior observation,2,Common Sole,Solea solea,4,4,7,Pleuronectiformes,Soleidae,Solea,solea
+SUBCAM_Site_B_20240305.mp4,11:35:48,2024-03-05 11:35:48,Dogfish pair,2,Lesser Spotted Dogfish,Scyliorhinus canicula,5,4,3,Carcharhiniformes,Scyliorhinidae,Scyliorhinus,canicula
+SUBCAM_Site_B_20240305.mp4,13:12:35,2024-03-05 13:12:35,Large whiting school passing,28,Whiting,Merlangius merlangus,5,5,8,Gadiformes,Gadidae,Merlangius,merlangus
+SUBCAM_Site_C_20240305.mp4,15:28:19,2024-03-05 15:28:19,Ray feeding activity,1,Thornback Ray,Raja clavata,4,4,2,Rajiformes,Rajidae,Raja,clavata
+SUBCAM_Site_C_20240305.mp4,17:14:52,2024-03-05 17:14:52,Evening crab activity,4,Edible Crab,Cancer pagurus,3,3,9,Decapoda,Cancridae,Cancer,pagurus

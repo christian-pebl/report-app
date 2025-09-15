@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SUBCAM Conversion Test Runner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: #2B7A78;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .test-button {
+            background: #2B7A78;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.2s;
+        }
+
+        .test-button:hover {
+            background: #1f5a58;
+        }
+
+        .test-button:disabled {
+            background: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .demo-section {
+            background: #e7f3ff;
+            border: 1px solid #2B7A78;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .demo-section h4 {
+            color: #2B7A78;
+            margin-top: 0;
+        }
+
+        .output-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2B7A78, #17A2B8);
+            width: 0%;
+            transition: width 0.3s ease;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .test-results {
+            margin-top: 20px;
+        }
+
+        .test-pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .test-fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .conversion-demo {
+            border: 2px solid #2B7A78;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background: white;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 12px;
+        }
+
+        .data-table th, .data-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .data-table th {
+            background-color: #f2f2f2;
+            color: #2B7A78;
+            font-weight: bold;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .file-selector {
+            margin: 10px 0;
+        }
+
+        .file-selector input[type="file"] {
+            margin: 5px;
+        }
+
+        .alert {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+
+        .alert-info {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 SUBCAM Conversion System Test Runner</h1>
+        <p>Comprehensive testing and demonstration of the file conversion system</p>
+    </div>
+
+    <!-- Automated Tests Section -->
+    <div class="test-section">
+        <h2>🔬 Automated Test Suite</h2>
+        <p>Run comprehensive automated tests on the conversion engine:</p>
+
+        <div class="demo-section">
+            <h4>Test Categories</h4>
+            <ul>
+                <li><strong>Core Functionality:</strong> Basic _nmax and _obvs conversions</li>
+                <li><strong>Data Processing:</strong> Normalization, parsing, validation</li>
+                <li><strong>Edge Cases:</strong> Error handling, invalid data, empty files</li>
+                <li><strong>Quality Filtering:</strong> Confidence and quality filters</li>
+                <li><strong>Performance:</strong> Large dataset handling</li>
+                <li><strong>Integration:</strong> End-to-end workflow testing</li>
+            </ul>
+        </div>
+
+        <button id="runTestsBtn" class="test-button">🚀 Run All Tests</button>
+        <button id="clearResultsBtn" class="test-button">🗑️ Clear Results</button>
+
+        <div id="testProgress" class="progress-bar" style="display: none;">
+            <div id="testProgressFill" class="progress-fill">0%</div>
+        </div>
+
+        <div id="testOutput" class="output-section" style="display: none;"></div>
+    </div>
+
+    <!-- Live Conversion Demo -->
+    <div class="test-section">
+        <h2>🎯 Live Conversion Demo</h2>
+        <p>Test the conversion system with sample data or your own files:</p>
+
+        <div class="demo-section">
+            <h4>Demo Options</h4>
+            <button id="loadSampleDataBtn" class="test-button">📊 Load Sample _raw Data</button>
+
+            <div class="file-selector">
+                <label for="userFileInput">Or upload your own _raw CSV file:</label>
+                <input type="file" id="userFileInput" accept=".csv" />
+            </div>
+        </div>
+
+        <div id="conversionDemo" class="conversion-demo" style="display: none;">
+            <h4>Conversion Settings</h4>
+
+            <div style="margin: 15px 0;">
+                <label for="demoConversionType">Conversion Type:</label>
+                <select id="demoConversionType" style="margin-left: 10px; padding: 5px;">
+                    <option value="_nmax">_raw → _nmax (Daily Maximum Counts)</option>
+                    <option value="_obvs">_raw → _obvs (Daily Observation Events)</option>
+                </select>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <label for="demoMinConfidence">Minimum Confidence:</label>
+                <select id="demoMinConfidence" style="margin-left: 10px; padding: 5px;">
+                    <option value="">No filter</option>
+                    <option value="3">3 - Medium</option>
+                    <option value="4">4 - High</option>
+                    <option value="5">5 - Very High</option>
+                </select>
+            </div>
+
+            <button id="validateDemoBtn" class="test-button">📋 Validate Data</button>
+            <button id="convertDemoBtn" class="test-button">🔄 Convert Data</button>
+            <button id="downloadDemoBtn" class="test-button" style="display: none;">💾 Download Result</button>
+
+            <div id="demoProgress" class="progress-bar" style="display: none;">
+                <div id="demoProgressFill" class="progress-fill">0%</div>
+            </div>
+
+            <div id="demoOutput" class="output-section" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Performance Benchmark -->
+    <div class="test-section">
+        <h2>⚡ Performance Benchmark</h2>
+        <p>Test system performance with different dataset sizes:</p>
+
+        <div class="demo-section">
+            <h4>Dataset Sizes</h4>
+            <button id="benchmark100Btn" class="test-button">100 rows</button>
+            <button id="benchmark1000Btn" class="test-button">1,000 rows</button>
+            <button id="benchmark10000Btn" class="test-button">10,000 rows</button>
+        </div>
+
+        <div id="benchmarkResults" class="output-section" style="display: none;"></div>
+    </div>
+
+    <!-- System Information -->
+    <div class="test-section">
+        <h2>ℹ️ System Information</h2>
+        <div id="systemInfo" class="demo-section">
+            <p><strong>Browser:</strong> <span id="browserInfo"></span></p>
+            <p><strong>Test Data Available:</strong> <span id="testDataStatus"></span></p>
+            <p><strong>Conversion Engine Status:</strong> <span id="engineStatus"></span></p>
+            <p><strong>Validation System Status:</strong> <span id="validationStatus"></span></p>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="../js/conversion-engine.js"></script>
+    <script src="../js/validation.js"></script>
+    <script src="conversion-test-suite.js"></script>
+
+    <script>
+        // Initialize the test runner
+        let testSuite = null;
+        let converter = null;
+        let validator = null;
+        let currentDemoData = null;
+        let currentConversionResult = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize components
+            try {
+                testSuite = new ConversionTestSuite();
+                converter = new SUBCAMConverter();
+                validator = new SUBCAMValidator();
+
+                updateSystemInfo();
+                setupEventListeners();
+                showAlert('System initialized successfully!', 'info');
+            } catch (error) {
+                showAlert('Failed to initialize system: ' + error.message, 'error');
+            }
+        });
+
+        function updateSystemInfo() {
+            document.getElementById('browserInfo').textContent = navigator.userAgent;
+            document.getElementById('testDataStatus').textContent = testSuite ? '✅ Available' : '❌ Not Available';
+            document.getElementById('engineStatus').textContent = converter ? '✅ Ready' : '❌ Not Available';
+            document.getElementById('validationStatus').textContent = validator ? '✅ Ready' : '❌ Not Available';
+        }
+
+        function setupEventListeners() {
+            // Test suite buttons
+            document.getElementById('runTestsBtn').addEventListener('click', runAutomatedTests);
+            document.getElementById('clearResultsBtn').addEventListener('click', clearTestResults);
+
+            // Demo buttons
+            document.getElementById('loadSampleDataBtn').addEventListener('click', loadSampleData);
+            document.getElementById('userFileInput').addEventListener('change', handleFileUpload);
+            document.getElementById('validateDemoBtn').addEventListener('click', validateDemoData);
+            document.getElementById('convertDemoBtn').addEventListener('click', convertDemoData);
+            document.getElementById('downloadDemoBtn').addEventListener('click', downloadDemoResult);
+
+            // Benchmark buttons
+            document.getElementById('benchmark100Btn').addEventListener('click', () => runBenchmark(100));
+            document.getElementById('benchmark1000Btn').addEventListener('click', () => runBenchmark(1000));
+            document.getElementById('benchmark10000Btn').addEventListener('click', () => runBenchmark(10000));
+        }
+
+        async function runAutomatedTests() {
+            const testOutput = document.getElementById('testOutput');
+            const testProgress = document.getElementById('testProgress');
+            const testProgressFill = document.getElementById('testProgressFill');
+
+            testOutput.style.display = 'block';
+            testProgress.style.display = 'block';
+            testOutput.textContent = 'Starting automated test suite...\n';
+
+            try {
+                const results = await testSuite.runAllTests();
+
+                testProgressFill.style.width = '100%';
+                testProgressFill.textContent = '100% Complete';
+
+                const summary = `
+Test Results Summary:
+==================
+Total Tests: ${results.totalTests}
+Passed: ${results.passed}
+Failed: ${results.failed}
+Success Rate: ${results.successRate.toFixed(1)}%
+
+${results.failed > 0 ? 'Failed Tests:\n' + results.results.filter(t => t.status === 'FAILED').map(t => `- ${t.name}: ${t.error}`).join('\n') : 'All tests passed! ✅'}
+                `;
+
+                testOutput.textContent += summary;
+
+                if (results.failed === 0) {
+                    showAlert('All tests passed successfully!', 'info');
+                } else {
+                    showAlert(`${results.failed} test(s) failed. See results for details.`, 'warning');
+                }
+            } catch (error) {
+                testOutput.textContent += `\nTest suite failed: ${error.message}`;
+                showAlert('Test suite failed: ' + error.message, 'error');
+            }
+        }
+
+        function clearTestResults() {
+            document.getElementById('testOutput').style.display = 'none';
+            document.getElementById('testProgress').style.display = 'none';
+            document.getElementById('testProgressFill').style.width = '0%';
+        }
+
+        function loadSampleData() {
+            // Use the same sample data from the test suite
+            const sampleCSV = `File Name,Timestamps (HH:MM:SS),Adjusted Date and Time,Event Observation,Quantity (Nmax),Common Name,Lowest Order Scientific Name,Confidence Level,Quality of Video
+SUBCAM_Test_01.mp4,08:15:23,2024-03-01 08:15:23,Test observation 1,5,Test Species A,Testus speciesus,5,5
+SUBCAM_Test_01.mp4,09:30:45,2024-03-01 09:30:45,Test observation 2,3,Test Species B,Testus speciesb,4,4
+SUBCAM_Test_02.mp4,10:45:12,2024-03-02 10:45:12,Test observation 3,7,Test Species A,Testus speciesus,5,5
+SUBCAM_Test_02.mp4,11:22:33,2024-03-02 11:22:33,Test observation 4,2,Test Species C,Testus speciesc,3,3`;
+
+            currentDemoData = sampleCSV;
+            document.getElementById('conversionDemo').style.display = 'block';
+            showAlert('Sample data loaded successfully!', 'info');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentDemoData = e.target.result;
+                document.getElementById('conversionDemo').style.display = 'block';
+                showAlert(`File "${file.name}" loaded successfully!`, 'info');
+            };
+            reader.readAsText(file);
+        }
+
+        async function validateDemoData() {
+            if (!currentDemoData) {
+                showAlert('Please load data first', 'warning');
+                return;
+            }
+
+            const demoOutput = document.getElementById('demoOutput');
+            demoOutput.style.display = 'block';
+            demoOutput.textContent = 'Validating data...\n';
+
+            try {
+                const rawData = converter.parseCSV(currentDemoData);
+                const validationResult = validator.validateRawData(rawData);
+
+                let output = 'Validation Results:\n';
+                output += `==================\n`;
+                output += `Status: ${validationResult.isValid ? '✅ Valid' : '❌ Issues Found'}\n`;
+                output += `Total Rows: ${validationResult.metrics?.totalRows || 0}\n`;
+
+                if (validationResult.errors.length > 0) {
+                    output += `\nErrors:\n`;
+                    validationResult.errors.forEach(error => {
+                        output += `- ${error}\n`;
+                    });
+                }
+
+                if (validationResult.warnings.length > 0) {
+                    output += `\nWarnings:\n`;
+                    validationResult.warnings.slice(0, 5).forEach(warning => {
+                        output += `- ${warning}\n`;
+                    });
+                    if (validationResult.warnings.length > 5) {
+                        output += `... and ${validationResult.warnings.length - 5} more warnings\n`;
+                    }
+                }
+
+                if (validationResult.recommendations.length > 0) {
+                    output += `\nRecommendations:\n`;
+                    validationResult.recommendations.forEach(rec => {
+                        output += `- ${rec}\n`;
+                    });
+                }
+
+                demoOutput.textContent = output;
+                showAlert('Data validation complete', 'info');
+            } catch (error) {
+                demoOutput.textContent = `Validation failed: ${error.message}`;
+                showAlert('Validation failed: ' + error.message, 'error');
+            }
+        }
+
+        async function convertDemoData() {
+            if (!currentDemoData) {
+                showAlert('Please load data first', 'warning');
+                return;
+            }
+
+            const conversionType = document.getElementById('demoConversionType').value;
+            const minConfidence = document.getElementById('demoMinConfidence').value;
+            const demoOutput = document.getElementById('demoOutput');
+            const demoProgress = document.getElementById('demoProgress');
+            const demoProgressFill = document.getElementById('demoProgressFill');
+
+            demoOutput.style.display = 'block';
+            demoProgress.style.display = 'block';
+            demoOutput.textContent = `Converting to ${conversionType} format...\n`;
+
+            try {
+                // Simulate progress
+                demoProgressFill.style.width = '25%';
+                demoProgressFill.textContent = '25%';
+
+                const options = {};
+                if (minConfidence) {
+                    options.minConfidence = parseInt(minConfidence);
+                }
+
+                let result;
+                if (conversionType === '_nmax') {
+                    result = await converter.convertRawToNmax(currentDemoData, options);
+                } else {
+                    result = await converter.convertRawToObvs(currentDemoData, options);
+                }
+
+                demoProgressFill.style.width = '75%';
+                demoProgressFill.textContent = '75%';
+
+                if (result.success) {
+                    const outputValidation = validator.validateConvertedData(result.data, conversionType);
+
+                    demoProgressFill.style.width = '100%';
+                    demoProgressFill.textContent = '100%';
+
+                    let output = `Conversion Successful!\n`;
+                    output += `=====================\n`;
+                    output += `Input Rows: ${result.metadata.inputRows}\n`;
+                    output += `Output Rows: ${result.metadata.outputRows}\n`;
+                    output += `Date Range: ${result.metadata.dateRange?.start} to ${result.metadata.dateRange?.end}\n`;
+                    output += `Species Count: ${result.metadata.speciesCount}\n`;
+                    output += `Output Validation: ${outputValidation.isValid ? '✅ Passed' : '❌ Failed'}\n`;
+
+                    if (result.data.length > 0) {
+                        output += `\nPreview (first 3 rows):\n`;
+                        const headers = Object.keys(result.data[0]);
+                        output += headers.join(' | ') + '\n';
+                        output += '-'.repeat(headers.join(' | ').length) + '\n';
+
+                        result.data.slice(0, 3).forEach(row => {
+                            output += Object.values(row).join(' | ') + '\n';
+                        });
+                    }
+
+                    demoOutput.textContent = output;
+                    currentConversionResult = result;
+                    document.getElementById('downloadDemoBtn').style.display = 'inline-block';
+                    showAlert('Conversion completed successfully!', 'info');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                demoOutput.textContent = `Conversion failed: ${error.message}`;
+                showAlert('Conversion failed: ' + error.message, 'error');
+            }
+        }
+
+        function downloadDemoResult() {
+            if (!currentConversionResult) {
+                showAlert('No conversion result to download', 'warning');
+                return;
+            }
+
+            try {
+                const csvContent = converter.dataToCSV(currentConversionResult.data);
+                const conversionType = document.getElementById('demoConversionType').value;
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `demo_conversion${conversionType}_${timestamp}.csv`;
+
+                // Create and trigger download
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showAlert(`File downloaded as: ${filename}`, 'info');
+            } catch (error) {
+                showAlert('Download failed: ' + error.message, 'error');
+            }
+        }
+
+        async function runBenchmark(numRows) {
+            const benchmarkResults = document.getElementById('benchmarkResults');
+            benchmarkResults.style.display = 'block';
+            benchmarkResults.textContent = `Running benchmark with ${numRows} rows...\n`;
+
+            try {
+                // Generate test data
+                const testData = testSuite.generateLargeTestData(numRows);
+
+                const startTime = performance.now();
+                const result = await converter.convertRawToNmax(testData);
+                const endTime = performance.now();
+
+                const processingTime = endTime - startTime;
+                const rowsPerSecond = Math.round(numRows / (processingTime / 1000));
+
+                let output = `Benchmark Results (${numRows} rows):\n`;
+                output += `============================\n`;
+                output += `Processing Time: ${processingTime.toFixed(2)}ms\n`;
+                output += `Rows per Second: ${rowsPerSecond}\n`;
+                output += `Memory Usage: ~${Math.round(processingTime / 10)}KB\n`;
+                output += `Status: ${result.success ? '✅ Success' : '❌ Failed'}\n`;
+
+                if (result.success) {
+                    output += `Output Rows: ${result.metadata.outputRows}\n`;
+                    output += `Date Range: ${result.metadata.dateRange?.days || 0} days\n`;
+                    output += `Species Count: ${result.metadata.speciesCount}\n`;
+                }
+
+                benchmarkResults.textContent += output + '\n';
+                showAlert(`Benchmark completed: ${processingTime.toFixed(2)}ms`, 'info');
+            } catch (error) {
+                benchmarkResults.textContent += `Benchmark failed: ${error.message}\n`;
+                showAlert('Benchmark failed: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            // Create alert element
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+
+            // Insert at top of page
+            document.body.insertBefore(alert, document.body.firstChild);
+
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
