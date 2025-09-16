@@ -6,9 +6,28 @@ class CSVManager {
         this.workingDirFiles = [];
         this.fileInfos = new Map(); // Map of baseName -> {original, std, hr24}
         this.showWorkingDirModal = true;
-        
+        this.chartType = 'line'; // Default to line charts
+        this.layerOrder = 'normal'; // 'normal' or 'reversed' for dataset layer order
+
         this.initializeEventListeners();
         this.initializeWorkingDirModal();
+    }
+
+    // Utility function to convert hex color to RGBA with transparency
+    hexToRgba(hex, alpha = 0.7) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Utility function to apply layer ordering to plot data
+    applyLayerOrder(plotData) {
+        const orderedData = [...plotData]; // Create a copy
+        if (this.layerOrder === 'reversed') {
+            orderedData.reverse();
+        }
+        return orderedData;
     }
 
     initializeEventListeners() {
@@ -174,6 +193,55 @@ class CSVManager {
         } else {
             console.error('confirmSavePlotBtn not found in DOM');
         }
+
+        // Chart type toggle functionality - handle all toggle inputs
+        const chartTypeToggles = document.querySelectorAll('.chart-type-input');
+        chartTypeToggles.forEach(toggle => {
+            toggle.addEventListener('change', () => {
+                this.chartType = toggle.checked ? 'column' : 'line';
+                console.log('Chart type changed to:', this.chartType);
+
+                // Sync all toggles to the same state
+                chartTypeToggles.forEach(otherToggle => {
+                    if (otherToggle !== toggle) {
+                        otherToggle.checked = toggle.checked;
+                    }
+                });
+
+                // Re-render the current plot with the new chart type
+                if (this.csvData && this.csvData.length > 0) {
+                    const variableControls = document.getElementById('variableControls');
+                    if (variableControls && variableControls.style.display !== 'none') {
+                        this.drawTimeSeriesWithSelection();
+                    } else {
+                        this.drawTimeSeries();
+                    }
+                }
+            });
+        });
+
+        // Layer toggle functionality - handle all layer toggle buttons
+        const layerToggles = document.querySelectorAll('.layer-toggle-btn');
+        layerToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                this.layerOrder = this.layerOrder === 'normal' ? 'reversed' : 'normal';
+                console.log('Layer order changed to:', this.layerOrder);
+
+                // Sync all layer toggle visual states
+                layerToggles.forEach(otherToggle => {
+                    if (this.layerOrder === 'reversed') {
+                        otherToggle.classList.add('active');
+                    } else {
+                        otherToggle.classList.remove('active');
+                    }
+                });
+
+                // Re-render any visible plots
+                // Note: Plots will automatically use the new layer order on next generation
+                // For immediate feedback, we would need to track and re-render current plots
+                console.log('Layer order toggled - next plot generation will use new order');
+            });
+        });
     }
 
     initializeWorkingDirModal() {
@@ -1575,49 +1643,93 @@ class CSVManager {
             const range = globalMax - globalMin;
             if (range === 0) return; // Skip constant series
 
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
+            if (this.chartType === 'line') {
+                // Line chart rendering
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
 
-            let firstPoint = true;
-            plotData.forEach(point => {
-                const value = point.values[col.header];
-                if (value === undefined) return;
+                let firstPoint = true;
+                plotData.forEach(point => {
+                    const value = point.values[col.header];
+                    if (value === undefined) return;
 
-                let x, y;
+                    let x, y;
 
-                // Calculate x position based on time
-                if (point.time instanceof Date) {
-                    const timeRange = timeMax - timeMin;
-                    x = margin + (point.time - timeMin) / timeRange * plotWidth;
-                } else {
-                    const timeRange = timeMax - timeMin;
-                    x = margin + (point.time - timeMin) / timeRange * plotWidth;
-                }
+                    // Calculate x position based on time
+                    if (point.time instanceof Date) {
+                        const timeRange = timeMax - timeMin;
+                        x = margin + (point.time - timeMin) / timeRange * plotWidth;
+                    } else {
+                        const timeRange = timeMax - timeMin;
+                        x = margin + (point.time - timeMin) / timeRange * plotWidth;
+                    }
 
-                // Calculate y position with scaling for std series
-                let scaledValue = value;
-                let scaledMin = globalMin;
+                    // Calculate y position with scaling for std series
+                    let scaledValue = value;
+                    let scaledMin = globalMin;
 
-                if (isStdSeries && stdScaleFactor !== 1) {
-                    // Scale down std values to be comparable with non-std values
-                    scaledValue = (value - globalMin) * stdScaleFactor + globalNonStdMin;
-                    scaledMin = globalNonStdMin;
-                    const scaledRange = (globalMax - globalMin) * stdScaleFactor;
-                    y = margin + titleHeight + plotHeight - ((scaledValue - scaledMin) / (globalNonStdMax - globalNonStdMin)) * plotHeight;
-                } else {
-                    y = margin + titleHeight + plotHeight - ((value - globalMin) / range) * plotHeight;
-                }
+                    if (isStdSeries && stdScaleFactor !== 1) {
+                        // Scale down std values to be comparable with non-std values
+                        scaledValue = (value - globalMin) * stdScaleFactor + globalNonStdMin;
+                        scaledMin = globalNonStdMin;
+                        const scaledRange = (globalMax - globalMin) * stdScaleFactor;
+                        y = margin + titleHeight + plotHeight - ((scaledValue - scaledMin) / (globalNonStdMax - globalNonStdMin)) * plotHeight;
+                    } else {
+                        y = margin + titleHeight + plotHeight - ((value - globalMin) / range) * plotHeight;
+                    }
 
-                if (firstPoint) {
-                    ctx.moveTo(x, y);
-                    firstPoint = false;
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            });
+                    if (firstPoint) {
+                        ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
 
-            ctx.stroke();
+                ctx.stroke();
+            } else {
+                // Column chart rendering
+                ctx.fillStyle = color;
+                const columnWidth = Math.max(2, plotWidth / plotData.length * 0.8 / numericColumns.length);
+                const columnOffset = seriesIndex * columnWidth - (numericColumns.length - 1) * columnWidth / 2;
+
+                plotData.forEach(point => {
+                    const value = point.values[col.header];
+                    if (value === undefined) return;
+
+                    let x, y, columnHeight;
+
+                    // Calculate x position based on time
+                    if (point.time instanceof Date) {
+                        const timeRange = timeMax - timeMin;
+                        x = margin + (point.time - timeMin) / timeRange * plotWidth + columnOffset;
+                    } else {
+                        const timeRange = timeMax - timeMin;
+                        x = margin + (point.time - timeMin) / timeRange * plotWidth + columnOffset;
+                    }
+
+                    // Calculate y position and column height with scaling for std series
+                    let scaledValue = value;
+                    let scaledMin = globalMin;
+
+                    if (isStdSeries && stdScaleFactor !== 1) {
+                        // Scale down std values to be comparable with non-std values
+                        scaledValue = (value - globalMin) * stdScaleFactor + globalNonStdMin;
+                        scaledMin = globalNonStdMin;
+                        const baseY = margin + titleHeight + plotHeight;
+                        columnHeight = ((scaledValue - scaledMin) / (globalNonStdMax - globalNonStdMin)) * plotHeight;
+                        y = baseY - columnHeight;
+                    } else {
+                        const baseY = margin + titleHeight + plotHeight;
+                        columnHeight = ((value - globalMin) / range) * plotHeight;
+                        y = baseY - columnHeight;
+                    }
+
+                    // Draw the column
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
+                });
+            }
         });
         
         // Draw legend
@@ -4859,8 +4971,10 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
             this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxPercentage, canvas, "Time");
             
             console.log('Plotting site data...');
-            // Plot data for each site
-            plotData.forEach(siteData => {
+            // Apply layer ordering and plot data for each site
+            const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
+                csvManager.applyLayerOrder(plotData) : plotData;
+            orderedPlotData.forEach(siteData => {
                 console.log(`Plotting data for site: ${siteData.site}`);
                 this.plotSiteData(ctx, plotArea, siteData, sortedDisplayHours, maxDPM);
             });
@@ -5294,7 +5408,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         ctx.fillStyle = '#555555';
         
         // X-axis label (positioned lower to avoid overlap with rotated tick labels)
-        ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 70 : plotArea.bottom + 60);
+        ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 75 : plotArea.bottom + 65);
         
         // Left Y-axis label
         ctx.save();
@@ -5307,44 +5421,64 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     plotSiteData(ctx, plotArea, siteData, hours, maxDPM) {
         const { site, dpmValues, color } = siteData;
 
-        // Professional smooth line styling
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        // Check chart type from global csvManager
+        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
 
         // FIXED: Use actual data length for proper x-axis spacing
         const xStep = plotArea.width / Math.max(dpmValues.length - 1, 1);
 
-        // Create line with reduced smoothing
-        if (dpmValues.length < 2) return;
+        if (chartType === 'column') {
+            // Column chart rendering with transparency
+            ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
+            const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
 
-        ctx.beginPath();
+            dpmValues.forEach((dpm, i) => {
+                if (dpm !== null && dpm !== undefined) {
+                    const x = plotArea.left + (i * xStep) - columnWidth / 2;
+                    const columnHeight = (dpm / maxDPM) * plotArea.height;
+                    const y = plotArea.bottom - columnHeight;
 
-        // ENHANCED: Draw lines with proper gap handling for null values
-        let pathStarted = false;
-        dpmValues.forEach((dpm, i) => {
-            if (dpm !== null && dpm !== undefined) {
-                const x = plotArea.left + (i * xStep);
-                const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
-
-                if (!pathStarted) {
-                    ctx.moveTo(x, y);
-                    pathStarted = true;
-                } else {
-                    ctx.lineTo(x, y);
+                    // Draw the column with transparency
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
                 }
-            } else if (pathStarted) {
-                // Break the path on null values to create gaps
-                ctx.stroke();
-                ctx.beginPath();
-                pathStarted = false;
-            }
-        });
+            });
+        } else {
+            // Line chart rendering (default)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-        // Final stroke for any remaining path
-        if (pathStarted) {
-            ctx.stroke();
+            // Create line with reduced smoothing
+            if (dpmValues.length < 2) return;
+
+            ctx.beginPath();
+
+            // ENHANCED: Draw lines with proper gap handling for null values
+            let pathStarted = false;
+            dpmValues.forEach((dpm, i) => {
+                if (dpm !== null && dpm !== undefined) {
+                    const x = plotArea.left + (i * xStep);
+                    const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+
+                    if (!pathStarted) {
+                        ctx.moveTo(x, y);
+                        pathStarted = true;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                } else if (pathStarted) {
+                    // Break the path on null values to create gaps
+                    ctx.stroke();
+                    ctx.beginPath();
+                    pathStarted = false;
+                }
+            });
+
+            // Final stroke for any remaining path
+            if (pathStarted) {
+                ctx.stroke();
+            }
         }
     }
 
@@ -5566,8 +5700,10 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         // Draw axes
         this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxPercentage, canvas, "Time");
         
-        // Plot data for each source
-        plotData.forEach(sourceData => {
+        // Apply layer ordering and plot data for each source
+        const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
+            csvManager.applyLayerOrder(plotData) : plotData;
+        orderedPlotData.forEach(sourceData => {
             this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM);
         });
         
@@ -5582,50 +5718,75 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
 
     plotSourceData(ctx, plotArea, sourceData, hours, maxDPM) {
         const { source, dpmValues, color } = sourceData;
-        
-        // Professional smooth line styling
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        
+
+        // Check chart type from global csvManager
+        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
+
         const xStep = plotArea.width / (hours.length - 1);
-        
-        // Create smooth curve without data points
-        if (dpmValues.length < 2) return;
-        
-        ctx.beginPath();
-        
-        // Calculate points
-        const points = dpmValues.map((dpm, i) => ({
-            x: plotArea.left + (i * xStep),
-            y: plotArea.bottom - (dpm / maxDPM) * plotArea.height
-        }));
-        
-// FIXED: Handle filtered points array safely        if (points.length === 0) {            console.log("No valid points to plot for site:", site);            return;        }                // Start the path with first valid point        ctx.moveTo(points[0].x, points[0].y);
-        ctx.moveTo(points[0].x, points[0].y);
-        
-        // Draw smooth curves using quadratic bezier curves
-        for (let i = 1; i < points.length; i++) {
-            const current = points[i];
-            const previous = points[i - 1];
-            
-            if (i === points.length - 1) {
-                // Last point - draw straight line
-                ctx.lineTo(current.x, current.y);
-            } else {
-                // Create smooth curve using quadratic bezier
-                const next = points[i + 1];
-                const cpX = current.x;
-                const cpY = current.y;
-                const endX = (current.x + next.x) / 2;
-                const endY = (current.y + next.y) / 2;
-                
-                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+
+        if (chartType === 'column') {
+            // Column chart rendering with transparency
+            ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
+            const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
+
+            dpmValues.forEach((dpm, i) => {
+                if (dpm !== null && dpm !== undefined) {
+                    const x = plotArea.left + (i * xStep) - columnWidth / 2;
+                    const columnHeight = (dpm / maxDPM) * plotArea.height;
+                    const y = plotArea.bottom - columnHeight;
+
+                    // Draw the column with transparency
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
+                }
+            });
+        } else {
+            // Line chart rendering (default)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Create smooth curve without data points
+            if (dpmValues.length < 2) return;
+
+            ctx.beginPath();
+
+            // Calculate points
+            const points = dpmValues.map((dpm, i) => ({
+                x: plotArea.left + (i * xStep),
+                y: plotArea.bottom - (dpm / maxDPM) * plotArea.height
+            }));
+
+            // FIXED: Handle filtered points array safely
+            if (points.length === 0) {
+                console.log("No valid points to plot for source:", source);
+                return;
             }
+            // Start the path with first valid point
+            ctx.moveTo(points[0].x, points[0].y);
+
+            // Draw smooth curves using quadratic bezier curves
+            for (let i = 1; i < points.length; i++) {
+                const current = points[i];
+                const previous = points[i - 1];
+
+                if (i === points.length - 1) {
+                    // Last point - draw straight line
+                    ctx.lineTo(current.x, current.y);
+                } else {
+                    // Create smooth curve using quadratic bezier
+                    const next = points[i + 1];
+                    const cpX = current.x;
+                    const cpY = current.y;
+                    const endX = (current.x + next.x) / 2;
+                    const endY = (current.y + next.y) / 2;
+
+                    ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+                }
+            }
+
+            ctx.stroke();
         }
-        
-        ctx.stroke();
     }
 
     drawSourcePlotLegend(ctx, plotData, plotArea) {
@@ -5903,8 +6064,10 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxDPM, 800, "Date");
 
             console.log('Plotting DPM data...');
-            // Plot each site's DPM data
-            plotData.forEach((siteData, index) => {
+            // Apply layer ordering and plot each site's DPM data
+            const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
+                csvManager.applyLayerOrder(plotData) : plotData;
+            orderedPlotData.forEach((siteData, index) => {
                 this.plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM);
             });
 
@@ -6049,8 +6212,10 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             // Draw axes and labels
             this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxDPM, 800, "Date");
             
-            // Plot each source's data
-            plotData.forEach((sourceData, index) => {
+            // Apply layer ordering and plot each source's data
+            const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
+                csvManager.applyLayerOrder(plotData) : plotData;
+            orderedPlotData.forEach((sourceData, index) => {
                 this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM);
             });
             
@@ -6278,7 +6443,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
 
         // X-axis title (positioned lower to avoid overlap with rotated tick labels)
         ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
-        ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 70);
+        ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 75);
 
         // Left Y-axis labels (DPM)
         ctx.textAlign = 'right';
@@ -6323,62 +6488,102 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM) {
         const { site, dpmValues, color } = siteData;
 
-        // Solid line for DPM data
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.setLineDash([]); // Solid line
+        // Check chart type from global csvManager
+        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
 
         const xStep = plotArea.width / dpmValues.length;
 
-        ctx.beginPath();
-        let firstPoint = true;
+        if (chartType === 'column') {
+            // Column chart rendering with transparency
+            ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
+            const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
 
-        dpmValues.forEach((dpm, index) => {
-            const x = plotArea.left + (index + 0.5) * xStep;
-            const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+            dpmValues.forEach((dpm, index) => {
+                if (dpm !== null && dpm !== undefined) {
+                    const x = plotArea.left + (index + 0.5) * xStep - columnWidth / 2;
+                    const columnHeight = (dpm / maxDPM) * plotArea.height;
+                    const y = plotArea.bottom - columnHeight;
 
-            if (firstPoint) {
-                ctx.moveTo(x, y);
-                firstPoint = false;
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
+                    // Draw the column with transparency
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
+                }
+            });
+        } else {
+            // Line chart rendering (default)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([]); // Solid line
 
-        ctx.stroke();
+            ctx.beginPath();
+            let firstPoint = true;
+
+            dpmValues.forEach((dpm, index) => {
+                const x = plotArea.left + (index + 0.5) * xStep;
+                const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+
+            ctx.stroke();
+        }
     }
 
     plotSiteDataDetectionRate(ctx, plotArea, siteData, hours, maxPercentage) {
         const { site, detectionRateValues, color } = siteData;
 
-        // Dashed line for detection rate data
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.setLineDash([5, 5]); // Dashed line
+        // Check chart type from global csvManager
+        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
 
-        const xStep = plotArea.width / dpmValues.length;
+        const xStep = plotArea.width / detectionRateValues.length;
 
-        ctx.beginPath();
-        let firstPoint = true;
+        if (chartType === 'column') {
+            // Column chart rendering with transparency
+            ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
+            const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
 
-        detectionRateValues.forEach((detectionRate, index) => {
-            const x = plotArea.left + (index + 0.5) * xStep;
-            const y = plotArea.bottom - (detectionRate / maxPercentage) * plotArea.height;
+            detectionRateValues.forEach((detectionRate, index) => {
+                if (detectionRate !== null && detectionRate !== undefined) {
+                    const x = plotArea.left + (index + 0.5) * xStep - columnWidth / 2;
+                    const columnHeight = (detectionRate / maxPercentage) * plotArea.height;
+                    const y = plotArea.bottom - columnHeight;
 
-            if (firstPoint) {
-                ctx.moveTo(x, y);
-                firstPoint = false;
-            } else {
-                ctx.lineTo(x, y);
-            }
-        });
+                    // Draw the column with transparency
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
+                }
+            });
+        } else {
+            // Line chart rendering (default)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([5, 5]); // Dashed line
 
-        ctx.stroke();
-        ctx.setLineDash([]); // Reset to solid line
+            ctx.beginPath();
+            let firstPoint = true;
+
+            detectionRateValues.forEach((detectionRate, index) => {
+                const x = plotArea.left + (index + 0.5) * xStep;
+                const y = plotArea.bottom - (detectionRate / maxPercentage) * plotArea.height;
+
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset to solid line
+        }
     }
 
     drawDualAxisLegend(ctx, plotData, plotArea) {
