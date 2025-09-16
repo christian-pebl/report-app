@@ -109,9 +109,18 @@ class CSVManager {
         // Confirm save button functionality
         const confirmSaveBtn = document.getElementById('confirmSaveBtn');
         const confirmSavePlotBtn = document.getElementById('confirmSavePlotBtn');
+
+        console.log('confirmSaveBtn found:', confirmSaveBtn);
+        console.log('confirmSavePlotBtn found:', confirmSavePlotBtn);
         
         const handleConfirmSave = () => {
-            if (!this.pendingConversion) return;
+            console.log('handleConfirmSave called');
+            console.log('pendingConversion:', this.pendingConversion);
+
+            if (!this.pendingConversion) {
+                console.error('No pending conversion available');
+                return;
+            }
 
             const { fileName, suffix, baseName, fileInfo, conversionResult } = this.pendingConversion;
 
@@ -153,11 +162,17 @@ class CSVManager {
         };
         
         if (confirmSaveBtn) {
+            console.log('Adding click event listener to confirmSaveBtn');
             confirmSaveBtn.addEventListener('click', handleConfirmSave);
+        } else {
+            console.error('confirmSaveBtn not found in DOM');
         }
-        
+
         if (confirmSavePlotBtn) {
+            console.log('Adding click event listener to confirmSavePlotBtn');
             confirmSavePlotBtn.addEventListener('click', handleConfirmSave);
+        } else {
+            console.error('confirmSavePlotBtn not found in DOM');
         }
     }
 
@@ -628,6 +643,7 @@ class CSVManager {
                         </p>
                     </div>
                     <div class="modal-actions">
+                        <button class="btn-primary" id="confirmSaveBtn">✅ Save File</button>
                         <button class="btn-secondary" id="cancelSaveBtn">❌ Cancel</button>
                     </div>
                 </div>
@@ -683,6 +699,8 @@ class CSVManager {
     }
 
     showDirectorySaveConfirmation(fileName, suffix, baseName, fileInfo, conversionResult, onConfirm) {
+        console.log('showDirectorySaveConfirmation called with:', {fileName, suffix, conversionResult});
+
         // Handle both old and new function signature for backward compatibility
         if (typeof conversionResult === 'function') {
             onConfirm = conversionResult;
@@ -731,6 +749,7 @@ class CSVManager {
                         File: <strong>${fileName}</strong> • ${this.csvData.length} records, ${this.headers.length} columns
                     </div>
                     <div class="modal-actions">
+                        <button class="btn-primary" id="confirmDirectorySaveBtn">✅ Save to Directory</button>
                         <button class="btn-secondary" id="cancelDirectorySaveBtn">❌ Cancel</button>
                     </div>
                 </div>
@@ -742,15 +761,25 @@ class CSVManager {
         // Add event listeners
         const confirmBtn = modal.querySelector('#confirmDirectorySaveBtn');
         const cancelBtn = modal.querySelector('#cancelDirectorySaveBtn');
-        
-        confirmBtn.addEventListener('click', () => {
-            onConfirm();
-            document.body.removeChild(modal);
-        });
-        
-        cancelBtn.addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                console.log('Directory save confirm button clicked');
+                onConfirm();
+                document.body.removeChild(modal);
+            });
+        } else {
+            console.error('confirmDirectorySaveBtn not found in modal');
+        }
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                console.log('Directory save cancel button clicked');
+                document.body.removeChild(modal);
+            });
+        } else {
+            console.error('cancelDirectorySaveBtn not found in modal');
+        }
         
         // Close on background click
         modal.addEventListener('click', (e) => {
@@ -2239,7 +2268,7 @@ class CSVManager {
         } else if (!this.fileName.toLowerCase().includes('_std')) {
             // Add _std suffix before extension
             const baseName = this.fileName.replace(/\.csv$/i, '');
-            this.fileName = `${baseName}_std.csv`;
+            this.fileName = `${baseName}_obvs.csv`;
             console.log('Added _std suffix:', this.fileName);
         }
         
@@ -3009,7 +3038,7 @@ class CSVManager {
                 stdFileName = this.fileName.replace(/_raw/gi, '_std');
             } else if (!this.fileName.toLowerCase().includes('_std')) {
                 const baseName = this.fileName.replace(/\.csv$/i, '');
-                stdFileName = `${baseName}_std.csv`;
+                stdFileName = `${baseName}_obvs.csv`;
             } else {
                 stdFileName = this.fileName; // Already has _std
             }
@@ -3056,9 +3085,16 @@ class CSVManager {
             // Update the current view with averaged data for preview
             this.displayAveragedData(avgData);
             
-            this.showSuccess('Successfully created 24-hour averages! Preview the data and use the export button to download.');
+            this.showSuccess('Successfully created NMAX hourly data! Preview the data and use the export button to download.');
+
+            // Show the download button
+            const downloadBtn = document.getElementById('downloadResultBtn');
+            if (downloadBtn) {
+                downloadBtn.classList.remove('hidden');
+                downloadBtn.disabled = false;
+            }
         } catch (error) {
-            this.showError(`24hr averaging failed: ${error.message}`);
+            this.showError(`NMAX conversion failed: ${error.message}`);
         }
     }
 
@@ -3232,10 +3268,11 @@ class CSVManager {
         for (let hour = 0; hour < 24; hour++) {
             const timeForHour = new Date(baseDate);
             timeForHour.setHours(hour, 0, 0, 0);
-            
-            // Format time as YYYY-MM-DDTHH:MM:SS.000Z
+
+            // Format time as YYYY-MM-DDTHH:MM:SS.000Z (ISO standard)
             const formattedTime = timeForHour.toISOString();
-            
+            console.log(`Hour ${hour}: ${formattedTime}`); // Debug logging
+
             const row = [formattedTime];
             
             // Add averaged values for this hour
@@ -3446,13 +3483,15 @@ class CSVManager {
         this.headers = avgData.headers;
         this.csvData = avgData.data;
         
-        // Update the filename for 24hr file
+        // Update the filename for nmax file
         let newFileName;
         if (this.fileName.toLowerCase().includes('_std')) {
-            newFileName = this.fileName.replace(/_std\.csv$/i, '_24hr.csv');
+            newFileName = this.fileName.replace(/_std\.csv$/i, '_nmax.csv');
+        } else if (this.fileName.toLowerCase().includes('_raw')) {
+            newFileName = this.fileName.replace(/_raw\.csv$/i, '_nmax.csv');
         } else {
             const baseName = this.fileName.replace(/\.csv$/i, '');
-            newFileName = `${baseName}_24hr.csv`;
+            newFileName = `${baseName}_nmax.csv`;
         }
         this.fileName = newFileName;
         
@@ -3482,7 +3521,7 @@ class CSVManager {
         
         averagingInfo.innerHTML = `
             <div style="font-weight: 600; color: #34c759; margin-bottom: 10px;">
-                ✓ Converted to 24-hour averages
+                ✓ Converted to NMAX hourly data
             </div>
             <div style="font-size: 0.9rem; color: #1d1d1f;">
                 <strong>Output:</strong> ${recordCount} hourly records, ${columnCount} columns<br>
@@ -3903,21 +3942,51 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
     async extractSitesAndSources(fileList) {
         this.sites.clear();
         this.sources.clear();
+        this.nmaxSources = new Set(); // Specific sources for nmax files (columns 2-7)
+        this.obvsSources = new Set(); // All sources for obvs files
         this.nmaxFiles = []; // Store actual _nmax files
         this.obvFiles = []; // Store actual _obvs files
-        
+
         // First, get sources from column headers if we have loaded files
         if (csvManager && csvManager.headers && csvManager.headers.length > 0) {
-            // Extract all non-time columns as potential DPM sources
-            csvManager.headers.forEach(header => {
+            // For nmax files, only show specific columns (2-7)
+            const nmaxSpecificColumns = [
+                "Total Observations",
+                "Cumulative Observations",
+                "All Unique Organisms Observed Today",
+                "New Unique Organisms Today",
+                "Cumulative New Unique Organisms",
+                "Cumulative Unique Species"
+            ];
+
+            // Check if current file is nmax type
+            const isNmaxFile = csvManager.fileName && csvManager.fileName.toLowerCase().includes('nmax');
+
+            csvManager.headers.forEach((header, index) => {
                 const headerLower = header.toLowerCase();
-                // Skip time/date columns - include everything else as potential DPM columns
+                const headerTrimmed = header.trim();
+
+                // Skip time/date columns for all files
                 if (!headerLower.includes('time') &&
                     !headerLower.includes('date') &&
                     !headerLower.includes('hour') &&
                     !headerLower.includes('timestamp') &&
-                    header.trim() !== '') {
-                    this.sources.add(header.trim()); // Use original header name
+                    headerTrimmed !== '') {
+
+                    // For nmax files, only include specific columns (2-7)
+                    if (isNmaxFile && index >= 1 && index <= 6) {
+                        if (nmaxSpecificColumns.includes(headerTrimmed)) {
+                            this.nmaxSources.add(headerTrimmed);
+                        }
+                    }
+
+                    // For obvs files, include all non-time columns
+                    if (!isNmaxFile) {
+                        this.obvsSources.add(headerTrimmed);
+                    }
+
+                    // Add to general sources for backward compatibility
+                    this.sources.add(headerTrimmed);
                 }
             });
         }
@@ -3950,7 +4019,12 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         console.log(`Found ${this.nmaxFiles.length} _nmax.csv files and ${this.obvFiles.length} _obvs.csv files`);
         console.log("📋 DEBUG: FINAL SUMMARY - About to call updateDropdowns");
 
-        // Also check std files for additional column headers (they might have different columns)
+        // Check nmax files for specific column headers (columns 2-7)
+        if (this.nmaxFiles.length > 0) {
+            await this.checkNmaxFilesForSources();
+        }
+
+        // Also check obvs files for additional column headers (they might have different columns)
         if (this.obvFiles.length > 0) {
             await this.checkStdFilesForSources();
         }
@@ -4011,7 +4085,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
                 /[a-zA-Z]/.test(part) && 
                 !this.isDateLike(part) &&
                 !part.toLowerCase().includes('nmax') &&
-                !part.toLowerCase().includes('std')) {
+                !part.toLowerCase().includes('obvs')) {
                 
                 if (!sites.some(s => s.toLowerCase() === part.toLowerCase())) {
                     sites.push(part);
@@ -4070,12 +4144,12 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
     }
 
     async checkStdFilesForSources() {
-        console.log('Checking std files for additional column headers...');
+        console.log('Checking obvs files for additional column headers...');
 
-        // Check a few representative std files to extract column headers
-        for (const file of this.obvFiles.slice(0, 3)) { // Check first 3 std files
+        // Check a few representative obvs files to extract column headers
+        for (const file of this.obvFiles.slice(0, 3)) { // Check first 3 obvs files
             try {
-                console.log(`Checking std file: ${file.name}`);
+                console.log(`Checking obvs file: ${file.name}`);
                 const csvData = await this.parseCSVFile(file);
                 if (csvData && csvData.headers) {
                     csvData.headers.forEach(header => {
@@ -4095,7 +4169,46 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             }
         }
 
-        console.log('Total sources after checking std files:', Array.from(this.sources));
+        console.log('Total sources after checking obvs files:', Array.from(this.sources));
+    }
+
+    async checkNmaxFilesForSources() {
+        console.log('Checking nmax files for specific column headers (2-7)...');
+
+        // Specific columns we want for nmax files (columns 2-7)
+        const nmaxSpecificColumns = [
+            "Total Observations",
+            "Cumulative Observations",
+            "All Unique Organisms Observed Today",
+            "New Unique Organisms Today",
+            "Cumulative New Unique Organisms",
+            "Cumulative Unique Species"
+        ];
+
+        // Check a few representative nmax files to extract column headers
+        for (const file of this.nmaxFiles.slice(0, 3)) { // Check first 3 nmax files
+            try {
+                console.log(`Checking nmax file: ${file.name}`);
+                const csvData = await this.parseCSVFile(file);
+                if (csvData && csvData.headers) {
+                    csvData.headers.forEach((header, index) => {
+                        const headerTrimmed = header.trim();
+
+                        // Only include columns 2-7 (index 1-6) and match specific column names
+                        if (index >= 1 && index <= 6) {
+                            if (nmaxSpecificColumns.includes(headerTrimmed)) {
+                                this.nmaxSources.add(headerTrimmed);
+                                console.log(`Added nmax source: ${headerTrimmed} (column ${index + 1})`);
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn(`Could not parse nmax file ${file.name}:`, error);
+            }
+        }
+
+        console.log('Total nmax sources after checking files:', Array.from(this.nmaxSources));
     }
 
     updateDropdowns(pageName = 'plot') {
@@ -4106,12 +4219,14 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         const nmaxFiles = this.nmaxFiles || [];
 
 
-        // Update source dropdown for site comparison (DPM columns)
+        // Update source dropdown for nmax site comparison (columns 2-7 only)
         const sourceSelect1 = document.getElementById(idPrefix + 'sourceSelect1');
         if (sourceSelect1) {
-            console.log("🎯 DEBUG: Found sourceSelect1 dropdown, populating with sources");            console.log("📝 DEBUG: Sources to add:", sources);
+            console.log("🎯 DEBUG: Found sourceSelect1 dropdown, populating with nmax sources");
+            const nmaxSourcesArray = Array.from(this.nmaxSources || new Set()).sort();
+            console.log("📝 DEBUG: Nmax sources to add:", nmaxSourcesArray);
             sourceSelect1.innerHTML = '<option value="">Select variable to plot...</option>';
-            sources.forEach(source => {
+            nmaxSourcesArray.forEach(source => {
                 const option = document.createElement('option');
                 option.value = source;
                 option.textContent = source;
@@ -4119,7 +4234,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             });
         }
         
-        // Update sites dropdown for site comparison (_24hr files)
+        // Update sites dropdown for site comparison (_nmax files)
         const sitesSelect1 = document.getElementById(idPrefix + 'sitesSelect1');
         if (sitesSelect1) {
             console.log("🎯 DEBUG: Found sitesSelect1 dropdown, populating with nmax files");            console.log("📁 DEBUG: Nmax files to add:", nmaxFiles.map(f => f.name));
@@ -4132,10 +4247,10 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             });
         }
         
-        // Update site dropdown for source comparison (_24hr files)
+        // Update site dropdown for source comparison (_nmax files)
         const siteSelect2 = document.getElementById(idPrefix + 'siteSelect2');
         if (siteSelect2) {
-            siteSelect2.innerHTML = '<option value="">Select a _24hr.csv file...</option>';
+            siteSelect2.innerHTML = '<option value="">Select a _nmax.csv file...</option>';
             nmaxFiles.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
@@ -4144,11 +4259,12 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             });
         }
         
-        // Update sources dropdown for source comparison (DPM columns)
+        // Update sources dropdown for nmax variable comparison (columns 2-7 only)
         const sourcesSelect2 = document.getElementById(idPrefix + 'sourcesSelect2');
         if (sourcesSelect2) {
+            const nmaxSourcesArray = Array.from(this.nmaxSources || new Set()).sort();
             sourcesSelect2.innerHTML = '';
-            sources.forEach(source => {
+            nmaxSourcesArray.forEach(source => {
                 const option = document.createElement('option');
                 option.value = source;
                 option.textContent = source;
@@ -4182,7 +4298,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             }
         }
 
-        // Update sites dropdown for std site comparison (_std files)
+        // Update sites dropdown for obvs site comparison (_obvs files)
         const sitesSelectStd1 = document.getElementById(idPrefix + 'sitesSelectStd1');
         if (sitesSelectStd1) {
             console.log("🎯 DEBUG: Found sitesSelectStd1 dropdown, populating with obvs files");            console.log("📁 DEBUG: Obvs files to add:", obvFiles?.map(f => f.name) || []);
@@ -4200,10 +4316,10 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             });
         }
 
-        // Update site dropdown for std source comparison (_std files)
+        // Update site dropdown for obvs source comparison (_obvs files)
         const siteSelectStd2 = document.getElementById(idPrefix + 'siteSelectStd2');
         if (siteSelectStd2) {
-            siteSelectStd2.innerHTML = '<option value="">Select a _std.csv file...</option>';
+            siteSelectStd2.innerHTML = '<option value="">Select a _obvs.csv file...</option>';
             obvFiles.forEach(file => {
                 const option = document.createElement('option');
                 option.value = file.name; // Use full filename as value
@@ -4212,7 +4328,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             });
         }
 
-        // Update sources dropdown for std source comparison
+        // Update sources dropdown for obvs source comparison
         const sourcesSelectStd2 = document.getElementById(idPrefix + 'sourcesSelectStd2');
         if (sourcesSelectStd2) {
             sourcesSelectStd2.innerHTML = '';
@@ -4226,7 +4342,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
 
         // Trigger button state updates after setting defaults
         setTimeout(() => {
-            // Trigger std site comparison button update
+            // Trigger obvs site comparison button update
             const sourceSelectStd1 = document.getElementById('sourceSelectStd1');
             const sitesSelectStd1 = document.getElementById('sitesSelectStd1');
             if (sourceSelectStd1 && sitesSelectStd1) {
@@ -4608,9 +4724,18 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
                 Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
             });
 
-            // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-            const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "time");
+            // Sort time points and format them as actual timestamps
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+                // Handle different time identifier formats for proper sorting
+                if (a.includes('_') && b.includes('_')) {
+                    // Date_hour format: "2024-07-15_14"
+                    return a.localeCompare(b);
+                } else {
+                    // Simple hour format: "1", "2", etc.
+                    return parseInt(a) - parseInt(b);
+                }
+            });
+            const hours = this.formatTimePointsAsActualTimestamps(sortedHours, siteData[0]);
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
             let maxDPM = 0;
@@ -4620,11 +4745,16 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
                 const hourlyData = this.extractHourlyData(siteInfo.data, source);
                 console.log(`Hourly data for ${siteInfo.site}:`, Object.keys(hourlyData).length, 'hours');
 
-                const dpmValues = sortedHours.map(hour => {
-                    return hourlyData[hour] || 0;
+                const dpmValues = sortedHours.map((hour, timeIndex) => {
+                    const value = hourlyData[hour] || 0;
+                    if (timeIndex < 5) { // Log first few mappings
+                        console.log(`  Time ${timeIndex}: "${hour}" -> ${value}`);
+                    }
+                    return value;
                 });
                 maxDPM = Math.max(maxDPM, ...dpmValues);
-                
+                console.log(`Site ${siteInfo.site}: ${dpmValues.length} data points, max value: ${Math.max(...dpmValues)}`);
+
                 // Extract clean site name from filename
                 const siteName = this.extractSiteNameFromFilename(siteInfo.site);
                 
@@ -4682,17 +4812,24 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         csvData.data.forEach((row, index) => {
             if (index < 3) { // Log first few rows for debugging
                 console.log(`Row ${index}:`, row);
+                console.log(`Row ${index} keys:`, Object.keys(row));
             }
 
             // Look for hour column (might be 'Hour', 'Time', etc.)
             const hourKey = Object.keys(row).find(key =>
-                key.toLowerCase().includes('hour') || key.toLowerCase().includes('time')
+                key.toLowerCase().includes('hour') ||
+                key.toLowerCase().includes('time') ||
+                key.toLowerCase().includes('timestamp') ||
+                key.toLowerCase().includes('date')
             );
 
-            // Look for the source column (Porpoise, Dolphin, Sonar)
-            const sourceKey = Object.keys(row).find(key =>
-                key.toLowerCase().includes(source.toLowerCase())
-            );
+            // Look for the source column - exact match first, then partial match
+            let sourceKey = Object.keys(row).find(key => key === source);
+            if (!sourceKey) {
+                sourceKey = Object.keys(row).find(key =>
+                    key.toLowerCase().includes(source.toLowerCase())
+                );
+            }
 
             if (index < 3) {
                 console.log(`Row ${index} - Hour key: "${hourKey}", Source key: "${sourceKey}"`);
@@ -4729,6 +4866,72 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         console.log('Sample hourly data:', Object.fromEntries(Object.entries(hourlyData).slice(0, 5)));
 
         return hourlyData;
+    }
+
+    formatTimePointsAsActualTimestamps(sortedHours, sampleSiteData) {
+        console.log('=== FORMAT TIMESTAMPS ===');
+        console.log('Sorted hours:', sortedHours.slice(0, 5));
+
+        // If we have date_hour format identifiers (e.g., "2024-07-15_14")
+        if (sortedHours.length > 0 && sortedHours[0].includes('_')) {
+            return sortedHours.map(timeIdentifier => {
+                const [dateStr, hourStr] = timeIdentifier.split('_');
+                const date = new Date(dateStr + `T${hourStr.padStart(2, '0')}:00:00Z`);
+
+                // Format as "DD/MM/YY"
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+
+                return `${day}/${month}/${year}`;
+            });
+        }
+
+        // For simple hour numbers, try to extract actual timestamps from the data
+        if (sampleSiteData && sampleSiteData.data && sampleSiteData.data.data) {
+            const timestamps = [];
+            sampleSiteData.data.data.forEach((row, index) => {
+                const timeKey = Object.keys(row).find(key =>
+                    key.toLowerCase().includes('time') ||
+                    key.toLowerCase().includes('date') ||
+                    key.toLowerCase().includes('timestamp')
+                );
+
+                if (timeKey && row[timeKey] && index < sortedHours.length) {
+                    const timestamp = row[timeKey];
+                    if (typeof timestamp === 'string' && timestamp.includes('T')) {
+                        // ISO timestamp format
+                        const date = new Date(timestamp);
+                        const day = String(date.getDate()).padStart(2, '0');
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const year = String(date.getFullYear()).slice(-2);
+                        timestamps.push(`${day}/${month}/${year}`);
+                    } else {
+                        // Try to parse as date and format as DD/MM/YY
+                        const date = new Date(timestamp);
+                        if (!isNaN(date.getTime())) {
+                            const day = String(date.getDate()).padStart(2, '0');
+                            const month = String(date.getMonth() + 1).padStart(2, '0');
+                            const year = String(date.getFullYear()).slice(-2);
+                            timestamps.push(`${day}/${month}/${year}`);
+                        } else {
+                            timestamps.push(timestamp.toString());
+                        }
+                    }
+                }
+            });
+
+            if (timestamps.length > 0) {
+                console.log('Using actual timestamps from data:', timestamps.slice(0, 5));
+                return timestamps;
+            }
+        }
+
+        // Fallback: just return the hours as time labels
+        return sortedHours.map(hour => {
+            const hourNum = parseInt(hour) || 0;
+            return `${String(hourNum).padStart(2, '0')}:00`;
+        });
     }
 
     calculateOptimalLabelSpacing(dataSize) {
@@ -4919,11 +5122,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         ctx.lineTo(plotArea.left, plotArea.bottom);
         ctx.stroke();
         
-        // Y-axis (right - Percentage)
-        ctx.beginPath();
-        ctx.moveTo(plotArea.right, plotArea.top);
-        ctx.lineTo(plotArea.right, plotArea.bottom);
-        ctx.stroke();
+        // Right Y-axis removed for cleaner appearance
         
         // X-axis labels (hours)
         const xStep = plotArea.width / (hours.length - 1);
@@ -4994,26 +5193,18 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         ctx.moveTo(plotArea.left, plotArea.top);
         ctx.lineTo(plotArea.right, plotArea.top);
         ctx.stroke();
-        
+
+        // Add vertical line at right to complete the rectangle
+        ctx.beginPath();
+        ctx.moveTo(plotArea.right, plotArea.top);
+        ctx.lineTo(plotArea.right, plotArea.bottom);
+        ctx.stroke();
+
         // Reset styles for other elements
         ctx.strokeStyle = '#d0d0d0';
         ctx.lineWidth = 1;
         
-        // Right Y-axis labels (Percentage)
-        ctx.textAlign = 'left';
-        for (let i = 0; i <= dpmSteps; i++) {
-            const percentage = (maxPercentage / dpmSteps) * i;
-            const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
-            
-            // Tick mark
-            ctx.beginPath();
-            ctx.moveTo(plotArea.right, y);
-            ctx.lineTo(plotArea.right + 5, y);
-            ctx.stroke();
-            
-            // Label (moved closer to axis)
-            ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 6, y + 4);
-        }
+        // Right Y-axis labels removed for cleaner appearance
         
         // Elegant axis labels
         ctx.textAlign = 'center';
@@ -5023,66 +5214,46 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         // X-axis label (positioned lower to avoid overlap with rotated tick labels)
         ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 70 : plotArea.bottom + 60);
         
-        // Left Y-axis label (moved much more RIGHT towards center)
+        // Left Y-axis label
         ctx.save();
         ctx.translate(40, plotArea.top + plotArea.height / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.fillText('Detection Positive Minutes (DPM)', 0, 0);
-        ctx.restore();
-        
-        // Right Y-axis label (positioned properly for current canvas size)
-        ctx.save();
-        ctx.translate(plotArea.right + 80, plotArea.top + plotArea.height / 2);
-        ctx.rotate(Math.PI / 2);
-        ctx.fillText('Detection rate (% of hour)', 0, 0);
+        ctx.fillText('Count', 0, 0);
         ctx.restore();
     }
 
     plotSiteData(ctx, plotArea, siteData, hours, maxDPM) {
         const { site, dpmValues, color } = siteData;
-        
+
         // Professional smooth line styling
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        
+
         const xStep = plotArea.width / (hours.length - 1);
-        
-        // Create smooth curve without data points
+
+        // Create line with reduced smoothing
         if (dpmValues.length < 2) return;
-        
+
         ctx.beginPath();
-        
+
         // Calculate points
         const points = dpmValues.map((dpm, i) => ({
             x: plotArea.left + (i * xStep),
             y: plotArea.bottom - (dpm / maxDPM) * plotArea.height
         }));
-        
+
         // Start the path
         ctx.moveTo(points[0].x, points[0].y);
-        
-        // Draw smooth curves using quadratic bezier curves
+
+        // Draw simple lines connecting points in order
         for (let i = 1; i < points.length; i++) {
             const current = points[i];
-            const previous = points[i - 1];
-            
-            if (i === points.length - 1) {
-                // Last point - draw straight line
-                ctx.lineTo(current.x, current.y);
-            } else {
-                // Create smooth curve using quadratic bezier
-                const next = points[i + 1];
-                const cpX = current.x;
-                const cpY = current.y;
-                const endX = (current.x + next.x) / 2;
-                const endY = (current.y + next.y) / 2;
-                
-                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
-            }
+            // Draw straight line to next point
+            ctx.lineTo(current.x, current.y);
         }
-        
+
         ctx.stroke();
     }
 
@@ -6097,4 +6268,103 @@ document.addEventListener('DOMContentLoaded', () => {
             navigationManager.updatePlotPageFileInfo().catch(console.error);
         }
     };
+
+    // Preload SUBCAM Data Button functionality
+    const preloadBtn = document.getElementById('preloadDataBtn');
+    if (preloadBtn) {
+        preloadBtn.addEventListener('click', () => {
+            // Create hidden file input for folder selection
+            const folderInput = document.createElement('input');
+            folderInput.type = 'file';
+            folderInput.webkitdirectory = true; // Enable folder selection
+            folderInput.multiple = true;
+            folderInput.accept = '.csv';
+            folderInput.style.display = 'none';
+
+            folderInput.addEventListener('change', async (event) => {
+                try {
+                    preloadBtn.textContent = '⏳ Loading SUBCAM Data...';
+                    preloadBtn.disabled = true;
+
+                    const files = Array.from(event.target.files);
+                    console.log('🚀 SUBCAM folder selected, found files:', files.map(f => f.name));
+
+                    // Filter for CSV files
+                    const csvFiles = files.filter(file =>
+                        file.name.toLowerCase().endsWith('.csv') &&
+                        (file.name.toLowerCase().includes('nmax') ||
+                         file.name.toLowerCase().includes('obvs'))
+                    );
+
+                    if (csvFiles.length > 0) {
+                        console.log(`📁 Found ${csvFiles.length} SUBCAM CSV files`);
+
+                        // Update file browser with loaded files
+                        csvManager.workingDirFiles = csvFiles;
+                        csvManager.updateFileBrowser(csvFiles);
+
+                        // Update plot page with loaded files
+                        if (navigationManager) {
+                            await navigationManager.updatePlotPageFileInfo();
+                        }
+
+                        // Navigate to plot page
+                        setTimeout(() => {
+                            const plotNav = document.querySelector('[data-page="plot"]');
+                            if (plotNav) {
+                                plotNav.click();
+                            }
+                        }, 500);
+
+                        preloadBtn.textContent = '✅ Data Loaded!';
+                        console.log('🎉 SUBCAM data preloaded successfully!');
+
+                    } else {
+                        throw new Error('No SUBCAM CSV files found in the selected folder');
+                    }
+
+                } catch (error) {
+                    console.error('❌ Failed to preload SUBCAM data:', error);
+                    preloadBtn.textContent = '❌ Load Failed';
+                    alert('Failed to load SUBCAM data: ' + error.message);
+                } finally {
+                    setTimeout(() => {
+                        preloadBtn.textContent = '🚀 Preload SUBCAM Data';
+                        preloadBtn.disabled = false;
+                    }, 2000);
+                }
+            });
+
+            // Trigger folder selection
+            document.body.appendChild(folderInput);
+            folderInput.click();
+            document.body.removeChild(folderInput);
+        });
+    }
+
+    // Convert File Button functionality
+    const convertFileBtn = document.getElementById('convertFileBtn');
+    if (convertFileBtn) {
+        convertFileBtn.addEventListener('click', () => {
+            if (csvManager && csvManager.csvData && csvManager.csvData.length > 0) {
+                // Call the nmax conversion function
+                csvManager.convertTo24hrAverage();
+            } else {
+                alert('Please upload a CSV file first before converting.');
+            }
+        });
+    }
+
+    // Download Result Button functionality
+    const downloadResultBtn = document.getElementById('downloadResultBtn');
+    if (downloadResultBtn) {
+        downloadResultBtn.addEventListener('click', () => {
+            if (csvManager && csvManager.csvData && csvManager.csvData.length > 0) {
+                // Auto-save the converted file
+                csvManager.autoSaveConvertedFile(csvManager.fileName, 'nmax');
+            } else {
+                alert('No data available to download.');
+            }
+        });
+    }
 });
