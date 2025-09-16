@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CROPreport 0.1 - CSV Manager</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="seaweed-manager.js" defer></script>
 </head>
 <body>
     <!-- Working Directory Setup Modal -->
@@ -40,6 +41,7 @@
                 <h1 class="banner-title">CROPreport 0.1</h1>
             </div>
             <div class="banner-right">
+                <button id="seaweedToggleBtn" class="seaweed-btn" style="margin-right: 15px;">🌊 Seaweed Analysis</button>
                 <div class="device-navigation">
                     <div class="fpod-container">
                         <div class="mode-slider-container">
@@ -147,6 +149,78 @@
         <div id="plotPage" class="page-content">
             
             <main>
+n                <!-- CROPREPORT Seaweed Visualization Section -->
+                <div class="seaweed-visualization-section hidden" id="seaweedSection">
+                    <div class="seaweed-header">
+                        <h2>🌊 Seaweed Morphology Analysis</h2>
+                    </div>
+                    
+                    <div class="seaweed-controls">
+                        <div class="seaweed-control-group">
+                            <label>Data Import</label>
+                            <button class="seaweed-btn" id="importSeaweedData">📄 Load Seaweed Data</button>
+                            <input type="file" id="seaweedImageInput" accept="image/*,.csv" multiple hidden>
+                        </div>
+                        
+                        <div class="seaweed-control-group">
+                            <label>Measurement Tools</label>
+                            <button class="seaweed-btn" id="measureLengthBtn">📏 Measure Length</button>
+                            <button class="seaweed-btn" id="measureAreaBtn">📐 Measure Area</button>
+                        </div>
+                        
+                        <div class="seaweed-control-group">
+                            <label>Analysis</label>
+                            <button class="seaweed-btn" id="healthAssessBtn">💚 Health Assessment</button>
+                            <button class="seaweed-btn secondary" id="clearMeasurementsBtn">🗑️ Clear</button>
+                        </div>
+                        
+                        <div class="seaweed-control-group">
+                            <label>Timeline</label>
+                            <button class="seaweed-btn" id="timelineViewBtn">⏱️ Growth Timeline</button>
+                        </div>
+                    </div>
+                    
+                    <div class="morphology-viewer" id="morphologyViewer">
+                        <div class="morphology-canvas" id="morphologyCanvas">
+                            Click "Load Seaweed Data" to import images and measurements
+                        </div>
+                        <div class="measurement-overlay" id="measurementOverlay"></div>
+                    </div>
+                    
+                    <div class="seaweed-stats" id="seaweedStats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="lengthStat">--</div>
+                            <div class="stat-label">Average Length (cm)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="areaStat">--</div>
+                            <div class="stat-label">Surface Area (cm²)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="healthStat">--</div>
+                            <div class="stat-label">Health Score</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="growthStat">--</div>
+                            <div class="stat-label">Growth Rate (%/day)</div>
+                        </div>
+                    </div>
+                    
+                    <div class="timeline-container hidden" id="timelineContainer">
+                        <h3>Growth Timeline</h3>
+                        <div class="timeline-controls">
+                            <label for="timelineSlider">Time Progress:</label>
+                            <input type="range" id="timelineSlider" class="timeline-slider" min="0" max="100" value="0">
+                            <div class="timeline-labels">
+                                <span>Day 0</span>
+                                <span id="currentTimeLabel">Day 0</span>
+                                <span id="maxTimeLabel">Day 30</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                    
                     <div class="comparison-container">
                         <!-- Compare sites for specified source -->
                         <div class="comparison-card">
