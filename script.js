@@ -3895,6 +3895,17 @@ class NavigationManager {
             await this.updatePlotPageFileInfo(pageName);
             console.log(`${pageName} page file info updated`);
         }
+
+        // If switching to heatmap page, update file dropdown
+        if (pageName === 'heatmap') {
+            console.log(`Switching to ${pageName} page - refreshing file dropdown...`);
+
+            // Update heatmap file dropdown if the function exists
+            if (typeof window.updateHeatmapFileDropdown === 'function') {
+                window.updateHeatmapFileDropdown();
+            }
+            console.log(`${pageName} page file dropdown updated`);
+        }
     }
 
     updateSliderThumb(pageName) {
@@ -6828,4 +6839,279 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Initialize Heatmap functionality
+    initializeHeatmapPage();
 });
+
+// Heatmap functionality
+function initializeHeatmapPage() {
+    const heatmapFileSelect = document.getElementById('heatmapFileSelect');
+    const speciesSelection = document.getElementById('speciesSelection');
+    const speciesCheckboxes = document.getElementById('speciesCheckboxes');
+    const selectAllSpecies = document.getElementById('selectAllSpecies');
+    const deselectAllSpecies = document.getElementById('deselectAllSpecies');
+    const generateHeatmapBtn = document.getElementById('generateHeatmapBtn');
+    const heatmapVisualization = document.getElementById('heatmapVisualization');
+
+    // Update file dropdown when files are loaded - make this global
+    window.updateHeatmapFileDropdown = function() {
+        if (!csvManager || !csvManager.workingDirFiles) return;
+
+        heatmapFileSelect.innerHTML = '<option value="">Select a _nmax.csv file...</option>';
+
+        const nmaxFiles = csvManager.workingDirFiles.filter(file =>
+            file.name.toLowerCase().includes('_nmax') && file.name.toLowerCase().endsWith('.csv')
+        );
+
+        nmaxFiles.forEach(file => {
+            const option = document.createElement('option');
+            option.value = file.name;
+            option.textContent = file.name;
+            heatmapFileSelect.appendChild(option);
+        });
+    }
+
+    // Extract species headers (columns 8+)
+    function extractSpeciesHeaders(csvData) {
+        if (!csvData || csvData.length === 0) return [];
+
+        const headers = Object.keys(csvData[0]);
+        console.log('All headers:', headers);
+        console.log('Total headers count:', headers.length);
+
+        // Return headers from index 7 onwards (8th column+)
+        const speciesHeaders = headers.slice(7);
+        console.log('Species headers (from column 8+):', speciesHeaders);
+
+        return speciesHeaders;
+    }
+
+    // Create species checkboxes
+    function createSpeciesCheckboxes(species) {
+        speciesCheckboxes.innerHTML = '';
+
+        species.forEach((speciesName, index) => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'species-checkbox';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `species_${index}`;
+            checkbox.value = speciesName;
+            checkbox.checked = true; // Default to all selected
+
+            const label = document.createElement('label');
+            label.htmlFor = `species_${index}`;
+            label.textContent = speciesName;
+
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(label);
+            speciesCheckboxes.appendChild(checkboxDiv);
+        });
+    }
+
+    // Get selected species
+    function getSelectedSpecies() {
+        const checkboxes = speciesCheckboxes.querySelectorAll('input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    // Get abundance class for color coding
+    function getAbundanceClass(value) {
+        const num = parseInt(value) || 0;
+        if (num === 0) return 'abundance-0';
+        if (num >= 10) return 'abundance-10-plus';
+        return `abundance-${num}`;
+    }
+
+    // Generate heatmap
+    function generateHeatmap(fileData, selectedSpecies) {
+        const heatmapGrid = document.getElementById('heatmapGrid');
+        heatmapGrid.innerHTML = '';
+
+        // Create header row
+        const headerRow = document.createElement('div');
+        headerRow.className = 'heatmap-row';
+
+        // Empty cell for species label column
+        const emptyHeaderCell = document.createElement('div');
+        emptyHeaderCell.className = 'heatmap-header-cell';
+        emptyHeaderCell.textContent = 'Species / Date';
+        headerRow.appendChild(emptyHeaderCell);
+
+        // Add date headers
+        fileData.forEach(row => {
+            const dateCell = document.createElement('div');
+            dateCell.className = 'heatmap-header-cell';
+            dateCell.textContent = row.Date || row.date || 'N/A';
+            headerRow.appendChild(dateCell);
+        });
+
+        heatmapGrid.appendChild(headerRow);
+
+        // Create species rows
+        selectedSpecies.forEach(species => {
+            const speciesRow = document.createElement('div');
+            speciesRow.className = 'heatmap-row';
+
+            // Species name cell
+            const speciesNameCell = document.createElement('div');
+            speciesNameCell.className = 'heatmap-cell heatmap-row-header';
+            speciesNameCell.textContent = species;
+            speciesRow.appendChild(speciesNameCell);
+
+            // Data cells for each date
+            fileData.forEach(row => {
+                const dataCell = document.createElement('div');
+                dataCell.className = 'heatmap-cell heatmap-data-cell';
+
+                const value = row[species] || 0;
+                dataCell.textContent = value;
+                dataCell.classList.add(getAbundanceClass(value));
+                dataCell.title = `${species} on ${row.Date || row.date}: ${value}`;
+
+                speciesRow.appendChild(dataCell);
+            });
+
+            heatmapGrid.appendChild(speciesRow);
+        });
+    }
+
+    // Event listeners
+    if (heatmapFileSelect) {
+        heatmapFileSelect.addEventListener('change', async (e) => {
+            const selectedFile = e.target.value;
+            if (!selectedFile) {
+                speciesSelection.classList.add('hidden');
+                generateHeatmapBtn.disabled = true;
+                return;
+            }
+
+            try {
+                // Load the selected file
+                const fileObj = csvManager.workingDirFiles.find(f => f.name === selectedFile);
+                if (!fileObj) {
+                    throw new Error('File not found');
+                }
+
+                // Read file content
+                const text = await fileObj.text();
+                console.log('File text length:', text.length);
+                console.log('First 200 chars of file:', text.substring(0, 200));
+
+                // Parse CSV using a temporary approach
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                if (lines.length === 0) {
+                    throw new Error('The CSV file appears to be empty.');
+                }
+
+                // Parse headers manually
+                const headers = csvManager.parseCSVLine(lines[0]);
+                console.log('All headers:', headers);
+                console.log('Total headers count:', headers.length);
+
+                // Parse data rows manually
+                const data = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const row = csvManager.parseCSVLine(lines[i]);
+                    if (row.length === headers.length) {
+                        const rowObj = {};
+                        headers.forEach((header, index) => {
+                            rowObj[header] = row[index];
+                        });
+                        data.push(rowObj);
+                    }
+                }
+
+                console.log('Parsed data length:', data.length);
+                console.log('First row keys:', data.length > 0 ? Object.keys(data[0]) : 'No data');
+
+                // Extract species headers
+                const species = extractSpeciesHeaders(data);
+
+                if (species.length === 0) {
+                    alert('No columns found from column 8 onwards. This file may only contain statistical data columns.');
+                    speciesSelection.classList.add('hidden');
+                    generateHeatmapBtn.disabled = true;
+                    return;
+                }
+
+                // Show species selection and create checkboxes
+                createSpeciesCheckboxes(species);
+                speciesSelection.classList.remove('hidden');
+                generateHeatmapBtn.disabled = false;
+
+                // Store current file data
+                heatmapFileSelect.dataset.currentData = JSON.stringify(data);
+
+            } catch (error) {
+                console.error('Error loading file:', error);
+                alert('Error loading file: ' + error.message);
+            }
+        });
+    }
+
+    if (selectAllSpecies) {
+        selectAllSpecies.addEventListener('click', () => {
+            const checkboxes = speciesCheckboxes.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+    }
+
+    if (deselectAllSpecies) {
+        deselectAllSpecies.addEventListener('click', () => {
+            const checkboxes = speciesCheckboxes.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = false);
+        });
+    }
+
+    if (generateHeatmapBtn) {
+        generateHeatmapBtn.addEventListener('click', () => {
+            const selectedSpecies = getSelectedSpecies();
+
+            if (selectedSpecies.length === 0) {
+                alert('Please select at least one species to display.');
+                return;
+            }
+
+            try {
+                const fileData = JSON.parse(heatmapFileSelect.dataset.currentData || '[]');
+                if (fileData.length === 0) {
+                    alert('No data available. Please select a file first.');
+                    return;
+                }
+
+                // Update heatmap title
+                const heatmapTitle = document.getElementById('heatmapTitle');
+                const selectedFileName = heatmapFileSelect.value;
+                heatmapTitle.textContent = `Species Abundance Heatmap - ${selectedFileName}`;
+
+                // Generate and show heatmap
+                generateHeatmap(fileData, selectedSpecies);
+                heatmapVisualization.classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Error generating heatmap:', error);
+                alert('Error generating heatmap: ' + error.message);
+            }
+        });
+    }
+
+    // Update dropdown when page is shown
+    document.addEventListener('DOMContentLoaded', () => {
+        if (csvManager) {
+            updateHeatmapFileDropdown();
+        }
+    });
+
+    // Also update when files are loaded
+    if (typeof csvManager !== 'undefined') {
+        const originalHandleFileUpload = csvManager.handleFileUpload;
+        csvManager.handleFileUpload = function(...args) {
+            const result = originalHandleFileUpload.apply(this, args);
+            updateHeatmapFileDropdown();
+            return result;
+        };
+    }
+}
