@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Missing Days Feature Test</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 2px solid #ddd; }
+        .success { border-color: green; background: #f9fff9; }
+        .error { border-color: red; background: #fff9f9; }
+        .inserted-day { background: #e8f5e8; font-weight: bold; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background: #f2f2f2; }
+        button { background: green; color: white; padding: 10px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Missing Days Feature Test</h1>
+    <div class="test-section">
+        <h2>Test Data (with gaps: Day 1, Day 4, Day 6)</h2>
+        <button onclick="runTest()">Run Test</button>
+        <button onclick="clearResults()">Clear</button>
+    </div>
+    <div id="results" style="display:none;"></div>
+    <script src="js/conversion-engine.js"></script>
+    <script src="js/validation.js"></script>
+    <script>
+        async function runTest() {
+            document.getElementById("results").style.display = "block";
+            const resultsDiv = document.getElementById("results");
+            const testConverter = new SUBCAMConverter();
+            const testCSV = "Date,eventTimestamp,File Name,taxon,clipTaxonNmax\n2024-01-01,2024-01-01T10:00:00.000Z,clip1.mp4,Species A,5\n2024-01-01,2024-01-01T11:00:00.000Z,clip2.mp4,Species B,3\n2024-01-04,2024-01-04T10:00:00.000Z,clip3.mp4,Species A,2\n2024-01-04,2024-01-04T11:00:00.000Z,clip4.mp4,Species C,4\n2024-01-06,2024-01-06T10:00:00.000Z,clip5.mp4,Species B,1\n2024-01-06,2024-01-06T11:00:00.000Z,clip6.mp4,Species C,2";
+            try {
+                const result = await testConverter.convertRawToNmax(testCSV);
+                if (result.success) {
+                    const data = result.data;
+                    let html = "<h3>Results:</h3><table><tr><th>Date</th><th>Total Obs</th><th>Species A</th><th>Species B</th><th>Species C</th></tr>";
+                    data.forEach(row => {
+                        const isInserted = row["Total Observations"] === 0;
+                        const cls = isInserted ? "inserted-day" : "";
+                        const dateLabel = isInserted ? row.Date + " (INSERTED)" : row.Date;
+                        html += `<tr class="${cls}"><td>${dateLabel}</td><td>${row["Total Observations"]}</td><td>${row["Species A"]}</td><td>${row["Species B"]}</td><td>${row["Species C"]}</td></tr>`;
+                    });
+                    html += "</table>";
+                    const expectedDates = ["2024-01-01", "2024-01-02", "2024-01-03", "2024-01-04", "2024-01-05", "2024-01-06"];
+                    const actualDates = data.map(r => r.Date);
+                    const allPresent = expectedDates.every(d => actualDates.includes(d));
+                    const insertedCorrect = data.filter(r => ["2024-01-02", "2024-01-03", "2024-01-05"].includes(r.Date)).every(r => r["Species A"] === 0 && r["Species B"] === 0 && r["Species C"] === 0);
+                    const success = allPresent && insertedCorrect;
+                    html += `<div class="test-section ${success ? "success" : "error"}"><h3>${success ? "✅ ALL TESTS PASSED" : "❌ TESTS FAILED"}</h3><p>All dates present: ${allPresent}</p><p>Inserted days have zeros: ${insertedCorrect}</p></div>`;
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div class="test-section error">Test failed: ${result.error}</div>`;
+                }
+            } catch (e) {
+                resultsDiv.innerHTML = `<div class="test-section error">Error: ${e.message}</div>`;
+            }
+        }
+        function clearResults() { document.getElementById("results").style.display = "none"; }
+    </script>
+</body>
+</html>

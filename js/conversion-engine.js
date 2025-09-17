@@ -429,6 +429,65 @@ class SUBCAMConverter {
      * @param {Array} perClipData - Per-clip Nmax data
      * @returns {Object} - Daily species matrix
      */
+    /**
+     * Fill missing days in daily species data with zeros
+     * @param {Array} dailySpeciesData - Array of daily species records
+     * @returns {Array} - Complete daily series with no date gaps
+     */
+    fillMissingDays(dailySpeciesData) {
+        if (!dailySpeciesData || dailySpeciesData.length === 0) {
+            return dailySpeciesData;
+        }
+
+        // Get all species columns (exclude Date column)
+        const speciesColumns = Object.keys(dailySpeciesData[0]).filter(col => col !== 'Date');
+        
+        // Sort by date to ensure proper order
+        const sortedData = [...dailySpeciesData].sort((a, b) => a.Date.localeCompare(b.Date));
+        
+        const result = [];
+        
+        for (let i = 0; i < sortedData.length; i++) {
+            // Add current day
+            result.push(sortedData[i]);
+            
+            // Check if there's a next day and if there's a gap
+            if (i < sortedData.length - 1) {
+                const currentDate = new Date(sortedData[i].Date);
+                const nextDate = new Date(sortedData[i + 1].Date);
+                
+                // Calculate days between current and next
+                const daysDiff = Math.floor((nextDate - currentDate) / (1000 * 60 * 60 * 24));
+                
+                // Fill missing days if gap > 1
+                for (let dayOffset = 1; dayOffset < daysDiff; dayOffset++) {
+                    const missingDate = new Date(currentDate);
+                    missingDate.setDate(missingDate.getDate() + dayOffset);
+                    
+                    // Create row for missing day with zeros for all species
+                    const missingDayRow = { 
+                        Date: missingDate.toISOString().split('T')[0] 
+                    };
+                    
+                    // Set all species counts to 0
+                    speciesColumns.forEach(species => {
+                        missingDayRow[species] = 0;
+                    });
+                    
+                    result.push(missingDayRow);
+                }
+            }
+        }
+        
+        // Sort final result by date
+        return result.sort((a, b) => a.Date.localeCompare(b.Date));
+    }
+
+    /**
+     * Aggregate daily species totals from per-clip data
+     * @param {Array} perClipData - Per-clip Nmax data
+     * @returns {Array} - Daily species matrix with filled missing days
+     */
     aggregateDailySpecies(perClipData) {
         const daily = {};
 
@@ -458,13 +517,16 @@ class SUBCAMConverter {
 
         const speciesList = Array.from(allSpecies).sort();
 
-        return dates.map(date => {
+        const dailySpeciesData = dates.map(date => {
             const row = { Date: date };
             speciesList.forEach(species => {
                 row[species] = daily[date][species] || 0;
             });
             return row;
         });
+
+        // Fill missing days with zeros for complete time series
+        return this.fillMissingDays(dailySpeciesData);
     }
 
     /**
