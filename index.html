@@ -42,31 +42,31 @@
             <div class="banner-right">
                 <div class="device-navigation">
                     <div class="fpod-container">
-                        <div class="mode-slider-container">
+                        <div class="navigation-buttons">
                             <div class="device-label">SUBCAM</div>
-                            <div class="slider-track">
-                                <div class="slider-thumb"></div>
-                            </div>
-                            <div class="slider-icons">
-                                <button class="slider-icon" data-page="reformat" data-device="fpod" title="Load Data">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <div class="nav-buttons-container">
+                                <button class="nav-button active" data-page="reformat" title="Load Data">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M12 3v12l-4-4m4 4l4-4"/>
                                         <path d="M8 21h8"/>
                                     </svg>
+                                    <span>Load</span>
                                 </button>
-                                <button class="slider-icon" data-page="plot" data-device="fpod" title="Plot Data">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <button class="nav-button" data-page="plot" title="Plot Data">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
                                         <polyline points="13,6 22,6 22,15"/>
                                     </svg>
+                                    <span>Plot</span>
                                 </button>
-                                <button class="slider-icon" data-page="heatmap" data-device="fpod" title="Heatmap">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <button class="nav-button" data-page="heatmap" title="Heatmap">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                                         <path d="M9 9h6v6H9z"/>
                                         <path d="M6 6h3v3H6z"/>
                                         <path d="M15 15h3v3h-3z"/>
                                     </svg>
+                                    <span>Heatmap</span>
                                 </button>
                             </div>
                         </div>
@@ -374,25 +374,25 @@
                                 <h3>Heatmap Configuration</h3>
                             </div>
                             <div class="card-body">
-                                <div class="form-row">
-                                    <div class="form-group">
+                                <div class="form-row heatmap-controls-row">
+                                    <div class="form-group file-select-group">
                                         <label for="heatmapFileSelect">Select _nmax.csv File:</label>
                                         <select id="heatmapFileSelect" class="form-control">
                                             <option value="">Select a _nmax.csv file...</option>
                                         </select>
                                         <small class="help-text">Choose one _nmax.csv file to create heatmap</small>
                                     </div>
-                                </div>
 
-                                <div class="species-selection hidden" id="speciesSelection">
-                                    <div class="form-group">
-                                        <label>Select Species to Display:</label>
-                                        <div class="species-controls">
-                                            <button id="selectAllSpecies" class="btn-secondary">Select All</button>
-                                            <button id="deselectAllSpecies" class="btn-secondary">Deselect All</button>
-                                        </div>
-                                        <div id="speciesCheckboxes" class="species-checkbox-container">
-                                            <!-- Species checkboxes will be populated here -->
+                                    <div class="species-selection hidden" id="speciesSelection">
+                                        <div class="form-group species-select-group">
+                                            <label>Select Species to Display:</label>
+                                            <div class="species-controls">
+                                                <button id="selectAllSpecies" class="btn-secondary">Select All</button>
+                                                <button id="deselectAllSpecies" class="btn-secondary">Deselect All</button>
+                                            </div>
+                                            <div id="speciesCheckboxes" class="species-checkbox-container">
+                                                <!-- Species checkboxes will be populated here -->
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -402,6 +402,26 @@
                                         Generate Heatmap
                                     </button>
                                 </div>
+
+                                <!-- Debug Panel -->
+                                <div class="debug-panel">
+                                    <div class="debug-header">
+                                        <button id="debugToggle" class="btn-debug">
+                                            🔧 Debug Logs
+                                        </button>
+                                        <button id="clearDebugLogs" class="btn-debug-clear hidden">
+                                            Clear Logs
+                                        </button>
+                                    </div>
+                                    <div id="debugDropdown" class="debug-dropdown hidden">
+                                        <div class="debug-content">
+                                            <h4>File Selection Debug Information</h4>
+                                            <div id="debugLogs" class="debug-logs">
+                                                <!-- Debug logs will appear here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -409,14 +429,6 @@
                     <div class="heatmap-visualization hidden" id="heatmapVisualization">
                         <div class="heatmap-header">
                             <h3 id="heatmapTitle">Species Abundance Heatmap</h3>
-                            <div class="heatmap-legend">
-                                <span class="legend-label">Abundance Scale:</span>
-                                <div class="legend-gradient">
-                                    <span class="legend-min">0</span>
-                                    <div class="gradient-bar"></div>
-                                    <span class="legend-max">10+</span>
-                                </div>
-                            </div>
                         </div>
                         <div class="heatmap-container">
                             <div id="heatmapGrid" class="heatmap-grid">

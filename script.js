@@ -8,6 +8,7 @@ class CSVManager {
         this.showWorkingDirModal = true;
         this.chartType = 'line'; // Default to line charts
         this.layerOrder = 'normal'; // 'normal' or 'reversed' for dataset layer order
+        this.delimiter = null; // Will be auto-detected
 
         this.initializeEventListeners();
         this.initializeWorkingDirModal();
@@ -968,6 +969,7 @@ class CSVManager {
         }
 
         this.fileName = file.name;
+        this.delimiter = null; // Reset delimiter detection for new file
         const reader = new FileReader();
 
         reader.onload = (e) => {
@@ -1047,15 +1049,37 @@ class CSVManager {
         this.validateSUBCAMFormat();
     }
 
+    detectDelimiter(line) {
+        // Count potential delimiters
+        const commaCount = (line.match(/,/g) || []).length;
+        const tabCount = (line.match(/\t/g) || []).length;
+        const semicolonCount = (line.match(/;/g) || []).length;
+
+        // Determine most likely delimiter
+        if (tabCount > commaCount && tabCount > semicolonCount) {
+            return '\t';
+        } else if (semicolonCount > commaCount && semicolonCount > tabCount) {
+            return ';';
+        } else {
+            return ',';
+        }
+    }
+
     parseCSVLine(line) {
+        // Detect delimiter if not already detected
+        if (!this.delimiter) {
+            this.delimiter = this.detectDelimiter(line);
+            console.log('Detected delimiter:', this.delimiter === '\t' ? 'TAB' : this.delimiter);
+        }
+
         const result = [];
         let current = '';
         let inQuotes = false;
-        
+
         for (let i = 0; i < line.length; i++) {
             const char = line[i];
             const nextChar = line[i + 1];
-            
+
             if (char === '"') {
                 if (inQuotes && nextChar === '"') {
                     // Escaped quote
@@ -1065,7 +1089,7 @@ class CSVManager {
                     // Toggle quote state
                     inQuotes = !inQuotes;
                 }
-            } else if (char === ',' && !inQuotes) {
+            } else if (char === this.delimiter && !inQuotes) {
                 // Field separator
                 result.push(current.trim());
                 current = '';
@@ -1073,10 +1097,10 @@ class CSVManager {
                 current += char;
             }
         }
-        
+
         // Add the last field
         result.push(current.trim());
-        
+
         return result;
     }
 
@@ -3843,34 +3867,24 @@ class NavigationManager {
         this.initializeNavigation();
         this.initializePlotPage();
 
-        // Initialize slider states on page load
-        this.initializeSliderStates();
-    }
-
-    initializeSliderStates() {
-        // Set initial thumb positions for both sliders
-        this.updateSliderThumb(this.currentPage);
     }
 
     initializeNavigation() {
-        const sliderIcons = document.querySelectorAll('.slider-icon');
-        sliderIcons.forEach(icon => {
-            icon.addEventListener('click', async () => {
-                const targetPage = icon.getAttribute('data-page');
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            button.addEventListener('click', async () => {
+                const targetPage = button.getAttribute('data-page');
                 await this.switchPage(targetPage);
             });
         });
     }
 
     async switchPage(pageName) {
-        // Update slider icons
-        document.querySelectorAll('.slider-icon').forEach(icon => {
-            icon.classList.remove('active');
+        // Update navigation buttons
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.classList.remove('active');
         });
-        document.querySelector(`.slider-icon[data-page="${pageName}"]`).classList.add('active');
-
-        // Update slider thumb position
-        this.updateSliderThumb(pageName);
+        document.querySelector(`.nav-button[data-page="${pageName}"]`).classList.add('active');
 
         // Update page content
         document.querySelectorAll('.page-content').forEach(page => {
@@ -3908,19 +3922,6 @@ class NavigationManager {
         }
     }
 
-    updateSliderThumb(pageName) {
-        // Update SUBCAM slider
-        const fpodContainer = document.querySelector('.fpod-container');
-        const fpodThumb = fpodContainer?.querySelector('.slider-thumb');
-
-        if (pageName === 'reformat') {
-            // Reset both thumbs, then set active one
-            if (fpodThumb) fpodThumb.style.transform = 'translateX(0px)';
-        } else if (pageName === 'plot') {
-            // Reset both thumbs, then set active one
-            if (fpodThumb) fpodThumb.style.transform = 'translateX(56px)';
-        }
-    }
     initializePlotPage() {
         // Initialize dropdowns and button event listeners
         this.initializeComparisonControls();
@@ -6844,6 +6845,79 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeHeatmapPage();
 });
 
+// Debug logging system
+class DebugLogger {
+    constructor() {
+        this.logs = [];
+        this.isVisible = false;
+        this.initializeDebugPanel();
+    }
+
+    initializeDebugPanel() {
+        const debugToggle = document.getElementById('debugToggle');
+        const debugDropdown = document.getElementById('debugDropdown');
+        const clearDebugLogs = document.getElementById('clearDebugLogs');
+
+        if (debugToggle) {
+            debugToggle.addEventListener('click', () => {
+                this.isVisible = !this.isVisible;
+                debugDropdown.classList.toggle('hidden', !this.isVisible);
+                clearDebugLogs.classList.toggle('hidden', !this.isVisible);
+                debugToggle.textContent = this.isVisible ? '🔧 Hide Debug Logs' : '🔧 Debug Logs';
+            });
+        }
+
+        if (clearDebugLogs) {
+            clearDebugLogs.addEventListener('click', () => {
+                this.clearLogs();
+            });
+        }
+
+        // Initial log
+        this.log('Debug system initialized', 'info');
+    }
+
+    log(message, level = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = {
+            timestamp,
+            message,
+            level
+        };
+
+        this.logs.push(logEntry);
+        this.renderLogs();
+
+        // Also log to console for developer debugging
+        console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+    }
+
+    renderLogs() {
+        const debugLogs = document.getElementById('debugLogs');
+        if (!debugLogs) return;
+
+        debugLogs.innerHTML = this.logs.map(log => `
+            <div class="debug-log-entry">
+                <span class="debug-timestamp">[${log.timestamp}]</span>
+                <span class="debug-level-${log.level}">[${log.level.toUpperCase()}]</span>
+                ${log.message}
+            </div>
+        `).join('');
+
+        // Auto-scroll to bottom
+        debugLogs.scrollTop = debugLogs.scrollHeight;
+    }
+
+    clearLogs() {
+        this.logs = [];
+        this.renderLogs();
+        this.log('Debug logs cleared', 'info');
+    }
+}
+
+// Global debug logger instance
+const debugLogger = new DebugLogger();
+
 // Heatmap functionality
 function initializeHeatmapPage() {
     const heatmapFileSelect = document.getElementById('heatmapFileSelect');
@@ -6854,22 +6928,50 @@ function initializeHeatmapPage() {
     const generateHeatmapBtn = document.getElementById('generateHeatmapBtn');
     const heatmapVisualization = document.getElementById('heatmapVisualization');
 
+    debugLogger.log('Initializing heatmap page', 'info');
+
     // Update file dropdown when files are loaded - make this global
     window.updateHeatmapFileDropdown = function() {
-        if (!csvManager || !csvManager.workingDirFiles) return;
+        debugLogger.log('updateHeatmapFileDropdown called', 'info');
+
+        if (!csvManager) {
+            debugLogger.log('csvManager not available', 'error');
+            return;
+        }
+
+        if (!csvManager.workingDirFiles) {
+            debugLogger.log('csvManager.workingDirFiles not available', 'error');
+            return;
+        }
+
+        debugLogger.log(`Total files in working directory: ${csvManager.workingDirFiles.length}`, 'info');
 
         heatmapFileSelect.innerHTML = '<option value="">Select a _nmax.csv file...</option>';
+
+        // Log all files for debugging
+        csvManager.workingDirFiles.forEach(file => {
+            debugLogger.log(`File found: ${file.name} (type: ${file.type || 'unknown'})`, 'info');
+        });
 
         const nmaxFiles = csvManager.workingDirFiles.filter(file =>
             file.name.toLowerCase().includes('_nmax') && file.name.toLowerCase().endsWith('.csv')
         );
 
-        nmaxFiles.forEach(file => {
+        debugLogger.log(`Filtered _nmax files: ${nmaxFiles.length}`, 'info');
+
+        if (nmaxFiles.length === 0) {
+            debugLogger.log('No _nmax.csv files found. Files must contain "_nmax" and end with ".csv"', 'warn');
+        }
+
+        nmaxFiles.forEach((file, index) => {
+            debugLogger.log(`Adding file to dropdown: ${file.name} (index: ${index})`, 'info');
             const option = document.createElement('option');
             option.value = file.name;
             option.textContent = file.name;
             heatmapFileSelect.appendChild(option);
         });
+
+        debugLogger.log(`File dropdown updated with ${nmaxFiles.length} files`, 'success');
     }
 
     // Extract species headers (columns 8+)
@@ -6925,30 +7027,78 @@ function initializeHeatmapPage() {
         return `abundance-${num}`;
     }
 
+    // Helper function to format date as DD/MM/YY
+    function formatDateForDisplay(dateStr) {
+        if (!dateStr || dateStr === 'N/A') return 'N/A';
+
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr; // Return original if invalid
+
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+
+            return `${day}/${month}/${year}`;
+        } catch (error) {
+            return dateStr; // Return original if parsing fails
+        }
+    }
+
     // Generate heatmap
     function generateHeatmap(fileData, selectedSpecies) {
         const heatmapGrid = document.getElementById('heatmapGrid');
         heatmapGrid.innerHTML = '';
 
-        // Create header row
-        const headerRow = document.createElement('div');
-        headerRow.className = 'heatmap-row';
+        // Calculate longest species name for column width
+        const longestSpeciesName = selectedSpecies.reduce((longest, current) =>
+            current.length > longest.length ? current : longest, '');
 
-        // Empty cell for species label column
-        const emptyHeaderCell = document.createElement('div');
-        emptyHeaderCell.className = 'heatmap-header-cell';
-        emptyHeaderCell.textContent = 'Species / Date';
-        headerRow.appendChild(emptyHeaderCell);
-
-        // Add date headers
-        fileData.forEach(row => {
-            const dateCell = document.createElement('div');
-            dateCell.className = 'heatmap-header-cell';
-            dateCell.textContent = row.Date || row.date || 'N/A';
-            headerRow.appendChild(dateCell);
+        // Calculate actual max value for abundance scale
+        let maxValue = 0;
+        selectedSpecies.forEach(species => {
+            fileData.forEach(row => {
+                const value = parseInt(row[species]) || 0;
+                if (value > maxValue) maxValue = value;
+            });
         });
 
-        heatmapGrid.appendChild(headerRow);
+        // Note: Abundance scale is now embedded in the heatmap grid itself
+
+        // Add species title row
+        const titleRow = document.createElement('div');
+        titleRow.className = 'heatmap-title-row';
+
+        const speciesTitle = document.createElement('div');
+        speciesTitle.className = 'heatmap-species-title';
+        speciesTitle.textContent = 'Species';
+        speciesTitle.style.width = `${Math.max(longestSpeciesName.length * 8, 140)}px`;
+        titleRow.appendChild(speciesTitle);
+
+        // Add empty cells for data columns
+        fileData.forEach((row, index) => {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'heatmap-title-data-cell';
+
+            // Add abundance scale to the last cell (far right)
+            if (index === fileData.length - 1) {
+                const abundanceScale = document.createElement('div');
+                abundanceScale.className = 'abundance-scale-right';
+                abundanceScale.innerHTML = `
+                    <span class="legend-label">Abundance Scale:</span>
+                    <div class="legend-gradient-inline">
+                        <span class="legend-min">0</span>
+                        <div class="gradient-bar-small"></div>
+                        <span class="legend-max">${maxValue}+</span>
+                    </div>
+                `;
+                emptyCell.appendChild(abundanceScale);
+            }
+
+            titleRow.appendChild(emptyCell);
+        });
+
+        heatmapGrid.appendChild(titleRow);
 
         // Create species rows
         selectedSpecies.forEach(species => {
@@ -6957,11 +7107,12 @@ function initializeHeatmapPage() {
 
             // Species name cell
             const speciesNameCell = document.createElement('div');
-            speciesNameCell.className = 'heatmap-cell heatmap-row-header';
+            speciesNameCell.className = 'heatmap-cell heatmap-species-name';
             speciesNameCell.textContent = species;
+            speciesNameCell.style.width = `${Math.max(longestSpeciesName.length * 8, 140)}px`;
             speciesRow.appendChild(speciesNameCell);
 
-            // Data cells for each date
+            // Data cells for each date (show all data)
             fileData.forEach(row => {
                 const dataCell = document.createElement('div');
                 dataCell.className = 'heatmap-cell heatmap-data-cell';
@@ -6969,87 +7120,156 @@ function initializeHeatmapPage() {
                 const value = row[species] || 0;
                 dataCell.textContent = value;
                 dataCell.classList.add(getAbundanceClass(value));
-                dataCell.title = `${species} on ${row.Date || row.date}: ${value}`;
+
+                const formattedDate = formatDateForDisplay(row.Date || row.date);
+                dataCell.title = `${species} on ${formattedDate}: ${value}`;
 
                 speciesRow.appendChild(dataCell);
             });
 
             heatmapGrid.appendChild(speciesRow);
         });
+
+        // Add date row below the table (show dates only every 5th entry)
+        const dateRow = document.createElement('div');
+        dateRow.className = 'heatmap-date-row';
+
+        // Date title cell (bottom left)
+        const dateTitleCell = document.createElement('div');
+        dateTitleCell.className = 'heatmap-date-title-cell';
+        dateTitleCell.textContent = 'Date';
+        dateTitleCell.style.width = '117px'; // Match the species column width
+        dateRow.appendChild(dateTitleCell);
+
+        // Add formatted date cells (label every 5th date)
+        fileData.forEach((row, index) => {
+            const dateCell = document.createElement('div');
+            dateCell.className = 'heatmap-date-cell';
+
+            // Only show date label every 5th entry
+            if (index % 5 === 0) {
+                const formattedDate = formatDateForDisplay(row.Date || row.date);
+                const dateText = document.createElement('span');
+                dateText.className = 'heatmap-date-text';
+                dateText.textContent = formattedDate;
+                dateCell.appendChild(dateText);
+            }
+
+            dateRow.appendChild(dateCell);
+        });
+
+        heatmapGrid.appendChild(dateRow);
     }
+
 
     // Event listeners
     if (heatmapFileSelect) {
         heatmapFileSelect.addEventListener('change', async (e) => {
             const selectedFile = e.target.value;
+            debugLogger.log(`File selection changed: "${selectedFile}"`, 'info');
+
             if (!selectedFile) {
+                debugLogger.log('No file selected (empty value)', 'warn');
                 speciesSelection.classList.add('hidden');
                 generateHeatmapBtn.disabled = true;
                 return;
             }
 
+            debugLogger.log(`Attempting to load file: ${selectedFile}`, 'info');
+
             try {
                 // Load the selected file
+                debugLogger.log('Searching for file in working directory...', 'info');
                 const fileObj = csvManager.workingDirFiles.find(f => f.name === selectedFile);
+
                 if (!fileObj) {
-                    throw new Error('File not found');
+                    debugLogger.log(`File not found in working directory. Available files: ${csvManager.workingDirFiles.map(f => f.name).join(', ')}`, 'error');
+                    throw new Error('File not found in working directory');
                 }
 
+                debugLogger.log(`File object found: ${fileObj.name} (size: ${fileObj.size || 'unknown'})`, 'success');
+
                 // Read file content
+                debugLogger.log('Reading file content...', 'info');
                 const text = await fileObj.text();
-                console.log('File text length:', text.length);
-                console.log('First 200 chars of file:', text.substring(0, 200));
+                debugLogger.log(`File content read successfully. Length: ${text.length} characters`, 'success');
+                debugLogger.log(`First 200 characters: ${text.substring(0, 200)}`, 'info');
 
                 // Parse CSV using a temporary approach
+                debugLogger.log('Splitting file into lines...', 'info');
                 const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                debugLogger.log(`Found ${lines.length} non-empty lines`, 'info');
+
                 if (lines.length === 0) {
+                    debugLogger.log('CSV file appears to be empty after filtering', 'error');
                     throw new Error('The CSV file appears to be empty.');
                 }
 
                 // Parse headers manually
+                debugLogger.log('Parsing headers from first line...', 'info');
                 const headers = csvManager.parseCSVLine(lines[0]);
-                console.log('All headers:', headers);
-                console.log('Total headers count:', headers.length);
+                debugLogger.log(`Headers parsed: ${headers.length} columns`, 'success');
+                debugLogger.log(`All headers: ${headers.join(', ')}`, 'info');
 
                 // Parse data rows manually
+                debugLogger.log('Parsing data rows...', 'info');
                 const data = [];
                 for (let i = 1; i < lines.length; i++) {
                     const row = csvManager.parseCSVLine(lines[i]);
-                    if (row.length === headers.length) {
+                    if (row.length >= headers.length) {
+                        // Use only the first headers.length columns, ignore extra columns
                         const rowObj = {};
                         headers.forEach((header, index) => {
                             rowObj[header] = row[index];
                         });
                         data.push(rowObj);
+                        if (row.length > headers.length) {
+                            debugLogger.log(`Row ${i} has ${row.length} columns, using first ${headers.length} columns (ignoring ${row.length - headers.length} extra columns)`, 'info');
+                        }
+                    } else {
+                        debugLogger.log(`Row ${i} has ${row.length} columns but expected ${headers.length}. Skipping.`, 'warn');
                     }
                 }
 
-                console.log('Parsed data length:', data.length);
-                console.log('First row keys:', data.length > 0 ? Object.keys(data[0]) : 'No data');
+                debugLogger.log(`Parsed ${data.length} data rows successfully`, 'success');
+                if (data.length > 0) {
+                    debugLogger.log(`First row sample: ${Object.keys(data[0]).slice(0, 5).join(', ')}...`, 'info');
+                }
 
                 // Extract species headers
+                debugLogger.log('Extracting species headers (columns 8+)...', 'info');
                 const species = extractSpeciesHeaders(data);
+                debugLogger.log(`Found ${species.length} species columns`, species.length > 0 ? 'success' : 'warn');
 
                 if (species.length === 0) {
+                    debugLogger.log('No species columns found. File may only contain statistical data.', 'error');
                     alert('No columns found from column 8 onwards. This file may only contain statistical data columns.');
                     speciesSelection.classList.add('hidden');
                     generateHeatmapBtn.disabled = true;
                     return;
                 }
 
+                debugLogger.log(`Species found: ${species.slice(0, 5).join(', ')}${species.length > 5 ? '...' : ''}`, 'info');
+
                 // Show species selection and create checkboxes
+                debugLogger.log('Creating species checkboxes...', 'info');
                 createSpeciesCheckboxes(species);
                 speciesSelection.classList.remove('hidden');
                 generateHeatmapBtn.disabled = false;
 
                 // Store current file data
                 heatmapFileSelect.dataset.currentData = JSON.stringify(data);
+                debugLogger.log('File data stored successfully. Ready to generate heatmap.', 'success');
 
             } catch (error) {
+                debugLogger.log(`Error loading file: ${error.message}`, 'error');
+                debugLogger.log(`Error stack: ${error.stack}`, 'error');
                 console.error('Error loading file:', error);
                 alert('Error loading file: ' + error.message);
             }
         });
+    } else {
+        debugLogger.log('heatmapFileSelect element not found', 'error');
     }
 
     if (selectAllSpecies) {
