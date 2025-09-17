@@ -6930,6 +6930,14 @@ function initializeHeatmapPage() {
 
     debugLogger.log('Initializing heatmap page', 'info');
 
+    // Heatmap Edit Mode State Management
+    const heatmapEditState = {
+        isEditMode: false,
+        originalData: null,
+        modifiedData: new Map(),
+        currentFileName: null
+    };
+
     // Update file dropdown when files are loaded - make this global
     window.updateHeatmapFileDropdown = function() {
         debugLogger.log('updateHeatmapFileDropdown called', 'info');
@@ -7043,6 +7051,605 @@ function initializeHeatmapPage() {
         } catch (error) {
             return dateStr; // Return original if parsing fails
         }
+    }
+
+    // Edit Mode Functions
+    function toggleEditMode() {
+        const editBtn = document.getElementById('toggleEditModeBtn');
+        const saveBtn = document.getElementById('saveHeatmapBtn');
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        const dataCells = document.querySelectorAll('.heatmap-data-cell');
+
+        if (!heatmapEditState.isEditMode) {
+            // Enter edit mode
+            heatmapEditState.isEditMode = true;
+            heatmapEditState.originalData = JSON.parse(heatmapFileSelect.dataset.currentData || '[]');
+            heatmapEditState.currentFileName = heatmapFileSelect.value;
+            heatmapEditState.modifiedData.clear();
+
+            editBtn.textContent = '👁️ View Mode';
+            editBtn.classList.remove('btn-secondary');
+            editBtn.classList.add('btn-warning');
+            saveBtn.classList.remove('hidden');
+            cancelBtn.classList.remove('hidden');
+
+            // Make data cells editable
+            dataCells.forEach(cell => {
+                if (cell.textContent.trim() !== '' && !isNaN(cell.textContent.trim())) {
+                    cell.classList.add('editable');
+                    cell.setAttribute('contenteditable', 'true');
+                    cell.addEventListener('input', handleCellEdit);
+                    cell.addEventListener('keydown', handleCellKeydown);
+                }
+            });
+
+            // Make species name cells editable and add delete buttons
+            const speciesNameCells = document.querySelectorAll('.heatmap-species-name');
+            speciesNameCells.forEach((cell, index) => {
+                cell.classList.add('editable');
+                cell.setAttribute('contenteditable', 'true');
+                cell.addEventListener('input', handleSpeciesNameEdit);
+                cell.addEventListener('keydown', handleSpeciesNameKeydown);
+
+                // Add delete button for species row
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-species-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = 'Delete this species';
+                deleteBtn.dataset.speciesIndex = index;
+                deleteBtn.dataset.speciesName = cell.textContent.trim();
+                deleteBtn.addEventListener('click', handleSpeciesDelete);
+                cell.appendChild(deleteBtn);
+            });
+
+            // Add delete buttons to date cells
+            const dateCells = document.querySelectorAll('.heatmap-date-cell');
+            dateCells.forEach((cell, index) => {
+                // Add delete button to each date cell
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-row-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = 'Delete this date';
+                deleteBtn.dataset.dateIndex = index;
+                deleteBtn.addEventListener('click', handleRowDelete);
+                cell.appendChild(deleteBtn);
+            });
+
+            console.log('Edit mode enabled. Click on any cell to modify values.');
+        } else {
+            // Exit edit mode
+            exitEditMode();
+        }
+    }
+
+    function exitEditMode() {
+        const editBtn = document.getElementById('toggleEditModeBtn');
+        const saveBtn = document.getElementById('saveHeatmapBtn');
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        const dataCells = document.querySelectorAll('.heatmap-data-cell');
+
+        heatmapEditState.isEditMode = false;
+
+        editBtn.textContent = '📝 Edit Mode';
+        editBtn.classList.remove('btn-warning');
+        editBtn.classList.add('btn-secondary');
+        saveBtn.classList.add('hidden');
+        cancelBtn.classList.add('hidden');
+        saveBtn.disabled = true;
+
+        // Remove edit functionality from data cells
+        dataCells.forEach(cell => {
+            cell.classList.remove('editable', 'editing', 'modified');
+            cell.removeAttribute('contenteditable');
+            cell.removeEventListener('input', handleCellEdit);
+            cell.removeEventListener('keydown', handleCellKeydown);
+        });
+
+        // Remove edit functionality from species name cells
+        const speciesNameCells = document.querySelectorAll('.heatmap-species-name');
+        speciesNameCells.forEach(cell => {
+            cell.classList.remove('editable', 'editing', 'modified');
+            cell.removeAttribute('contenteditable');
+            cell.removeEventListener('input', handleSpeciesNameEdit);
+            cell.removeEventListener('keydown', handleSpeciesNameKeydown);
+        });
+
+        // Remove species delete buttons
+        const speciesDeleteButtons = document.querySelectorAll('.delete-species-btn');
+        speciesDeleteButtons.forEach(btn => {
+            btn.removeEventListener('click', handleSpeciesDelete);
+            btn.remove();
+        });
+
+        // Remove delete buttons from date cells
+        const deleteButtons = document.querySelectorAll('.delete-row-btn');
+        deleteButtons.forEach(btn => {
+            btn.removeEventListener('click', handleRowDelete);
+            btn.remove();
+        });
+
+        // Remove deleted row styling
+        const deletedRows = document.querySelectorAll('.heatmap-row.deleted');
+        deletedRows.forEach(row => {
+            row.classList.remove('deleted');
+        });
+
+        // Remove deleted species row styling
+        const deletedSpeciesRows = document.querySelectorAll('.heatmap-row.species-deleted');
+        deletedSpeciesRows.forEach(row => {
+            row.classList.remove('species-deleted');
+        });
+
+        // Clear modifications
+        heatmapEditState.modifiedData.clear();
+    }
+
+    function handleCellEdit(event) {
+        const cell = event.target;
+        const value = cell.textContent.trim();
+
+        // Validate input (must be numeric)
+        if (value !== '' && isNaN(value)) {
+            alert('Please enter a valid number');
+            return;
+        }
+
+        // Get cell position data
+        const speciesName = cell.closest('.heatmap-row').querySelector('.heatmap-species-name').textContent;
+        const cellIndex = Array.from(cell.parentNode.children).indexOf(cell) - 1; // -1 for species name cell
+        const dateEntry = heatmapEditState.originalData[cellIndex];
+
+        if (dateEntry) {
+            const originalValue = dateEntry[speciesName];
+            const newValue = value === '' ? '0' : value;
+
+            // Track modification
+            const cellKey = `${speciesName}-${cellIndex}`;
+            if (newValue !== originalValue) {
+                heatmapEditState.modifiedData.set(cellKey, {
+                    species: speciesName,
+                    dateIndex: cellIndex,
+                    originalValue: originalValue,
+                    newValue: newValue,
+                    date: dateEntry.Date || dateEntry.date
+                });
+                cell.classList.add('modified');
+            } else {
+                heatmapEditState.modifiedData.delete(cellKey);
+                cell.classList.remove('modified');
+            }
+
+            // Update save button state
+            const saveBtn = document.getElementById('saveHeatmapBtn');
+            saveBtn.disabled = heatmapEditState.modifiedData.size === 0;
+
+            // Update cell styling based on new value
+            cell.className = cell.className.replace(/abundance-\w+/g, '');
+            cell.classList.add(getAbundanceClass(newValue));
+        }
+    }
+
+    function handleCellKeydown(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.target.blur();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            const cell = event.target;
+            const speciesName = cell.closest('.heatmap-row').querySelector('.heatmap-species-name').textContent;
+            const cellIndex = Array.from(cell.parentNode.children).indexOf(cell) - 1;
+            const originalValue = heatmapEditState.originalData[cellIndex][speciesName];
+            cell.textContent = originalValue;
+            cell.blur();
+        }
+    }
+
+    function getAbundanceClass(value) {
+        const numValue = parseInt(value) || 0;
+        if (numValue === 0) return 'abundance-0';
+        if (numValue === 1) return 'abundance-1';
+        if (numValue === 2) return 'abundance-2';
+        if (numValue === 3) return 'abundance-3';
+        if (numValue === 4) return 'abundance-4';
+        if (numValue === 5) return 'abundance-5';
+        if (numValue === 6) return 'abundance-6';
+        if (numValue === 7) return 'abundance-7';
+        if (numValue === 8) return 'abundance-8';
+        if (numValue === 9) return 'abundance-9';
+        return 'abundance-10-plus';
+    }
+
+    function handleSpeciesNameEdit(event) {
+        const cell = event.target;
+        const newName = cell.textContent.trim();
+        const originalName = cell.dataset.originalName || cell.textContent.trim();
+
+        // Store original name if not already stored
+        if (!cell.dataset.originalName) {
+            cell.dataset.originalName = originalName;
+        }
+
+        // Track modification (no validation here - just track changes)
+        const speciesKey = `species-${originalName}`;
+        if (newName !== originalName) {
+            heatmapEditState.modifiedData.set(speciesKey, {
+                type: 'species',
+                originalName: originalName,
+                newName: newName
+            });
+            cell.classList.add('modified');
+        } else {
+            heatmapEditState.modifiedData.delete(speciesKey);
+            cell.classList.remove('modified');
+        }
+
+        // Update save button state
+        const saveBtn = document.getElementById('saveHeatmapBtn');
+        saveBtn.disabled = heatmapEditState.modifiedData.size === 0;
+    }
+
+    function handleSpeciesNameKeydown(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            event.target.blur();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            const cell = event.target;
+            const originalName = cell.dataset.originalName || cell.textContent.trim();
+            cell.textContent = originalName;
+            cell.blur();
+        }
+    }
+
+    function handleSpeciesDelete(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        const speciesIndex = parseInt(event.target.dataset.speciesIndex);
+        const speciesName = event.target.dataset.speciesName;
+
+        // Get the species row
+        const speciesRow = event.target.closest('.heatmap-row');
+
+        // Track the deletion
+        const deleteKey = `delete-species-${speciesName}`;
+        if (!heatmapEditState.modifiedData.has(deleteKey)) {
+            // Mark as deleted
+            speciesRow.classList.add('species-deleted');
+            heatmapEditState.modifiedData.set(deleteKey, {
+                type: 'delete-species',
+                speciesIndex: speciesIndex,
+                speciesName: speciesName
+            });
+        } else {
+            // If clicking again, undelete
+            speciesRow.classList.remove('species-deleted');
+            heatmapEditState.modifiedData.delete(deleteKey);
+        }
+
+        // Update save button state
+        const saveBtn = document.getElementById('saveHeatmapBtn');
+        saveBtn.disabled = heatmapEditState.modifiedData.size === 0;
+    }
+
+    function handleRowDelete(event) {
+        event.stopPropagation();
+        const dateIndex = parseInt(event.target.dataset.dateIndex);
+
+        // Get the date value for this row
+        const dateValue = heatmapEditState.originalData[dateIndex]?.Date ||
+                          heatmapEditState.originalData[dateIndex]?.date ||
+                          `Row ${dateIndex + 1}`;
+
+        // Mark all cells in this column as deleted visually
+        const allRows = document.querySelectorAll('.heatmap-row');
+        allRows.forEach(row => {
+            const cells = row.querySelectorAll('.heatmap-data-cell');
+            if (cells[dateIndex]) {
+                cells[dateIndex].classList.add('deleted');
+            }
+        });
+
+        // Mark the date cell as deleted
+        event.target.parentElement.classList.add('deleted');
+
+        // Track the deletion
+        const deleteKey = `delete-${dateIndex}`;
+        if (!heatmapEditState.modifiedData.has(deleteKey)) {
+            heatmapEditState.modifiedData.set(deleteKey, {
+                type: 'delete',
+                dateIndex: dateIndex,
+                dateValue: dateValue
+            });
+        } else {
+            // If clicking again, undelete
+            heatmapEditState.modifiedData.delete(deleteKey);
+
+            // Remove deleted styling
+            allRows.forEach(row => {
+                const cells = row.querySelectorAll('.heatmap-data-cell');
+                if (cells[dateIndex]) {
+                    cells[dateIndex].classList.remove('deleted');
+                }
+            });
+            event.target.parentElement.classList.remove('deleted');
+        }
+
+        // Update save button state
+        const saveBtn = document.getElementById('saveHeatmapBtn');
+        saveBtn.disabled = heatmapEditState.modifiedData.size === 0;
+    }
+
+    function validateSpeciesNames() {
+        const errors = [];
+        const allCurrentNames = new Set();
+
+        // Get all current species names (including modified ones)
+        const speciesNameCells = document.querySelectorAll('.heatmap-species-name');
+        speciesNameCells.forEach(cell => {
+            const currentName = cell.textContent.trim();
+
+            // Check for empty names
+            if (currentName === '') {
+                errors.push('• Species name cannot be empty');
+                return;
+            }
+
+            // Check for duplicates
+            if (allCurrentNames.has(currentName)) {
+                errors.push(`• Duplicate species name: "${currentName}"`);
+            } else {
+                allCurrentNames.add(currentName);
+            }
+        });
+
+        return errors;
+    }
+
+    function saveHeatmapChanges() {
+        if (heatmapEditState.modifiedData.size === 0) {
+            alert('No changes to save');
+            return;
+        }
+
+        // Validate species names before saving
+        const validationErrors = validateSpeciesNames();
+        if (validationErrors.length > 0) {
+            alert('Cannot save changes:\n\n' + validationErrors.join('\n'));
+            return;
+        }
+
+        // Create modified data set
+        let modifiedFileData = JSON.parse(JSON.stringify(heatmapEditState.originalData));
+
+        // Collect species name changes and deletions
+        const speciesNameChanges = new Map();
+        const rowsToDelete = new Set();
+        const speciesToDelete = new Set();
+
+        // First pass: identify modifications
+        heatmapEditState.modifiedData.forEach(modification => {
+            if (modification.type === 'species') {
+                // Track species name changes
+                speciesNameChanges.set(modification.originalName, modification.newName);
+            } else if (modification.type === 'delete') {
+                // Track rows to delete
+                rowsToDelete.add(modification.dateIndex);
+            } else if (modification.type === 'delete-species') {
+                // Track species to delete
+                speciesToDelete.add(modification.speciesName);
+            } else {
+                // Apply data cell changes
+                const { species, dateIndex, newValue } = modification;
+                if (modifiedFileData[dateIndex]) {
+                    modifiedFileData[dateIndex][species] = newValue;
+                }
+            }
+        });
+
+        // Apply species name changes to all data rows
+        if (speciesNameChanges.size > 0) {
+            modifiedFileData.forEach(row => {
+                speciesNameChanges.forEach((newName, originalName) => {
+                    if (row.hasOwnProperty(originalName)) {
+                        row[newName] = row[originalName];
+                        delete row[originalName];
+                    }
+                });
+            });
+        }
+
+        // Remove deleted species columns from all rows
+        if (speciesToDelete.size > 0) {
+            modifiedFileData.forEach(row => {
+                speciesToDelete.forEach(speciesName => {
+                    delete row[speciesName];
+                });
+            });
+        }
+
+        // Remove deleted rows (filter out rows marked for deletion)
+        if (rowsToDelete.size > 0) {
+            modifiedFileData = modifiedFileData.filter((row, index) => !rowsToDelete.has(index));
+        }
+
+        // Show save confirmation modal
+        showHeatmapSaveModal(modifiedFileData);
+    }
+
+    function showHeatmapSaveModal(modifiedData) {
+        const changeCount = heatmapEditState.modifiedData.size;
+        const originalFileName = heatmapEditState.currentFileName;
+        const baseName = originalFileName.replace(/\.csv$/i, '');
+        const newFileName = `${baseName}_edited.csv`;
+
+        // Count types of changes
+        let speciesNameChanges = 0;
+        let dataValueChanges = 0;
+        let deletedRows = 0;
+        let deletedSpecies = 0;
+        heatmapEditState.modifiedData.forEach(modification => {
+            if (modification.type === 'species') {
+                speciesNameChanges++;
+            } else if (modification.type === 'delete') {
+                deletedRows++;
+            } else if (modification.type === 'delete-species') {
+                deletedSpecies++;
+            } else {
+                dataValueChanges++;
+            }
+        });
+
+        const modalHTML = `
+            <div class="modal-overlay">
+                <div class="modal-content save-modal">
+                    <div class="modal-header">
+                        <h2>💾 Save Heatmap Changes</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div class="save-summary">
+                            <p><strong>Changes Summary:</strong></p>
+                            <ul>
+                                ${speciesNameChanges > 0 ? `<li>${speciesNameChanges} species name(s) modified</li>` : ''}
+                                ${dataValueChanges > 0 ? `<li>${dataValueChanges} data value(s) modified</li>` : ''}
+                                ${deletedSpecies > 0 ? `<li>${deletedSpecies} species column(s) deleted</li>` : ''}
+                                ${deletedRows > 0 ? `<li>${deletedRows} date row(s) deleted</li>` : ''}
+                                <li>Original file: ${originalFileName}</li>
+                                <li>New file: ${newFileName}</li>
+                            </ul>
+                        </div>
+
+                        <div class="save-options">
+                            <h4>File Naming Options:</h4>
+                            <div class="form-group">
+                                <label>
+                                    <input type="radio" name="saveOption" value="new" checked>
+                                    Save as new file: <strong>${newFileName}</strong>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="radio" name="saveOption" value="replace">
+                                    Replace original file: <strong>${originalFileName}</strong>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="radio" name="saveOption" value="custom">
+                                    Custom filename:
+                                </label>
+                                <input type="text" id="customFileName" class="form-control"
+                                       placeholder="Enter filename..." disabled>
+                            </div>
+                        </div>
+
+                        <div class="nmax-preservation-note">
+                            <p><strong>Note:</strong> The NMAX file structure will be preserved, including all statistical columns and date formatting.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-primary" id="confirmHeatmapSave">💾 Save File</button>
+                        <button class="btn-secondary" id="cancelHeatmapSave">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const modalElement = document.createElement('div');
+        modalElement.innerHTML = modalHTML;
+        document.body.appendChild(modalElement);
+
+        // Handle modal interactions
+        setupHeatmapSaveModalHandlers(modalElement, modifiedData, originalFileName);
+    }
+
+    function setupHeatmapSaveModalHandlers(modalElement, modifiedData, originalFileName) {
+        const confirmBtn = modalElement.querySelector('#confirmHeatmapSave');
+        const cancelBtn = modalElement.querySelector('#cancelHeatmapSave');
+        const customFileInput = modalElement.querySelector('#customFileName');
+        const radioButtons = modalElement.querySelectorAll('input[name="saveOption"]');
+
+        // Handle radio button changes
+        radioButtons.forEach(radio => {
+            radio.addEventListener('change', () => {
+                customFileInput.disabled = radio.value !== 'custom';
+                if (radio.value === 'custom') {
+                    customFileInput.focus();
+                }
+            });
+        });
+
+        confirmBtn.addEventListener('click', () => {
+            const selectedOption = modalElement.querySelector('input[name="saveOption"]:checked').value;
+            let fileName;
+
+            switch (selectedOption) {
+                case 'new':
+                    fileName = originalFileName.replace(/\.csv$/i, '_edited.csv');
+                    break;
+                case 'replace':
+                    fileName = originalFileName;
+                    break;
+                case 'custom':
+                    fileName = customFileInput.value.trim();
+                    if (!fileName) {
+                        alert('Please enter a filename');
+                        return;
+                    }
+                    if (!fileName.endsWith('.csv')) {
+                        fileName += '.csv';
+                    }
+                    break;
+            }
+
+            // Create and download modified file
+            const csvContent = createModifiedCSVContent(modifiedData, originalFileName);
+            downloadModifiedHeatmapFile(csvContent, fileName);
+
+            // Clean up
+            document.body.removeChild(modalElement);
+            exitEditMode();
+            console.log(`Heatmap changes saved as ${fileName}! The NMAX structure has been preserved.`);
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            document.body.removeChild(modalElement);
+        });
+    }
+
+    function createModifiedCSVContent(modifiedData, originalFileName) {
+        // Preserve original column headers
+        const headers = Object.keys(modifiedData[0]);
+
+        // Create CSV content maintaining NMAX structure
+        let csvContent = headers.join(',') + '\n';
+
+        modifiedData.forEach(row => {
+            const rowValues = headers.map(header => {
+                let value = row[header];
+                // Ensure proper quoting for CSV
+                if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+                    value = '"' + value.replace(/"/g, '""') + '"';
+                }
+                return value;
+            });
+            csvContent += rowValues.join(',') + '\n';
+        });
+
+        return csvContent;
+    }
+
+    function downloadModifiedHeatmapFile(csvContent, fileName) {
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.style.display = 'none';
+
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     // Generate heatmap
@@ -7314,6 +7921,31 @@ function initializeHeatmapPage() {
             } catch (error) {
                 console.error('Error generating heatmap:', error);
                 alert('Error generating heatmap: ' + error.message);
+            }
+        });
+    }
+
+    // Edit mode button event listeners
+    const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
+    const saveHeatmapBtn = document.getElementById('saveHeatmapBtn');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+    if (toggleEditModeBtn) {
+        toggleEditModeBtn.addEventListener('click', toggleEditMode);
+    }
+
+    if (saveHeatmapBtn) {
+        saveHeatmapBtn.addEventListener('click', saveHeatmapChanges);
+    }
+
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+            if (heatmapEditState.modifiedData.size > 0) {
+                if (confirm('You have unsaved changes. Are you sure you want to cancel?')) {
+                    exitEditMode();
+                }
+            } else {
+                exitEditMode();
             }
         });
     }

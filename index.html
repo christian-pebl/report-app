@@ -429,6 +429,17 @@
                     <div class="heatmap-visualization hidden" id="heatmapVisualization">
                         <div class="heatmap-header">
                             <h3 id="heatmapTitle">Species Abundance Heatmap</h3>
+                            <div class="heatmap-controls">
+                                <button id="toggleEditModeBtn" class="btn-secondary heatmap-edit-btn">
+                                    📝 Edit Mode
+                                </button>
+                                <button id="saveHeatmapBtn" class="btn-primary heatmap-save-btn hidden" disabled>
+                                    💾 Save Changes
+                                </button>
+                                <button id="cancelEditBtn" class="btn-secondary heatmap-cancel-btn hidden">
+                                    ❌ Cancel
+                                </button>
+                            </div>
                         </div>
                         <div class="heatmap-container">
                             <div id="heatmapGrid" class="heatmap-grid">
