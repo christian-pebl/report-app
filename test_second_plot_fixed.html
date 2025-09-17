@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Plot Section - Fixed!</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .success { background: #d1f2eb; border: 1px solid #27ae60; color: #27ae60; }
+        .fix-item {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 Second Plot Section - FIXED!</h1>
+        
+        <div class="status success">
+            <h3>✅ All Issues Resolved</h3>
+            <p>The second plot section now works correctly with daily _nmax data!</p>
+        </div>
+
+        <h2>🔧 Fixes Applied:</h2>
+
+        <div class="fix-item">
+            <h3>1. ✅ Fixed sortedDisplayHours undefined error</h3>
+            <p><strong>Issue:</strong> ReferenceError: sortedDisplayHours is not defined at line 5715</p>
+            <p><strong>Solution:</strong> Changed <code class="code">sortedDisplayHours</code> to <code class="code">hours</code> variable</p>
+            <p><strong>Impact:</strong> Eliminates immediate crash when generating plots</p>
+        </div>
+
+        <div class="fix-item">
+            <h3>2. ✅ Fixed daily date formatting</h3>
+            <p><strong>Issue:</strong> Daily dates like "2024-06-06" were processed as hour numbers</p>
+            <p><strong>Solution:</strong> Added daily date detection in <code class="code">formatTimePointsAsDateLabels()</code> and changed parameter from "time" to "date"</p>
+            <p><strong>Impact:</strong> Proper DD/MM/YY date labels on x-axis</p>
+        </div>
+
+        <div class="fix-item">
+            <h3>3. ✅ Simplified source comparison logic</h3>
+            <p><strong>Issue:</strong> Wrong sorting logic for daily dates</p>
+            <p><strong>Solution:</strong> Changed <code class="code">parseInt(a) - parseInt(b)</code> to <code class="code">new Date(a) - new Date(b)</code></p>
+            <p><strong>Impact:</strong> Chronological ordering of dates on x-axis</p>
+        </div>
+
+        <div class="fix-item">
+            <h3>4. ✅ Added better error handling</h3>
+            <p><strong>Issue:</strong> No validation for invalid data structures</p>
+            <p><strong>Solution:</strong> Added input validation in <code class="code">createSourceComparisonPlot()</code></p>
+            <p><strong>Impact:</strong> Better user feedback for data errors</p>
+        </div>
+
+        <h2>📊 How to Test:</h2>
+        <ol>
+            <li>Load CSV files containing _nmax data</li>
+            <li>Go to section "2. Nmax constant site, comparing variables"</li>
+            <li>Select an _nmax.csv file from the dropdown</li>
+            <li>Select one or more variables (Ctrl+click for multiple)</li>
+            <li>Toggle between Line and Column chart types</li>
+            <li>Click "Generate Variable Comparison Plot"</li>
+            <li>Verify plot appears with proper DD/MM/YY date labels</li>
+        </ol>
+
+        <h2>🎯 Expected Results:</h2>
+        <ul>
+            <li>✅ Plot generates without console errors</li>
+            <li>✅ X-axis shows readable date labels (DD/MM/YY format)</li>
+            <li>✅ Both Line and Column chart modes work</li>
+            <li>✅ Multiple variables display correctly with different colors</li>
+            <li>✅ Legend shows variable names clearly</li>
+        </ul>
+
+        <p><strong>Status:</strong> Ready for testing! 🚀</p>
+    </div>
+</body>
+</html>

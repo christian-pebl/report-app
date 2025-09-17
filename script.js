@@ -4968,7 +4968,7 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
             
             console.log('Drawing axes...');
             // Draw axes
-            this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxPercentage, canvas, "Time");
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
             
             console.log('Plotting site data...');
             // Apply layer ordering and plot data for each site
@@ -5036,7 +5036,7 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
             if (hourKey && sourceKey && row[hourKey] && row[sourceKey] !== undefined) {
                 let timeIdentifier = row[hourKey];
 
-                // Handle different time formats for std files vs 24hr files
+                // Handle different time formats for std files vs 24hr files vs _nmax daily files
                 if (typeof timeIdentifier === 'string' && timeIdentifier.includes('T')) {
                     // ISO timestamp like "2025-03-30T01:00:00.000Z" (common in std files)
                     const dateObj = new Date(timeIdentifier);
@@ -5044,6 +5044,9 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
                     const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
                     const hourStr = String(dateObj.getHours()).padStart(2, '0'); // 00-23
                     timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2025-03-30_14"
+                } else if (typeof timeIdentifier === 'string' && timeIdentifier.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    // Daily date format like "2024-08-01" (common in _nmax files)
+                    timeIdentifier = timeIdentifier; // Keep as-is for daily data
                 } else {
                     // Use as-is for 24hr files (simple hour numbers)
                     timeIdentifier = String(timeIdentifier).padStart(2, '0');
@@ -5069,6 +5072,17 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
         console.log('Sorted hours:', sortedHours.slice(0, 5));
 
         // If we have date_hour format identifiers (e.g., "2024-07-15_14")
+        // If we have daily date format identifiers (e.g., "2024-08-01")
+        if (sortedHours.length > 0 && sortedHours[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return sortedHours.map(dateStr => {
+                const date = new Date(dateStr);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+                return `${day}/${month}/${year}`;
+            });
+        }
+
         if (sortedHours.length > 0 && sortedHours[0].includes('_')) {
             return sortedHours.map(timeIdentifier => {
                 const [dateStr, hourStr] = timeIdentifier.split('_');
@@ -5141,6 +5155,17 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
     }
 
 formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {        // For 24hr file format - use time format when requested (check this FIRST)        if (formatType === "time") {            return sortedHours.map((hour) => {                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);                const hours = String(hourNum).padStart(2, "0");                return `${hours}:00`;            });        }        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {            // This is std file format with date_hour identifiers            return sortedHours.map(timeIdentifier => {                const [dateStr, hourStr] = timeIdentifier.split("_");                const date = new Date(dateStr + "T00:00:00Z");                const day = String(date.getDate()).padStart(2, "0");                const month = String(date.getMonth() + 1).padStart(2, "0");                const year = String(date.getFullYear()).slice(-2);                return `${day}/${month}/${year}`;            });        }        // For 24hr file format - use time format when requested
+        // Check if we have daily date format (YYYY-MM-DD) for _nmax files
+        if (sortedHours.length > 0 && sortedHours[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return sortedHours.map(dateStr => {
+                const date = new Date(dateStr);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = String(date.getFullYear()).slice(-2);
+                return `${day}/${month}/${year}`;
+            });
+        }
+
         if (formatType === "time") {
             return sortedHours.map((hour) => {
                 const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
@@ -5620,6 +5645,17 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     }
 
     createSourceComparisonPlot(siteData, site, sources, outputDiv) {
+        // Validate input parameters
+        if (!siteData || !siteData.data || !sources || sources.length === 0) {
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Data Error</h4>
+                    <p>Invalid data structure or no sources selected for plotting.</p>
+                </div>
+            `;
+            return;
+        }
+
         // Create the plot container
         const plotContainer = document.createElement('div');
         plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
@@ -5670,8 +5706,8 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         });
 
         // Sort time points and format them as dates in dd/mm/yy format
-        const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
-        const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "time");
+        const sortedHours = Array.from(allTimePoints).sort((a, b) => new Date(a) - new Date(b));
+        const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "date");
         console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
             console.log("=== DEBUG: SUBCAMreport Time Range ===");
             console.log("All time points found:", Array.from(allTimePoints).slice(0, 10));
@@ -5698,7 +5734,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         const maxPercentage = Math.ceil((maxDPM / 60) * 100);
         
         // Draw axes
-        this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxPercentage, canvas, "Time");
+        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
         
         // Apply layer ordering and plot data for each source
         const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
@@ -5969,7 +6005,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => new Date(a) - new Date(b));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
             console.log("=== DEBUG: SUBCAMreport Time Range ===");
@@ -6176,7 +6212,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => new Date(a) - new Date(b));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
             console.log("=== DEBUG: SUBCAMreport Time Range ===");
