@@ -4968,7 +4968,7 @@ console.log("=== FIXED: Multi-file Time Range ===");            console.log("All
             
             console.log('Drawing axes...');
             // Draw axes
-            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
+            this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxPercentage, canvas, "Time");
             
             console.log('Plotting site data...');
             // Apply layer ordering and plot data for each site

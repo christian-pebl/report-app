@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUBCAMreport 0.2 - CSV Manager</title>
+    <title>SUBCAMreport 0.3 - CSV Manager</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -37,7 +37,7 @@
     <nav class="top-banner">
         <div class="banner-content">
             <div class="banner-left">
-                <h1 class="banner-title">SUBCAMreport 0.2</h1>
+                <h1 class="banner-title">SUBCAMreport 0.3</h1>
             </div>
             <div class="banner-right">
                 <div class="device-navigation">
@@ -347,219 +347,7 @@
                     
                 </div>
 
-                <!-- Standard DPM Section -->
-                <div class="plot-section-container">
-                    <div class="section-header">
-                        <h2>Observation Events Analysis (Daily Totals)</h2>
-                    </div>
-                    
-                    <div class="comparison-container">
-                        <!-- Compare sites for specified source -->
-                        <div class="comparison-card">
-                            <div class="card-header">
-                                <h3>1. Observations constant variable, comparing sites</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="sourceSelectStd1">Select Variable:</label>
-                                        <select id="sourceSelectStd1" class="form-control">
-                                            <option value="">Select variable to plot...</option>
-                                        </select>
-                                        <small class="help-text">Choose any variable column (excluding time/date columns)</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="sitesSelectStd1">Select _obvs.csv Files:</label>
-                                        <select id="sitesSelectStd1" class="form-control" multiple>
-                                        </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _obvs.csv files</small>
-                                    </div>
-                                </div>
-                                <div class="button-row">
-                                    <!-- Chart Type Toggle Slider -->
-                                    <div class="chart-type-toggle">
-                                        <span class="toggle-label">Line</span>
-                                        <div class="toggle-slider">
-                                            <input type="checkbox" id="chartTypeToggle3" class="toggle-input chart-type-input">
-                                            <label for="chartTypeToggle3" class="toggle-slider-label">
-                                                <span class="toggle-button"></span>
-                                            </label>
-                                        </div>
-                                        <span class="toggle-label">Column</span>
-                                    </div>
-                                    <!-- Layer Control Button -->
-                                    <div class="layer-control">
-                                        <button id="layerToggle3" class="btn-layer layer-toggle-btn" title="Switch Dataset Order">
-                                            ⇅
-                                        </button>
-                                    </div>
-                                    <button id="generateSiteComparisonStdBtn" class="btn-primary" disabled>
-                                        Generate Site Comparison Plot
-                                    </button>
-                                </div>
-                                <div id="siteComparisonStdOutput" class="output-area"></div>
-                            </div>
-                        </div>
-                        
-                        <!-- Compare sources for specified site -->
-                        <div class="comparison-card">
-                            <div class="card-header">
-                                <h3>2. Observations constant site, comparing variables</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="siteSelectStd2">Select _obvs.csv File:</label>
-                                        <select id="siteSelectStd2" class="form-control">
-                                            <option value="">Select a _obvs.csv file...</option>
-                                        </select>
-                                        <small class="help-text">Choose one _obvs.csv file to analyze</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="sourcesSelectStd2">Select Variables:</label>
-                                        <select id="sourcesSelectStd2" class="form-control" multiple>
-                                        </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple variables</small>
-                                    </div>
-                                </div>
-                                <div class="button-row">
-                                    <!-- Chart Type Toggle Slider -->
-                                    <div class="chart-type-toggle">
-                                        <span class="toggle-label">Line</span>
-                                        <div class="toggle-slider">
-                                            <input type="checkbox" id="chartTypeToggle4" class="toggle-input chart-type-input">
-                                            <label for="chartTypeToggle4" class="toggle-slider-label">
-                                                <span class="toggle-button"></span>
-                                            </label>
-                                        </div>
-                                        <span class="toggle-label">Column</span>
-                                    </div>
-                                    <!-- Layer Control Button -->
-                                    <div class="layer-control">
-                                        <button id="layerToggle4" class="btn-layer layer-toggle-btn" title="Switch Dataset Order">
-                                            ⇅
-                                        </button>
-                                    </div>
-                                    <button id="generateSourceComparisonStdBtn" class="btn-primary" disabled>
-                                        Generate Variable Comparison Plot
-                                    </button>
-                                </div>
-                                <div id="sourceComparisonStdOutput" class="output-area"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
 
-                <!-- Distribution of lengths Section -->
-                <div class="plot-section-container">
-                    <div class="section-header">
-                        <h2>Distribution of lengths</h2>
-                    </div>
-
-                    <div class="comparison-container">
-                        <!-- Compare sites for specified length variable -->
-                        <div class="comparison-card">
-                            <div class="card-header">
-                                <h3>1. Length distribution constant variable, comparing sites</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="lengthSelect1">Select Length Variable:</label>
-                                        <select id="lengthSelect1" class="form-control">
-                                            <option value="">Select length variable to plot...</option>
-                                            <option value="AV sml_l (cm)">AV sml_l (cm)</option>
-                                            <option value="AV lrg_l (cm)">AV lrg_l (cm)</option>
-                                            <option value="AV all_l (cm)">AV all_l (cm)</option>
-                                        </select>
-                                        <small class="help-text">Choose a length measurement column</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="sitesSelectLength1">Select Files:</label>
-                                        <select id="sitesSelectLength1" class="form-control" multiple>
-                                        </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple CSV files</small>
-                                    </div>
-                                </div>
-                                <div class="button-row">
-                                    <!-- Chart Type Toggle Slider -->
-                                    <div class="chart-type-toggle">
-                                        <span class="toggle-label">Line</span>
-                                        <div class="toggle-slider">
-                                            <input type="checkbox" id="chartTypeToggle5" class="toggle-input chart-type-input">
-                                            <label for="chartTypeToggle5" class="toggle-slider-label">
-                                                <span class="toggle-button"></span>
-                                            </label>
-                                        </div>
-                                        <span class="toggle-label">Column</span>
-                                    </div>
-                                    <!-- Layer Control Button -->
-                                    <div class="layer-control">
-                                        <button id="layerToggle5" class="btn-layer layer-toggle-btn" title="Switch Dataset Order">
-                                            ⇅
-                                        </button>
-                                    </div>
-                                    <button id="generateSiteComparisonLengthBtn" class="btn-primary" disabled>
-                                        Generate Site Comparison Plot
-                                    </button>
-                                </div>
-                                <div id="siteComparisonLengthOutput" class="output-area"></div>
-                            </div>
-                        </div>
-
-                        <!-- Compare length variables for specified site -->
-                        <div class="comparison-card">
-                            <div class="card-header">
-                                <h3>2. Length distribution constant site, comparing variables</h3>
-                            </div>
-                            <div class="card-body">
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="siteSelectLength2">Select File:</label>
-                                        <select id="siteSelectLength2" class="form-control">
-                                            <option value="">Select a CSV file...</option>
-                                        </select>
-                                        <small class="help-text">Choose one CSV file to analyze</small>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="lengthVarsSelect2">Select Length Variables:</label>
-                                        <select id="lengthVarsSelect2" class="form-control" multiple>
-                                            <option value="AV sml_l (cm)">AV sml_l (cm)</option>
-                                            <option value="AV lrg_l (cm)">AV lrg_l (cm)</option>
-                                            <option value="AV all_l (cm)">AV all_l (cm)</option>
-                                        </select>
-                                        <small class="help-text">Hold Ctrl/Cmd to select multiple length variables</small>
-                                    </div>
-                                </div>
-                                <div class="button-row">
-                                    <!-- Chart Type Toggle Slider -->
-                                    <div class="chart-type-toggle">
-                                        <span class="toggle-label">Line</span>
-                                        <div class="toggle-slider">
-                                            <input type="checkbox" id="chartTypeToggle6" class="toggle-input chart-type-input">
-                                            <label for="chartTypeToggle6" class="toggle-slider-label">
-                                                <span class="toggle-button"></span>
-                                            </label>
-                                        </div>
-                                        <span class="toggle-label">Column</span>
-                                    </div>
-                                    <!-- Layer Control Button -->
-                                    <div class="layer-control">
-                                        <button id="layerToggle6" class="btn-layer layer-toggle-btn" title="Switch Dataset Order">
-                                            ⇅
-                                        </button>
-                                    </div>
-                                    <button id="generateVariableComparisonLengthBtn" class="btn-primary" disabled>
-                                        Generate Variable Comparison Plot
-                                    </button>
-                                </div>
-                                <div id="variableComparisonLengthOutput" class="output-area"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
             </main>
         </div> <!-- End plotPage -->
 
