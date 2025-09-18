@@ -2285,3 +2285,33 @@ header p {
 .debug-level-success {
     color: #28a745;
 }
+
+/* ============= PLOT EXPORT SYSTEM ============= */
+/* Plot Export Button */
+.plot-export-btn {
+    border: 1px solid #ddd !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+}
+
+.plot-export-btn:hover {
+    background: #f8f9fa !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+/* Export Options in Modal */
+.export-options .export-option {
+    width: 100%;
+    text-align: left;
+    padding: 16px;
+    margin-bottom: 0;
+    position: relative;
+}
+
+.export-options .export-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+}

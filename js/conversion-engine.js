@@ -18,6 +18,21 @@ class SUBCAMConverter {
      */
     async convertRawToNmax(csvText, options = {}) {
         try {
+            // Detect if this is a _raw2 format file (inline detection)
+            const firstLine = csvText.split('\n')[0];
+            const expectedRaw2Headers = [
+                'file_name', 'location_1-9_thirds', 'quantity', 'note', 'time_stamp',
+                'confidence_1-5', 'species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'notes'
+            ];
+            const isRaw2Format = expectedRaw2Headers.every(header =>
+                firstLine.toLowerCase().includes(header.toLowerCase())
+            );
+
+            if (isRaw2Format) {
+                this.logger.log('🔍 Detected _raw2 format, converting with _raw2 logic');
+                return await this.convertRaw2ToNmaxInline(csvText, options);
+            }
+
             this.logger.log('🚀 Starting _raw to _nmax conversion');
 
             // STEP 1: Parse and validate CSV format
@@ -88,6 +103,305 @@ class SUBCAMConverter {
                 logs: this.logger.getLogs()
             };
         }
+    }
+
+    /**
+     * Convert _raw2 CSV to _nmax format (inline implementation)
+     * @param {string} csvText - Raw2 CSV content as string
+     * @param {Object} options - Conversion options
+     * @returns {Object} - Conversion result with data and metadata
+     */
+    async convertRaw2ToNmaxInline(csvText, options = {}) {
+        try {
+            this.logger.log('🚀 Starting _raw2 to _nmax conversion (inline)');
+
+            // STEP 1: Parse _raw2 CSV with comma handling
+            this.logger.setCurrentStep(1, 'Parsing _raw2 CSV format');
+            const rawData = this.parseRaw2CSVInline(csvText);
+            this.logger.success(`_raw2 CSV parsed successfully: ${rawData.length} rows`);
+
+            // STEP 2: Normalize and clean _raw2 data
+            this.logger.setCurrentStep(2, 'Normalizing _raw2 data');
+            const normalizedData = this.normalizeRaw2DataInline(rawData);
+            this.logger.success(`_raw2 data normalized: ${normalizedData.length} valid records`);
+
+            // STEP 3: Apply quality filters (confidence only for _raw2)
+            this.logger.setCurrentStep(3, 'Applying quality filters');
+            const filteredData = this.applyQualityFiltersRaw2Inline(normalizedData, options);
+            const filterRatio = ((filteredData.length / normalizedData.length) * 100).toFixed(1);
+            this.logger.success(`Quality filters applied: ${filteredData.length} records passed (${filterRatio}%)`);
+
+            // STEP 4: Calculate per-clip Nmax (reuse existing logic)
+            this.logger.setCurrentStep(4, 'Calculating per-clip Nmax values');
+            const perClipData = this.calculatePerClipNmax(filteredData);
+            this.logger.success(`Per-clip Nmax calculated for ${Object.keys(perClipData).length} unique clips`);
+
+            // STEP 5: Aggregate to daily species totals (reuse existing logic)
+            this.logger.setCurrentStep(5, 'Aggregating daily species totals');
+            const dailySpecies = this.aggregateDailySpecies(perClipData);
+            this.logger.success(`Daily aggregation complete: ${dailySpecies.length} daily species records`);
+
+            // STEP 6: Calculate summary metrics and validate (reuse existing logic)
+            this.logger.setCurrentStep(6, 'Calculating summary metrics and validating output');
+            const result = this.calculateNmaxSummaryMetrics(dailySpecies);
+            this.validateNmaxOutput(result);
+            this.logger.success(`Output validation complete: ${result.length} final records`);
+
+            const totalElapsed = Date.now() - this.logger.startTime;
+            this.logger.success(`🎉 _raw2 to _nmax conversion completed successfully in ${totalElapsed}ms`);
+
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    sourceFormat: '_raw2',
+                    inputRows: rawData.length,
+                    outputRows: result.length,
+                    dateRange: this.getDateRange(result),
+                    speciesCount: this.getSpeciesCount(result),
+                    processingTime: totalElapsed
+                },
+                logs: this.logger.getLogs()
+            };
+
+        } catch (error) {
+            this.logger.error('_raw2 to _nmax conversion failed', error);
+            return {
+                success: false,
+                error: error.message,
+                logs: this.logger.getLogs()
+            };
+        }
+    }
+
+    /**
+     * Parse _raw2 CSV with special handling for commas in notes column (inline)
+     */
+    parseRaw2CSVInline(csvText) {
+        this.logger.log(`DEBUG: _raw2 CSV input length: ${csvText.length} characters`);
+
+        const expectedColumns = 14; // file_name through notes
+        const lines = csvText.trim().split('\n');
+        this.logger.log(`DEBUG: Total lines after split: ${lines.length}`);
+
+        if (lines.length === 0) {
+            throw new Error('CSV content is empty');
+        }
+
+        const headers = this.parseCSVLine(lines[0]).map(h => h.trim());
+        this.logger.log(`DEBUG: Parsed headers (${headers.length}): ${JSON.stringify(headers)}`);
+
+        const data = [];
+        let commaOverflowCount = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+            const values = this.parseCSVLine(lines[i]);
+
+            // Handle comma overflow in notes column (last column)
+            if (values.length > expectedColumns) {
+                commaOverflowCount++;
+                const notesIndex = expectedColumns - 1; // notes is the last column
+
+                // Merge extra columns into notes and remove commas for CSV safety
+                const mergedNotes = values.slice(notesIndex)
+                    .join(' ')
+                    .replace(/,/g, ''); // Remove commas to prevent CSV parsing issues
+
+                // Replace the overflow columns with cleaned notes
+                values.splice(notesIndex, values.length - notesIndex, mergedNotes);
+            }
+
+            if (values.length === headers.length) {
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index];
+                });
+                data.push(row);
+            } else {
+                this.logger.warning(`Row ${i+1}: Column count mismatch (${values.length} vs ${expectedColumns})`);
+            }
+        }
+
+        if (commaOverflowCount > 0) {
+            this.logger.log(`DEBUG: Fixed comma overflow in ${commaOverflowCount} rows (notes column)`);
+        }
+
+        return data;
+    }
+
+    /**
+     * Normalize _raw2 data for processing (inline)
+     */
+    normalizeRaw2DataInline(rawData) {
+        this.logger.log('Starting _raw2 data normalization');
+        this.logger.log(`Input _raw2 data: ${rawData.length} rows`);
+
+        let failedTimestamp = 0;
+        let failedTaxon = 0;
+        let failedQuantity = 0;
+
+        const normalized = rawData.map((row, index) => {
+            if (index === 0) {
+                this.logger.log(`🔍 Processing first row as example: ${JSON.stringify(row).substring(0, 200)}...`);
+            }
+
+            // Normalize all text fields
+            const normalizedRow = {};
+            Object.keys(row).forEach(key => {
+                normalizedRow[this.normalizeText(key)] = this.normalizeText(row[key]);
+            });
+
+            if (index === 0) {
+                this.logger.log(`📝 Normalized first row keys: ${Object.keys(normalizedRow)}`);
+                this.logger.log(`📂 file_name: "${normalizedRow.file_name}"`);
+            }
+
+            // Extract date/time from filename
+            normalizedRow.eventTimestamp = this.extractDateFromFilenameInline(normalizedRow.file_name);
+            normalizedRow.eventDate = normalizedRow.eventTimestamp ?
+                normalizedRow.eventTimestamp.toISOString().split('T')[0] : null;
+
+            if (index === 0) {
+                this.logger.log(`📅 Extracted timestamp: ${normalizedRow.eventTimestamp}`);
+                this.logger.log(`📅 Extracted date: ${normalizedRow.eventDate}`);
+            }
+
+            if (!normalizedRow.eventTimestamp) {
+                failedTimestamp++;
+                if (index < 3) { // Log first few failures
+                    this.logger.warning(`❌ Row ${index + 1}: Failed to extract timestamp from "${normalizedRow.file_name}"`);
+                }
+            }
+
+            // Choose best taxon identifier
+            normalizedRow.taxon = this.chooseTaxonLabelRaw2Inline(normalizedRow);
+            if (index === 0) {
+                this.logger.log(`🐟 Species identification: "${normalizedRow.taxon}" (from species:"${normalizedRow.species}", note:"${normalizedRow.note}", genus:"${normalizedRow.genus}")`);
+            }
+
+            if (!normalizedRow.taxon) {
+                failedTaxon++;
+                if (index < 3) { // Log first few failures
+                    this.logger.warning(`❌ Row ${index + 1}: No taxon identified`);
+                }
+            }
+
+            // Parse and validate quantity
+            normalizedRow.quantity = this.parseQuantityRaw2Inline(normalizedRow.quantity);
+            if (index === 0) {
+                this.logger.log(`🔢 Parsed quantity: ${normalizedRow.quantity} (from "${row.quantity}")`);
+            }
+
+            if (normalizedRow.quantity === 0) {
+                failedQuantity++;
+                if (index < 3) { // Log first few failures
+                    this.logger.warning(`❌ Row ${index + 1}: Zero or invalid quantity "${row.quantity}"`);
+                }
+            }
+
+            // Map _raw2 fields to standard format
+            normalizedRow['File Name'] = normalizedRow.file_name || '';
+            normalizedRow['Adjusted Date and Time'] = normalizedRow.eventTimestamp;
+            normalizedRow['Timestamps (HH:MM:SS)'] = normalizedRow.time_stamp || '';
+            normalizedRow['Event Observation'] = ''; // Not used in _raw2
+            normalizedRow['Quantity (Nmax)'] = normalizedRow.quantity;
+            normalizedRow['Notes'] = normalizedRow.notes || '';
+            normalizedRow['Common Name'] = normalizedRow.note || '';
+            normalizedRow['Order'] = normalizedRow.order || '';
+            normalizedRow['Family'] = normalizedRow.family || '';
+            normalizedRow['Genus'] = normalizedRow.genus || '';
+            normalizedRow['Species'] = normalizedRow.species || '';
+            normalizedRow['Lowest Order Scientific Name'] = ''; // Not available in _raw2
+            normalizedRow['Confidence Level (1-5)'] = normalizedRow['confidence_1-5'] || '';
+            normalizedRow['Quality of Video (1-5)'] = ''; // Always blank for _raw2
+            normalizedRow['Where on Screen (1-9, 3x3 grid top left to lower right)'] = normalizedRow['location_1-9_thirds'] || '';
+            normalizedRow['Analysis Date'] = '';
+            normalizedRow['Analysis by Person'] = '';
+
+            return normalizedRow;
+        }).filter(row => row.eventTimestamp && row.taxon); // Only keep rows with valid dates and species
+
+        this.logger.log(`Normalization complete: ${normalized.length} valid records`);
+        if (failedTimestamp > 0) this.logger.warning(`${failedTimestamp} rows failed timestamp parsing`);
+        if (failedTaxon > 0) this.logger.warning(`${failedTaxon} rows failed taxon identification`);
+        if (failedQuantity > 0) this.logger.warning(`${failedQuantity} rows had zero/invalid quantity`);
+
+        return normalized;
+    }
+
+    /**
+     * Extract date/time from _raw2 filename pattern (inline)
+     */
+    extractDateFromFilenameInline(filename) {
+        this.logger.log(`🔍 Extracting date from filename: ${filename}`);
+
+        // Pattern: algapelago_1_2025-04-05_10-00-47
+        const match = filename.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
+        if (match) {
+            const [_, year, month, day, hour, minute, second] = match;
+            const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+            this.logger.log(`📅 Parsed ISO string: ${isoString}`);
+
+            // Create date object with timezone (inline implementation)
+            try {
+                // Assume UTC and convert to Europe/London timezone like the original system
+                const utcDate = new Date(isoString + 'Z'); // Add Z to treat as UTC
+                this.logger.log(`🕒 Created UTC date: ${utcDate.toISOString()}`);
+                return utcDate;
+            } catch (error) {
+                this.logger.warning(`❌ Failed to create date object from ${isoString}: ${error.message}`);
+                return null;
+            }
+        }
+
+        this.logger.warning(`❌ Failed to parse date from filename pattern: ${filename}`);
+        return null;
+    }
+
+    /**
+     * Choose best taxon label for _raw2 data (inline)
+     */
+    chooseTaxonLabelRaw2Inline(row) {
+        // Priority order: species (scientific) → note (common name) → genus → family
+        if (row.species?.trim()) return row.species.trim();
+        if (row.note?.trim()) return row.note.trim();
+        if (row.genus?.trim()) return row.genus.trim();
+        if (row.family?.trim()) return row.family.trim();
+        return null; // Will be filtered out
+    }
+
+    /**
+     * Parse quantity from _raw2 data (inline)
+     */
+    parseQuantityRaw2Inline(quantityStr) {
+        if (!quantityStr) return 0;
+
+        // Handle "100+" format - remove '+' and parse as number
+        const cleaned = quantityStr.toString().replace('+', '');
+        const parsed = parseInt(cleaned);
+
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    /**
+     * Apply quality filters for _raw2 data (inline)
+     */
+    applyQualityFiltersRaw2Inline(normalizedData, options) {
+        let filteredData = [...normalizedData];
+
+        // Apply confidence level filter if specified
+        if (options.minConfidence && options.minConfidence > 0) {
+            const originalLength = filteredData.length;
+            filteredData = filteredData.filter(row => {
+                const confidence = parseInt(row['Confidence Level (1-5)']);
+                return !isNaN(confidence) && confidence >= options.minConfidence;
+            });
+            this.logger.log(`Confidence filter (min ${options.minConfidence}): ${originalLength} → ${filteredData.length} rows`);
+        }
+
+        // No video quality filter for _raw2 (always blank)
+
+        return filteredData;
     }
 
     /**
@@ -1119,6 +1433,292 @@ class ConversionLogger {
 
     clearLogs() {
         this.logs = [];
+    }
+
+    // ============= _RAW2 FORMAT CONVERSION METHODS =============
+
+    /**
+     * Detect if CSV content is in _raw2 format
+     * @param {string} csvText - CSV content to analyze
+     * @returns {boolean} - True if _raw2 format detected
+     */
+    isRaw2Format(csvText) {
+        const firstLine = csvText.split('\n')[0];
+        const expectedRaw2Headers = [
+            'file_name', 'location_1-9_thirds', 'quantity', 'note', 'time_stamp',
+            'confidence_1-5', 'species', 'genus', 'family', 'order', 'class', 'phylum', 'kingdom', 'notes'
+        ];
+
+        // Check if first line contains the expected _raw2 headers
+        const hasRaw2Headers = expectedRaw2Headers.every(header =>
+            firstLine.toLowerCase().includes(header.toLowerCase())
+        );
+
+        return hasRaw2Headers;
+    }
+
+    /**
+     * Convert _raw2 CSV to _nmax format
+     * @param {string} csvText - Raw2 CSV content as string
+     * @param {Object} options - Conversion options
+     * @returns {Object} - Conversion result with data and metadata
+     */
+    async convertRaw2ToNmax(csvText, options = {}) {
+        try {
+            this.logger.log('🚀 Starting _raw2 to _nmax conversion');
+
+            // STEP 1: Parse _raw2 CSV with comma handling
+            this.logger.setCurrentStep(1, 'Parsing _raw2 CSV format');
+            const rawData = this.parseRaw2CSV(csvText);
+            this.logger.success(`_raw2 CSV parsed successfully: ${rawData.length} rows`);
+
+            // STEP 2: Normalize and clean _raw2 data
+            this.logger.setCurrentStep(2, 'Normalizing _raw2 data');
+            const normalizedData = this.normalizeRaw2Data(rawData);
+            this.logger.success(`_raw2 data normalized: ${normalizedData.length} valid records`);
+
+            // STEP 3: Apply quality filters (confidence only for _raw2)
+            this.logger.setCurrentStep(3, 'Applying quality filters');
+            const filteredData = this.applyQualityFiltersRaw2(normalizedData, options);
+            const filterRatio = ((filteredData.length / normalizedData.length) * 100).toFixed(1);
+            this.logger.success(`Quality filters applied: ${filteredData.length} records passed (${filterRatio}%)`);
+
+            // STEP 4: Calculate per-clip Nmax (reuse existing logic)
+            this.logger.setCurrentStep(4, 'Calculating per-clip Nmax values');
+            const perClipData = this.calculatePerClipNmax(filteredData);
+            this.logger.success(`Per-clip Nmax calculated for ${Object.keys(perClipData).length} unique clips`);
+
+            // STEP 5: Aggregate to daily species totals (reuse existing logic)
+            this.logger.setCurrentStep(5, 'Aggregating daily species totals');
+            const dailySpecies = this.aggregateDailySpecies(perClipData);
+            this.logger.success(`Daily aggregation complete: ${dailySpecies.length} daily species records`);
+
+            // STEP 6: Calculate summary metrics and validate (reuse existing logic)
+            this.logger.setCurrentStep(6, 'Calculating summary metrics and validating output');
+            const result = this.calculateNmaxSummaryMetrics(dailySpecies);
+            this.validateNmaxOutput(result);
+            this.logger.success(`Output validation complete: ${result.length} final records`);
+
+            const totalElapsed = Date.now() - this.logger.startTime;
+            this.logger.success(`🎉 _raw2 to _nmax conversion completed successfully in ${totalElapsed}ms`);
+
+            return {
+                success: true,
+                data: result,
+                metadata: {
+                    sourceFormat: '_raw2',
+                    inputRows: rawData.length,
+                    outputRows: result.length,
+                    dateRange: this.getDateRange(result),
+                    speciesCount: this.getSpeciesCount(result),
+                    processingTime: totalElapsed
+                },
+                logs: this.logger.getLogs()
+            };
+
+        } catch (error) {
+            this.logger.error('_raw2 to _nmax conversion failed', error);
+            return {
+                success: false,
+                error: error.message,
+                logs: this.logger.getLogs()
+            };
+        }
+    }
+
+    /**
+     * Parse _raw2 CSV with special handling for commas in notes column
+     * @param {string} csvText - Raw CSV content
+     * @returns {Array} - Parsed data rows
+     */
+    parseRaw2CSV(csvText) {
+        this.logger.log(`DEBUG: _raw2 CSV input length: ${csvText.length} characters`);
+
+        const expectedColumns = 14; // file_name through notes
+        const lines = csvText.trim().split('\n');
+        this.logger.log(`DEBUG: Total lines after split: ${lines.length}`);
+
+        if (lines.length === 0) {
+            throw new Error('CSV content is empty');
+        }
+
+        const headers = this.parseCSVLine(lines[0]).map(h => h.trim());
+        this.logger.log(`DEBUG: Parsed headers (${headers.length}): ${JSON.stringify(headers)}`);
+
+        const data = [];
+        let commaOverflowCount = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+            const values = this.parseCSVLine(lines[i]);
+
+            // Handle comma overflow in notes column (last column)
+            if (values.length > expectedColumns) {
+                commaOverflowCount++;
+                const notesIndex = expectedColumns - 1; // notes is the last column
+
+                // Merge extra columns into notes and remove commas for CSV safety
+                const mergedNotes = values.slice(notesIndex)
+                    .join(' ')
+                    .replace(/,/g, ''); // Remove commas to prevent CSV parsing issues
+
+                // Replace the overflow columns with cleaned notes
+                values.splice(notesIndex, values.length - notesIndex, mergedNotes);
+            }
+
+            if (values.length === headers.length) {
+                const row = {};
+                headers.forEach((header, index) => {
+                    row[header] = values[index];
+                });
+                data.push(row);
+            } else {
+                this.logger.warning(`Row ${i+1}: Column count mismatch (${values.length} vs ${expectedColumns})`);
+            }
+        }
+
+        if (commaOverflowCount > 0) {
+            this.logger.log(`DEBUG: Fixed comma overflow in ${commaOverflowCount} rows (notes column)`);
+        }
+
+        return data;
+    }
+
+    /**
+     * Extract date/time from _raw2 filename pattern
+     * @param {string} filename - Filename to parse
+     * @returns {Date|null} - Parsed date or null if parsing fails
+     */
+    extractDateFromFilename(filename) {
+        // Pattern: algapelago_1_2025-04-05_10-00-47
+        const match = filename.match(/(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})/);
+        if (match) {
+            const [_, year, month, day, hour, minute, second] = match;
+            const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+
+            // Use same timezone handling as current system
+            return this.parseTimestampWithTimezone(isoString);
+        }
+
+        this.logger.warning(`Failed to parse date from filename: ${filename}`);
+        return null;
+    }
+
+    /**
+     * Choose best taxon label for _raw2 data (priority: scientific → common → genus → family)
+     * @param {Object} row - Data row
+     * @returns {string|null} - Best available taxon label
+     */
+    chooseTaxonLabelRaw2(row) {
+        // Priority order: species (scientific) → note (common name) → genus → family
+        if (row.species?.trim()) return row.species.trim();
+        if (row.note?.trim()) return row.note.trim();
+        if (row.genus?.trim()) return row.genus.trim();
+        if (row.family?.trim()) return row.family.trim();
+        return null; // Will be filtered out
+    }
+
+    /**
+     * Parse quantity from _raw2 data (handle "100+" format)
+     * @param {string} quantityStr - Quantity string
+     * @returns {number} - Parsed quantity
+     */
+    parseQuantityRaw2(quantityStr) {
+        if (!quantityStr) return 0;
+
+        // Handle "100+" format - remove '+' and parse as number
+        const cleaned = quantityStr.toString().replace('+', '');
+        const parsed = parseInt(cleaned);
+
+        return isNaN(parsed) ? 0 : parsed;
+    }
+
+    /**
+     * Normalize _raw2 data for processing
+     * @param {Array} rawData - Raw parsed data
+     * @returns {Array} - Normalized data
+     */
+    normalizeRaw2Data(rawData) {
+        this.logger.log('Starting _raw2 data normalization');
+        this.logger.log(`Input _raw2 data: ${rawData.length} rows`);
+
+        let failedTimestamp = 0;
+        let failedTaxon = 0;
+        let failedQuantity = 0;
+
+        const normalized = rawData.map((row, index) => {
+            // Normalize all text fields
+            const normalizedRow = {};
+            Object.keys(row).forEach(key => {
+                normalizedRow[this.normalizeText(key)] = this.normalizeText(row[key]);
+            });
+
+            // Extract date/time from filename
+            normalizedRow.eventTimestamp = this.extractDateFromFilename(normalizedRow.file_name);
+            normalizedRow.eventDate = normalizedRow.eventTimestamp ?
+                normalizedRow.eventTimestamp.toISOString().split('T')[0] : null;
+
+            if (!normalizedRow.eventTimestamp) failedTimestamp++;
+
+            // Choose best taxon identifier
+            normalizedRow.taxon = this.chooseTaxonLabelRaw2(normalizedRow);
+            if (!normalizedRow.taxon) failedTaxon++;
+
+            // Parse and validate quantity
+            normalizedRow.quantity = this.parseQuantityRaw2(normalizedRow.quantity);
+            if (normalizedRow.quantity === 0) failedQuantity++;
+
+            // Map _raw2 fields to standard format
+            normalizedRow['File Name'] = normalizedRow.file_name || '';
+            normalizedRow['Adjusted Date and Time'] = normalizedRow.eventTimestamp;
+            normalizedRow['Timestamps (HH:MM:SS)'] = normalizedRow.time_stamp || '';
+            normalizedRow['Event Observation'] = ''; // Not used in _raw2
+            normalizedRow['Quantity (Nmax)'] = normalizedRow.quantity;
+            normalizedRow['Notes'] = normalizedRow.notes || '';
+            normalizedRow['Common Name'] = normalizedRow.note || '';
+            normalizedRow['Order'] = normalizedRow.order || '';
+            normalizedRow['Family'] = normalizedRow.family || '';
+            normalizedRow['Genus'] = normalizedRow.genus || '';
+            normalizedRow['Species'] = normalizedRow.species || '';
+            normalizedRow['Lowest Order Scientific Name'] = ''; // Not available in _raw2
+            normalizedRow['Confidence Level (1-5)'] = normalizedRow['confidence_1-5'] || '';
+            normalizedRow['Quality of Video (1-5)'] = ''; // Always blank for _raw2
+            normalizedRow['Where on Screen (1-9, 3x3 grid top left to lower right)'] = normalizedRow['location_1-9_thirds'] || '';
+            normalizedRow['Analysis Date'] = '';
+            normalizedRow['Analysis by Person'] = '';
+
+            return normalizedRow;
+        }).filter(row => row.eventTimestamp && row.taxon); // Only keep rows with valid dates and species
+
+        this.logger.log(`Normalization complete: ${normalized.length} valid records`);
+        if (failedTimestamp > 0) this.logger.warning(`${failedTimestamp} rows failed timestamp parsing`);
+        if (failedTaxon > 0) this.logger.warning(`${failedTaxon} rows failed taxon identification`);
+        if (failedQuantity > 0) this.logger.warning(`${failedQuantity} rows had zero/invalid quantity`);
+
+        return normalized;
+    }
+
+    /**
+     * Apply quality filters for _raw2 data (confidence only, no video quality)
+     * @param {Array} normalizedData - Normalized data
+     * @param {Object} options - Filter options
+     * @returns {Array} - Filtered data
+     */
+    applyQualityFiltersRaw2(normalizedData, options) {
+        let filteredData = [...normalizedData];
+
+        // Apply confidence level filter if specified
+        if (options.minConfidence && options.minConfidence > 0) {
+            const originalLength = filteredData.length;
+            filteredData = filteredData.filter(row => {
+                const confidence = parseInt(row['Confidence Level (1-5)']);
+                return !isNaN(confidence) && confidence >= options.minConfidence;
+            });
+            this.logger.log(`Confidence filter (min ${options.minConfidence}): ${originalLength} → ${filteredData.length} rows`);
+        }
+
+        // No video quality filter for _raw2 (always blank)
+
+        return filteredData;
     }
 }
 

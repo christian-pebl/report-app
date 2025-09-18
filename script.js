@@ -397,7 +397,7 @@ class CSVManager {
             const loadPlotButtons = buttonPairs.map(pair => pair.plot).join('');
 
             // Create convert buttons with progressive logic
-            const hasRaw = fileInfo.versions.has('raw') || fileInfo.versions.has('original');
+            const hasRaw = fileInfo.versions.has('raw') || fileInfo.versions.has('raw2') || fileInfo.versions.has('original');
             const hasNmax = fileInfo.versions.has('nmax');
             const hasObvs = fileInfo.versions.has('obvs');
             const canConvert = fileInfo.versions.size > 0; // Has at least one version to convert from
@@ -442,6 +442,7 @@ class CSVManager {
         const colorMap = {
             'original': 'version-original',
             'raw': 'version-raw',
+            'raw2': 'version-raw',
             'nmax': 'version-nmax',
             'obvs': 'version-obvs',
             'std': 'version-std',
@@ -511,7 +512,7 @@ class CSVManager {
         if (!fileInfo || fileInfo.versions.size === 0) return;
 
         // Use the raw file for NMAX conversion
-        let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('original');
+        let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('raw2') || fileInfo.versions.get('original');
         if (!rawFile) {
             this.showError('No raw file found for NMAX conversion');
             return;
@@ -535,6 +536,13 @@ class CSVManager {
 
                 // Create converter with progress callback
                 const converter = new SUBCAMConverter();
+
+                // Debug: Check converter instance
+                console.log('🔍 DEBUG: SUBCAMConverter instance created');
+                console.log('🔍 DEBUG: Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(converter)).filter(m => m.includes('raw2') || m.includes('Raw2')));
+
+                // Show user conversion is starting
+                this.showSuccess('🔍 Analyzing file format and preparing conversion...');
 
                 // Set up progress tracking
                 converter.logger.setProgressCallback((update) => {
@@ -586,7 +594,7 @@ class CSVManager {
         if (!fileInfo || fileInfo.versions.size === 0) return;
 
         // Use the raw file for OBVS conversion
-        let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('original');
+        let rawFile = fileInfo.versions.get('raw') || fileInfo.versions.get('raw2') || fileInfo.versions.get('original');
         if (!rawFile) {
             this.showError('No raw file found for OBVS conversion');
             return;
@@ -1176,6 +1184,7 @@ class CSVManager {
         if (!filename) return null;
 
         const lowerName = filename.toLowerCase();
+        if (lowerName.includes('_raw2.csv')) return 'raw2';
         if (lowerName.includes('_raw.csv')) return 'raw';
         if (lowerName.includes('_nmax.csv')) return 'nmax';
         if (lowerName.includes('_obvs.csv')) return 'obvs';
@@ -1189,6 +1198,10 @@ class CSVManager {
                 'File Name', 'Timestamps', 'Event Observation', 'Quantity',
                 'Common Name', 'Family', 'Lowest Order Scientific Name',
                 'Confidence Level', 'Quality of Video', 'Notes'
+            ],
+            'raw2': [
+                'file_name', 'quantity', 'note', 'time_stamp',
+                'species', 'genus', 'family', 'order', 'notes'
             ],
             'nmax': [
                 'Date', 'Total Observations', 'Cumulative Observations',
@@ -7967,3 +7980,214 @@ function initializeHeatmapPage() {
         };
     }
 }
+
+// ============= PLOT EXPORT SYSTEM =============
+console.log('🚀 ADDING PLOT EXPORT SYSTEM');
+
+class PlotExporter {
+    constructor() {
+        this.targetCanvasId = 'plotCanvas';
+        console.log('PlotExporter: Initializing...');
+        this.init();
+    }
+
+    init() {
+        console.log('PlotExporter: Document ready state:', document.readyState);
+        // Try multiple times to catch dynamically created canvases
+        setTimeout(() => this.setup(), 1000);
+        setTimeout(() => this.setup(), 3000);
+        setTimeout(() => this.setup(), 5000);
+    }
+
+    setup() {
+        console.log('PlotExporter: Setting up...');
+        const canvas = document.getElementById(this.targetCanvasId);
+        console.log('PlotExporter: Canvas found:', !!canvas);
+        if (canvas) {
+            console.log('PlotExporter: Canvas element:', canvas);
+            this.addExportButton();
+        } else {
+            console.log('PlotExporter: No canvas with ID', this.targetCanvasId);
+        }
+    }
+
+    addExportButton() {
+        console.log('PlotExporter: Adding export button...');
+        const canvas = document.getElementById(this.targetCanvasId);
+        const container = canvas.closest('.plot-section') || canvas.parentElement;
+        console.log('PlotExporter: Container found:', container);
+
+        // Check if button already exists
+        if (container.querySelector('.plot-export-btn')) {
+            console.log('PlotExporter: Button already exists');
+            return;
+        }
+
+        // Create export button
+        const btn = document.createElement('button');
+        btn.className = 'plot-export-btn btn-secondary';
+        btn.innerHTML = '📥 Export';
+        btn.onclick = () => this.showExportModal();
+
+        // Style the button
+        btn.style.cssText = `
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            font-size: 14px;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        `;
+
+        // Make container relative
+        const currentPosition = getComputedStyle(container).position;
+        console.log('PlotExporter: Container position:', currentPosition);
+        if (currentPosition === 'static') {
+            container.style.position = 'relative';
+        }
+
+        container.appendChild(btn);
+        console.log('PlotExporter: Button added successfully!', btn);
+    }
+
+    showExportModal() {
+        // Remove existing modal
+        const existing = document.getElementById('plotExportModal');
+        if (existing) existing.remove();
+
+        // Create modal
+        const modal = this.createModal();
+        document.body.appendChild(modal);
+        setTimeout(() => modal.classList.remove('hidden'), 10);
+    }
+
+    createModal() {
+        const modal = document.createElement('div');
+        modal.id = 'plotExportModal';
+        modal.className = 'modal';
+
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Export Plot</h2>
+                    <p>Choose export option for your plot</p>
+                </div>
+                <div class="modal-body">
+                    <div class="export-options">
+                        <button class="btn-primary export-option" onclick="plotExporter.copyToClipboard()">
+                            📋 Copy to Clipboard
+                            <small style="display: block; font-weight: normal; margin-top: 4px; opacity: 0.8;">
+                                Quick paste into documents
+                            </small>
+                        </button>
+                        <button class="btn-primary export-option" onclick="plotExporter.saveHighDPI()" style="margin-top: 12px;">
+                            💾 Save High Quality (300 DPI)
+                            <small style="display: block; font-weight: normal; margin-top: 4px; opacity: 0.8;">
+                                For reports & publications
+                            </small>
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="plotExporter.closeModal()">Cancel</button>
+                </div>
+            </div>
+        `;
+
+        return modal;
+    }
+
+    async copyToClipboard() {
+        const canvas = document.getElementById(this.targetCanvasId);
+        if (!canvas) return;
+
+        try {
+            const blob = await new Promise(resolve =>
+                canvas.toBlob(resolve, 'image/png', 1.0)
+            );
+
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+            ]);
+
+            this.showSuccess('✅ Copied to clipboard!');
+            this.closeModal();
+        } catch (err) {
+            console.error('Copy failed:', err);
+            this.showError('Failed to copy to clipboard');
+        }
+    }
+
+    saveHighDPI() {
+        const canvas = document.getElementById(this.targetCanvasId);
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scale = 300 / 96;
+
+        const hdCanvas = document.createElement('canvas');
+        hdCanvas.width = rect.width * scale;
+        hdCanvas.height = rect.height * scale;
+
+        const hdCtx = hdCanvas.getContext('2d');
+        hdCtx.imageSmoothingEnabled = true;
+        hdCtx.imageSmoothingQuality = 'high';
+
+        hdCtx.scale(scale, scale);
+        hdCtx.fillStyle = 'white';
+        hdCtx.fillRect(0, 0, rect.width, rect.height);
+        hdCtx.drawImage(canvas, 0, 0, rect.width, rect.height);
+
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+        const filename = `subcam_plot_300dpi_${timestamp}.png`;
+
+        hdCanvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            this.showSuccess(`✅ Saved as ${filename}`);
+            this.closeModal();
+        }, 'image/png', 1.0);
+    }
+
+    showSuccess(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            z-index: 10001;
+            font-size: 14px;
+        `;
+
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    showError(message) {
+        alert(message);
+    }
+
+    closeModal() {
+        const modal = document.getElementById('plotExportModal');
+        if (modal) modal.remove();
+    }
+}
+
+// Initialize the plot exporter
+console.log('🚀 ABOUT TO CREATE PLOT EXPORTER');
+const plotExporter = new PlotExporter();
+console.log('🎯 PLOT EXPORT SYSTEM INITIALIZED');
