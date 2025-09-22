@@ -8191,3 +8191,269 @@ class PlotExporter {
 console.log('🚀 ABOUT TO CREATE PLOT EXPORTER');
 const plotExporter = new PlotExporter();
 console.log('🎯 PLOT EXPORT SYSTEM INITIALIZED');
+// Compact Heatmap Functionality
+class CompactHeatmapManager {
+    constructor() {
+        this.fileData = [];
+        this.currentFile = null;
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        console.log('Compact Heatmap Manager initialized');
+    }
+
+    setupEventListeners() {
+        const fileInput = document.getElementById('compactFileInput');
+        const generateBtn = document.getElementById('generateCompactHeatmapBtn');
+        const selectAllBtn = document.getElementById('compactSelectAllSpecies');
+        const deselectAllBtn = document.getElementById('compactDeselectAllSpecies');
+
+        if (fileInput) fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+        if (generateBtn) generateBtn.addEventListener('click', () => this.generateCompactHeatmap());
+        if (selectAllBtn) selectAllBtn.addEventListener('click', () => this.selectAllSpecies());
+        if (deselectAllBtn) deselectAllBtn.addEventListener('click', () => this.deselectAllSpecies());
+    }
+
+    async handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        console.log('Loading file:', file.name);
+
+        try {
+            const csvContent = await this.readFileContent(file);
+            this.parseCSVData(csvContent);
+            this.currentFile = file.name;
+        } catch (error) {
+            console.error('Error loading file:', error);
+            alert('Error loading file: ' + error.message);
+        }
+    }
+
+    readFileContent(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
+
+    parseCSVData(csvContent) {
+        const lines = csvContent.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim());
+
+        console.log('Headers found:', headers);
+
+        // Extract species columns (columns 8+)
+        const speciesHeaders = headers.slice(7);
+        console.log('Species found:', speciesHeaders);
+
+        // Parse data rows
+        this.fileData = [];
+        for (let i = 1; i < lines.length; i++) {
+            const values = lines[i].split(',').map(v => v.trim());
+            const row = {};
+            headers.forEach((header, index) => {
+                row[header] = values[index] || '';
+            });
+            this.fileData.push(row);
+        }
+
+        console.log(`Parsed ${this.fileData.length} data rows`);
+
+        // Show species selection
+        this.populateSpeciesSelection(speciesHeaders);
+        document.getElementById('compactSpeciesSelection').classList.remove('hidden');
+    }
+
+    populateSpeciesSelection(species) {
+        const container = document.getElementById('compactSpeciesCheckboxes');
+        container.innerHTML = '';
+
+        species.forEach(speciesName => {
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'species-checkbox';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `compact_species_${speciesName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            checkbox.value = speciesName;
+            checkbox.checked = true; // Auto-select all for compact view
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = speciesName;
+
+            checkboxDiv.appendChild(checkbox);
+            checkboxDiv.appendChild(label);
+            container.appendChild(checkboxDiv);
+        });
+
+        document.getElementById('generateCompactHeatmapBtn').disabled = false;
+        console.log('Species selection populated for compact view');
+    }
+
+    selectAllSpecies() {
+        const checkboxes = document.querySelectorAll('#compactSpeciesCheckboxes input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = true);
+    }
+
+    deselectAllSpecies() {
+        const checkboxes = document.querySelectorAll('#compactSpeciesCheckboxes input[type="checkbox"]');
+        checkboxes.forEach(cb => cb.checked = false);
+    }
+
+    getSelectedSpecies() {
+        const checkboxes = document.querySelectorAll('#compactSpeciesCheckboxes input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => cb.value);
+    }
+
+    generateCompactHeatmap() {
+        const selectedSpecies = this.getSelectedSpecies();
+
+        if (selectedSpecies.length === 0) {
+            alert('Please select at least one species to display.');
+            return;
+        }
+
+        console.log(`Generating compact heatmap for ${selectedSpecies.length} species and ${this.fileData.length} dates`);
+
+        const heatmapGrid = document.getElementById('compactHeatmapGrid');
+        heatmapGrid.innerHTML = '';
+
+        // Use existing heatmap generation logic but with compact styling
+        this.buildCompactHeatmap(selectedSpecies, heatmapGrid);
+
+        // Show heatmap container
+        document.getElementById('compactHeatmapVisualization').classList.remove('hidden');
+        document.getElementById('compactHeatmapTitle').textContent =
+            `Compact Heatmap - ${this.currentFile} (${selectedSpecies.length} species, ${this.fileData.length} dates)`;
+
+        console.log('Compact heatmap generated successfully!');
+    }
+
+    buildCompactHeatmap(selectedSpecies, heatmapGrid) {
+        // Calculate max value for abundance scale
+        let maxValue = 0;
+        selectedSpecies.forEach(species => {
+            this.fileData.forEach(row => {
+                const value = parseInt(row[species]) || 0;
+                if (value > maxValue) maxValue = value;
+            });
+        });
+
+        // Add species title row
+        const titleRow = document.createElement('div');
+        titleRow.className = 'heatmap-title-row';
+
+        const speciesTitle = document.createElement('div');
+        speciesTitle.className = 'heatmap-species-title';
+        speciesTitle.textContent = 'Species';
+        titleRow.appendChild(speciesTitle);
+
+        // Add empty cells for data columns
+        this.fileData.forEach(() => {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'heatmap-title-data-cell';
+            titleRow.appendChild(emptyCell);
+        });
+
+        heatmapGrid.appendChild(titleRow);
+
+        // Create species rows
+        selectedSpecies.forEach(species => {
+            const speciesRow = document.createElement('div');
+            speciesRow.className = 'heatmap-row';
+
+            // Species name cell
+            const speciesNameCell = document.createElement('div');
+            speciesNameCell.className = 'heatmap-cell heatmap-species-name';
+            speciesNameCell.textContent = species;
+            speciesNameCell.title = species;
+            speciesRow.appendChild(speciesNameCell);
+
+            // Data cells for each date
+            this.fileData.forEach(row => {
+                const dataCell = document.createElement('div');
+                dataCell.className = 'heatmap-cell heatmap-data-cell';
+
+                const value = parseInt(row[species]) || 0;
+                dataCell.textContent = value > 0 ? value : '';
+                dataCell.classList.add(this.getAbundanceClass(value));
+
+                const formattedDate = this.formatDate(row.Date || row.date);
+                dataCell.title = `${species} on ${formattedDate}: ${value}`;
+
+                speciesRow.appendChild(dataCell);
+            });
+
+            heatmapGrid.appendChild(speciesRow);
+        });
+
+        // Add date row (show every 10th date for compact view)
+        const dateRow = document.createElement('div');
+        dateRow.className = 'heatmap-date-row';
+
+        // Date title cell
+        const dateTitleCell = document.createElement('div');
+        dateTitleCell.className = 'heatmap-date-title-cell';
+        dateTitleCell.textContent = 'Date';
+        dateRow.appendChild(dateTitleCell);
+
+        // Add date cells (show every 10th date)
+        this.fileData.forEach((row, index) => {
+            const dateCell = document.createElement('div');
+            dateCell.className = 'heatmap-date-cell';
+
+            // Show date label every 10th entry for compact view
+            if (index % 10 === 0) {
+                const formattedDate = this.formatDate(row.Date || row.date);
+                const dateText = document.createElement('span');
+                dateText.className = 'heatmap-date-text';
+                dateText.textContent = formattedDate;
+                dateCell.appendChild(dateText);
+            }
+
+            dateRow.appendChild(dateCell);
+        });
+
+        heatmapGrid.appendChild(dateRow);
+    }
+
+    formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit'
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    }
+
+    getAbundanceClass(value) {
+        if (value === 0) return 'abundance-0';
+        if (value <= 1) return 'abundance-1';
+        if (value <= 2) return 'abundance-2';
+        if (value <= 3) return 'abundance-3';
+        if (value <= 4) return 'abundance-4';
+        if (value <= 5) return 'abundance-5';
+        if (value <= 6) return 'abundance-6';
+        if (value <= 7) return 'abundance-7';
+        if (value <= 8) return 'abundance-8';
+        if (value <= 9) return 'abundance-9';
+        return 'abundance-10-plus';
+    }
+}
+
+// Initialize compact heatmap manager when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.compactHeatmapManager === 'undefined') {
+        window.compactHeatmapManager = new CompactHeatmapManager();
+    }
+});
