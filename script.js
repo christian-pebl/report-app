@@ -7291,7 +7291,7 @@ function initializeHeatmapPage() {
                 if (dataColSelect) {
                     const dataWidth = heatmapEditState.dataColumnWidth || currentDataWidth;
                     // Find closest preset value from 1-10 scale
-                    const dataPresets = [20, 25, 30, 35, 40, 45, 50, 55, 60, 70];
+                    const dataPresets = [8, 12, 16, 20, 25, 30, 35, 45, 55, 70];
                     let closestValue = 35; // Default to 4 (Normal)
                     let minDiff = Math.abs(dataWidth - closestValue);
 
@@ -7322,6 +7322,19 @@ function initializeHeatmapPage() {
                         heatmapEditState.columnWidth = newSpeciesWidth;
                         heatmapEditState.dataColumnWidth = newDataWidth;
 
+                        // Apply special CSS classes for ultra-thin columns
+                        const dataCells = document.querySelectorAll('.heatmap-data-cell');
+                        dataCells.forEach(cell => {
+                            cell.classList.remove('ultra-thin', 'very-thin', 'thin');
+                            if (newDataWidth <= 8) {
+                                cell.classList.add('ultra-thin');
+                            } else if (newDataWidth <= 12) {
+                                cell.classList.add('very-thin');
+                            } else if (newDataWidth <= 16) {
+                                cell.classList.add('thin');
+                            }
+                        });
+
                         // Update all species column widths
                         const speciesColumns = document.querySelectorAll('.heatmap-species-name, .heatmap-species-title, .heatmap-date-title-cell');
                         console.log('[Edit Mode] Updating', speciesColumns.length, 'species columns');
@@ -7329,8 +7342,7 @@ function initializeHeatmapPage() {
                             col.style.width = `${newSpeciesWidth}px`;
                         });
 
-                        // Update all data column widths
-                        const dataCells = document.querySelectorAll('.heatmap-data-cell');
+                        // Update all data column widths - reuse dataCells from above
                         const titleDataCells = document.querySelectorAll('.heatmap-title-data-cell');
                         const dateDateCells = document.querySelectorAll('.heatmap-date-cell');
 
@@ -7340,7 +7352,7 @@ function initializeHeatmapPage() {
                             dateCells: dateDateCells.length
                         });
 
-                        // Update data cells
+                        // Update data cells width
                         dataCells.forEach((cell, index) => {
                             cell.style.width = `${newDataWidth}px`;
                             if (index < 3) {
@@ -7351,11 +7363,27 @@ function initializeHeatmapPage() {
                         // Update title cells
                         titleDataCells.forEach(cell => {
                             cell.style.width = `${newDataWidth}px`;
+                            cell.classList.remove('ultra-thin', 'very-thin', 'thin');
+                            if (newDataWidth <= 8) {
+                                cell.classList.add('ultra-thin');
+                            } else if (newDataWidth <= 12) {
+                                cell.classList.add('very-thin');
+                            } else if (newDataWidth <= 16) {
+                                cell.classList.add('thin');
+                            }
                         });
 
                         // Update date cells
                         dateDateCells.forEach(cell => {
                             cell.style.width = `${newDataWidth}px`;
+                            cell.classList.remove('ultra-thin', 'very-thin', 'thin');
+                            if (newDataWidth <= 8) {
+                                cell.classList.add('ultra-thin');
+                            } else if (newDataWidth <= 12) {
+                                cell.classList.add('very-thin');
+                            } else if (newDataWidth <= 16) {
+                                cell.classList.add('thin');
+                            }
                         });
 
                         console.log('[Edit Mode] Column widths updated successfully');
@@ -8157,6 +8185,15 @@ function initializeHeatmapPage() {
             emptyCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
             emptyCell.style.position = 'relative';
 
+            // Apply ultra-thin class if needed
+            if (heatmapEditState.dataColumnWidth <= 8) {
+                emptyCell.classList.add('ultra-thin');
+            } else if (heatmapEditState.dataColumnWidth <= 12) {
+                emptyCell.classList.add('very-thin');
+            } else if (heatmapEditState.dataColumnWidth <= 16) {
+                emptyCell.classList.add('thin');
+            }
+
             // Add resize handle on the first data column only (for uniform resizing)
             if (index === 0 && heatmapEditState.isEditMode) {
                 const dataResizeHandle = document.createElement('div');
@@ -8270,6 +8307,15 @@ function initializeHeatmapPage() {
                 dataCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
                 dataCell.style.position = 'relative';
 
+                // Apply special CSS classes for ultra-thin columns
+                if (heatmapEditState.dataColumnWidth <= 8) {
+                    dataCell.classList.add('ultra-thin');
+                } else if (heatmapEditState.dataColumnWidth <= 12) {
+                    dataCell.classList.add('very-thin');
+                } else if (heatmapEditState.dataColumnWidth <= 16) {
+                    dataCell.classList.add('thin');
+                }
+
                 const value = row[species] || 0;
                 dataCell.textContent = value;
                 dataCell.classList.add(getAbundanceClass(value));
@@ -8311,6 +8357,15 @@ function initializeHeatmapPage() {
             const dateCell = document.createElement('div');
             dateCell.className = 'heatmap-date-cell';
             dateCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
+
+            // Apply ultra-thin class if needed
+            if (heatmapEditState.dataColumnWidth <= 8) {
+                dateCell.classList.add('ultra-thin');
+            } else if (heatmapEditState.dataColumnWidth <= 12) {
+                dateCell.classList.add('very-thin');
+            } else if (heatmapEditState.dataColumnWidth <= 16) {
+                dateCell.classList.add('thin');
+            }
 
             // Only show date label every 5th entry
             if (index % 5 === 0) {

@@ -1663,12 +1663,14 @@ header p {
     border: 1px solid #dee2e6;
     border-radius: 4px;
     width: 100%;
+    display: inline-block; /* Shrink to content width */
 }
 
 .heatmap-grid {
     display: table;
+    table-layout: fixed; /* Force respect of explicit widths */
     border-collapse: collapse;
-    min-width: 100%;
+    width: auto; /* Let table size based on content */
 }
 
 .heatmap-row {
@@ -1687,6 +1689,22 @@ header p {
     font-size: 0.7rem;
     white-space: nowrap;
     line-height: 1.2;
+}
+
+/* Ultra-thin column styles */
+.heatmap-data-cell.ultra-thin {
+    padding: 2px 0;
+    font-size: 0.5rem;
+}
+
+.heatmap-data-cell.very-thin {
+    padding: 2px 1px;
+    font-size: 0.6rem;
+}
+
+.heatmap-data-cell.thin {
+    padding: 2px 2px;
+    font-size: 0.65rem;
 }
 
 .heatmap-header-cell {
@@ -1731,8 +1749,7 @@ header p {
 }
 
 .heatmap-data-cell {
-    min-width: 25px;
-    width: 35px;
+    /* min-width removed to allow ultra-thin columns */
     font-weight: 500;
     transition: all 0.2s ease;
     border-color: #e0e0e0;
@@ -1757,8 +1774,7 @@ header p {
 
 .heatmap-title-data-cell {
     display: table-cell;
-    min-width: 25px;
-    width: 35px;
+    /* Width controlled by JavaScript */
     background-color: #fff;
     border: none;
     position: relative;
@@ -1828,9 +1844,7 @@ header p {
     background-color: #f8f9fa;
     height: 100px;
     vertical-align: bottom;
-    min-width: 25px;
-    width: 35px;
-    width: 25px;
+    /* min-width removed to allow ultra-thin columns */
     position: relative;
     text-align: center;
 }
