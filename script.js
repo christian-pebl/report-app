@@ -1,3 +1,88 @@
+// Settings Manager
+class SettingsManager {
+    constructor() {
+        console.log('[Settings] Creating SettingsManager');
+        this.pageWidth = localStorage.getItem('pageWidth') || 'normal';
+        console.log('[Settings] Page width from localStorage:', this.pageWidth);
+        this.initializeSettings();
+        this.setupEventListeners();
+    }
+
+    initializeSettings() {
+        // Apply saved page width setting
+        this.applyPageWidth(this.pageWidth);
+
+        // Update radio button to match saved setting
+        const radioBtn = document.querySelector(`input[name="pageWidth"][value="${this.pageWidth}"]`);
+        if (radioBtn) {
+            radioBtn.checked = true;
+        }
+    }
+
+    setupEventListeners() {
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsDropdown = document.getElementById('settingsDropdown');
+
+        console.log('[Settings] Looking for settings elements:', {
+            button: !!settingsBtn,
+            dropdown: !!settingsDropdown
+        });
+
+        if (settingsBtn && settingsDropdown) {
+            console.log('[Settings] Setting up event listeners');
+
+            // Toggle dropdown on button click
+            settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isHidden = settingsDropdown.classList.contains('hidden');
+                console.log('[Settings] Toggle dropdown, currently hidden:', isHidden);
+                settingsDropdown.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!settingsDropdown.contains(e.target) && !settingsBtn.contains(e.target)) {
+                    settingsDropdown.classList.add('hidden');
+                }
+            });
+
+            // Handle page width changes
+            const pageWidthRadios = document.querySelectorAll('input[name="pageWidth"]');
+            console.log('[Settings] Found', pageWidthRadios.length, 'page width radio buttons');
+
+            pageWidthRadios.forEach(radio => {
+                radio.addEventListener('change', (e) => {
+                    this.pageWidth = e.target.value;
+                    console.log('[Settings] Changing page width to:', this.pageWidth);
+                    this.applyPageWidth(this.pageWidth);
+                    localStorage.setItem('pageWidth', this.pageWidth);
+                    console.log('[Settings] Saved to localStorage');
+                });
+            });
+        } else {
+            console.error('[Settings] Missing elements - Button:', !!settingsBtn, 'Dropdown:', !!settingsDropdown);
+        }
+    }
+
+    applyPageWidth(width) {
+        console.log('[Settings] Applying page width:', width);
+        if (width === 'wide') {
+            document.body.classList.add('wide-view');
+            console.log('[Settings] Added wide-view class to body');
+        } else {
+            document.body.classList.remove('wide-view');
+            console.log('[Settings] Removed wide-view class from body');
+        }
+    }
+}
+
+// Initialize settings when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('[Settings] DOM loaded, initializing SettingsManager');
+    window.settingsManager = new SettingsManager();
+    console.log('[Settings] SettingsManager initialized');
+});
+
 class CSVManager {
     constructor() {
         this.csvData = [];
@@ -1131,7 +1216,8 @@ class CSVManager {
                 // Apply synonym/typo corrections
                 const synonyms = {
                     'Cummilative New Unique Organisms': 'Cumulative New Unique Organisms',
-                    'Total_Observations': 'Total Observations',
+                    'Total_Observations': 'Date',
+                    'Total Observations': 'Date',
                     'Cumulative_Observations': 'Cumulative Observations',
                     'Unique_Organisms_Observed_Today': 'Unique Organisms Observed Today'
                 };
@@ -1170,14 +1256,63 @@ class CSVManager {
             !this.headers.some(header => header.toLowerCase().includes(col.toLowerCase()))
         );
 
-        if (missingColumns.length > 0) {
+        if (missingColumns.length > 0 && (fileType === 'nmax' || fileType === 'obvs')) {
+            console.log('Adding missing columns with 0 values for', fileType, 'format:', missingColumns);
+            this.addMissingColumnsWithDefaults(requiredColumns, fileType);
+        } else if (missingColumns.length > 0) {
             console.warn('Missing required columns for', fileType, 'format:', missingColumns);
             this.showWarning(`This ${fileType} file is missing some expected columns: ${missingColumns.join(', ')}`);
-        } else {
         }
 
         // Store file type for later use
         this.fileType = fileType;
+    }
+
+    addMissingColumnsWithDefaults(requiredColumns, fileType) {
+        console.log('=== ADDING MISSING COLUMNS ===');
+        console.log('Current headers:', this.headers);
+        console.log('Required columns:', requiredColumns);
+
+        // Save original headers for later
+        const originalHeaders = [...this.headers];
+
+        // Start with the Date column
+        const newHeaders = [this.headers[0]]; // Keep Date column
+
+        // Add required columns (except Date which is already added)
+        for (let i = 1; i < requiredColumns.length; i++) {
+            newHeaders.push(requiredColumns[i]);
+        }
+
+        // Add remaining original columns (except the first one which is Date)
+        for (let i = 1; i < originalHeaders.length; i++) {
+            if (!newHeaders.includes(originalHeaders[i])) {
+                newHeaders.push(originalHeaders[i]);
+            }
+        }
+
+        // Update data rows
+        this.csvData = this.csvData.map(row => {
+            const newRow = [row[0]]; // Keep date value
+
+            // Add 0 for each required column
+            for (let i = 1; i < requiredColumns.length; i++) {
+                newRow.push('0');
+            }
+
+            // Add remaining original data (except the first column)
+            for (let i = 1; i < row.length; i++) {
+                newRow.push(row[i] || '0');
+            }
+
+            return newRow;
+        });
+
+        // Update headers
+        this.headers = newHeaders;
+
+        console.log('Updated headers:', this.headers);
+        console.log('Sample updated row:', this.csvData[0]);
     }
 
     determineSUBCAMFileType(filename) {
@@ -1857,8 +1992,9 @@ class CSVManager {
             const tr = document.createElement('tr');
             row.forEach((cell, cellIndex) => {
                 const td = document.createElement('td');
-                td.textContent = cell || '';
-                
+                // Display 0 as "0", empty/null as empty string
+                td.textContent = (cell === 0 || cell === '0') ? '0' : (cell || '');
+
                 // Add title attribute for long content
                 if (cell && cell.length > 50) {
                     td.title = cell;
@@ -2328,7 +2464,7 @@ class CSVManager {
         if (this.csvData.length === 0) return;
 
         let csvContent = this.headers.map(header => this.escapeCSVField(header)).join(',') + '\n';
-        
+
         this.csvData.forEach(row => {
             const escapedRow = row.map(field => this.escapeCSVField(field)).join(',');
             csvContent += escapedRow + '\n';
@@ -2336,11 +2472,20 @@ class CSVManager {
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
-        
+
         if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
-            link.setAttribute('download', `processed_${this.fileName}`);
+
+            // Generate filename with _nmax suffix
+            let exportFileName = this.fileName;
+            if (exportFileName.includes('.csv')) {
+                exportFileName = exportFileName.replace('.csv', '_nmax.csv');
+            } else {
+                exportFileName = exportFileName + '_nmax.csv';
+            }
+
+            link.setAttribute('download', exportFileName);
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
@@ -6948,7 +7093,14 @@ function initializeHeatmapPage() {
         isEditMode: false,
         originalData: null,
         modifiedData: new Map(),
-        currentFileName: null
+        currentFileName: null,
+        speciesOrder: [], // Track current species order for reordering
+        columnWidth: null, // Store custom column width for species column
+        dataColumnWidth: 35, // Uniform width for all data columns
+        isResizing: false,
+        resizeStartX: 0,
+        resizeStartWidth: 0,
+        resizeColumnType: null // 'species' or 'data'
     };
 
     // Update file dropdown when files are loaded - make this global
@@ -7086,6 +7238,133 @@ function initializeHeatmapPage() {
             saveBtn.classList.remove('hidden');
             cancelBtn.classList.remove('hidden');
 
+            // Show edit controls and setup dropdown functionality
+            const editControls = document.getElementById('editControls');
+            console.log('[Edit Mode] Looking for edit controls:', editControls);
+
+            if (editControls) {
+                console.log('[Edit Mode] Showing edit controls');
+                editControls.classList.remove('hidden');
+
+                // Get dropdown elements
+                const speciesColSelect = document.getElementById('speciesColWidth');
+                const dataColSelect = document.getElementById('dataColWidth');
+                const updateBtn = document.getElementById('updateColumnWidths');
+
+                console.log('[Edit Mode] Control elements found:', {
+                    speciesSelect: !!speciesColSelect,
+                    dataSelect: !!dataColSelect,
+                    updateButton: !!updateBtn
+                });
+
+                // Set initial values based on current column widths
+                const currentSpeciesWidth = document.querySelector('.heatmap-species-name, .heatmap-species-title')?.offsetWidth || 150;
+                const currentDataWidth = document.querySelector('.heatmap-data-cell')?.offsetWidth || 35;
+
+                console.log('[Edit Mode] Current column widths:', {
+                    species: currentSpeciesWidth,
+                    data: currentDataWidth,
+                    storedSpecies: heatmapEditState.columnWidth,
+                    storedData: heatmapEditState.dataColumnWidth
+                });
+
+                // Set dropdown values to match current widths (find closest preset)
+                if (speciesColSelect) {
+                    const speciesWidth = heatmapEditState.columnWidth || currentSpeciesWidth;
+                    // Find closest preset value from 1-10 scale
+                    const speciesPresets = [80, 100, 120, 140, 160, 180, 200, 230, 260, 300];
+                    let closestValue = 160; // Default to 5 (Normal)
+                    let minDiff = Math.abs(speciesWidth - closestValue);
+
+                    speciesPresets.forEach(preset => {
+                        const diff = Math.abs(speciesWidth - preset);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestValue = preset;
+                        }
+                    });
+
+                    speciesColSelect.value = closestValue.toString();
+                    console.log('[Edit Mode] Set species dropdown to:', closestValue, '(from width:', speciesWidth, ')');
+                }
+
+                if (dataColSelect) {
+                    const dataWidth = heatmapEditState.dataColumnWidth || currentDataWidth;
+                    // Find closest preset value from 1-10 scale
+                    const dataPresets = [20, 25, 30, 35, 40, 45, 50, 55, 60, 70];
+                    let closestValue = 35; // Default to 4 (Normal)
+                    let minDiff = Math.abs(dataWidth - closestValue);
+
+                    dataPresets.forEach(preset => {
+                        const diff = Math.abs(dataWidth - preset);
+                        if (diff < minDiff) {
+                            minDiff = diff;
+                            closestValue = preset;
+                        }
+                    });
+
+                    dataColSelect.value = closestValue.toString();
+                    console.log('[Edit Mode] Set data dropdown to:', closestValue, '(from width:', dataWidth, ')');
+                }
+
+                // Setup update button click handler
+                if (updateBtn) {
+                    updateBtn.onclick = function() {
+                        const newSpeciesWidth = parseInt(speciesColSelect.value);
+                        const newDataWidth = parseInt(dataColSelect.value);
+
+                        console.log('[Edit Mode] Updating column widths:', {
+                            species: newSpeciesWidth,
+                            data: newDataWidth
+                        });
+
+                        // Store the new widths
+                        heatmapEditState.columnWidth = newSpeciesWidth;
+                        heatmapEditState.dataColumnWidth = newDataWidth;
+
+                        // Update all species column widths
+                        const speciesColumns = document.querySelectorAll('.heatmap-species-name, .heatmap-species-title, .heatmap-date-title-cell');
+                        console.log('[Edit Mode] Updating', speciesColumns.length, 'species columns');
+                        speciesColumns.forEach(col => {
+                            col.style.width = `${newSpeciesWidth}px`;
+                        });
+
+                        // Update all data column widths
+                        const dataCells = document.querySelectorAll('.heatmap-data-cell');
+                        const titleDataCells = document.querySelectorAll('.heatmap-title-data-cell');
+                        const dateDateCells = document.querySelectorAll('.heatmap-date-cell');
+
+                        console.log('[Edit Mode] Found elements:', {
+                            dataCells: dataCells.length,
+                            titleCells: titleDataCells.length,
+                            dateCells: dateDateCells.length
+                        });
+
+                        // Update data cells
+                        dataCells.forEach((cell, index) => {
+                            cell.style.width = `${newDataWidth}px`;
+                            if (index < 3) {
+                                console.log(`[Edit Mode] Data cell ${index} width set to:`, cell.style.width);
+                            }
+                        });
+
+                        // Update title cells
+                        titleDataCells.forEach(cell => {
+                            cell.style.width = `${newDataWidth}px`;
+                        });
+
+                        // Update date cells
+                        dateDateCells.forEach(cell => {
+                            cell.style.width = `${newDataWidth}px`;
+                        });
+
+                        console.log('[Edit Mode] Column widths updated successfully');
+                    };
+                }
+            } else {
+                console.error('[Edit Mode] Edit controls element not found!');
+            }
+
             // Make data cells editable
             dataCells.forEach(cell => {
                 if (cell.textContent.trim() !== '' && !isNaN(cell.textContent.trim())) {
@@ -7149,6 +7428,12 @@ function initializeHeatmapPage() {
         saveBtn.classList.add('hidden');
         cancelBtn.classList.add('hidden');
         saveBtn.disabled = true;
+
+        // Hide edit controls
+        const editControls = document.getElementById('editControls');
+        if (editControls) {
+            editControls.classList.add('hidden');
+        }
 
         // Remove edit functionality from data cells
         dataCells.forEach(cell => {
@@ -7665,10 +7950,164 @@ function initializeHeatmapPage() {
         URL.revokeObjectURL(url);
     }
 
+    // Function to reorder species rows
+    function reorderSpecies(fromIndex, toIndex) {
+        const species = heatmapEditState.speciesOrder[fromIndex];
+        heatmapEditState.speciesOrder.splice(fromIndex, 1);
+        heatmapEditState.speciesOrder.splice(toIndex, 0, species);
+
+        // Regenerate heatmap with new order
+        const fileData = JSON.parse(heatmapFileSelect.dataset.currentData || '[]');
+        generateHeatmap(fileData, heatmapEditState.speciesOrder);
+
+        console.log('Reordered species:', species, 'from position', fromIndex + 1, 'to', toIndex + 1);
+    }
+
+    // Column resize functions
+    function startColumnResize(e, columnType = 'species') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        heatmapEditState.isResizing = true;
+        heatmapEditState.resizeStartX = e.pageX;
+        heatmapEditState.resizeColumnType = columnType;
+
+        // Get current column width based on type
+        if (columnType === 'species') {
+            const speciesColumns = document.querySelectorAll('.heatmap-species-name, .heatmap-species-title');
+            if (speciesColumns.length > 0) {
+                heatmapEditState.resizeStartWidth = speciesColumns[0].offsetWidth;
+            }
+        } else if (columnType === 'data') {
+            // Get current data column width
+            const dataCells = document.querySelectorAll('.heatmap-data-cell');
+            if (dataCells.length > 0) {
+                heatmapEditState.resizeStartWidth = dataCells[0].offsetWidth || heatmapEditState.dataColumnWidth;
+            }
+        }
+
+        // Show resize line
+        const resizeLine = document.getElementById('column-resize-line');
+        if (resizeLine) {
+            const rect = e.target.parentElement ? e.target.parentElement.getBoundingClientRect() : e.target.getBoundingClientRect();
+            const containerRect = document.getElementById('heatmapGrid').getBoundingClientRect();
+            resizeLine.style.left = (rect.right - containerRect.left) + 'px';
+            resizeLine.style.display = 'block';
+        }
+
+        // Add document-level mouse event listeners
+        document.addEventListener('mousemove', handleColumnResize);
+        document.addEventListener('mouseup', endColumnResize);
+
+        // Prevent text selection while resizing
+        document.body.style.userSelect = 'none';
+        document.body.classList.add('resizing-column');
+    }
+
+    function handleColumnResize(e) {
+        if (!heatmapEditState.isResizing) return;
+
+        const deltaX = e.pageX - heatmapEditState.resizeStartX;
+        const minWidth = heatmapEditState.resizeColumnType === 'species' ? 50 : 15;
+        const newWidth = Math.max(minWidth, heatmapEditState.resizeStartWidth + deltaX);
+
+        if (heatmapEditState.resizeColumnType === 'species') {
+            // Update all species column widths
+            const speciesColumns = document.querySelectorAll('.heatmap-species-name, .heatmap-species-title');
+            speciesColumns.forEach(col => {
+                col.style.width = `${newWidth}px`;
+            });
+
+            // Update date title cell width
+            const dateTitleCell = document.querySelector('.heatmap-date-title-cell');
+            if (dateTitleCell) {
+                dateTitleCell.style.width = `${newWidth}px`;
+            }
+
+            // Store the new width
+            heatmapEditState.columnWidth = newWidth;
+        } else if (heatmapEditState.resizeColumnType === 'data') {
+            // Update ALL data column widths uniformly
+            const dataCells = document.querySelectorAll('.heatmap-data-cell');
+            dataCells.forEach(cell => {
+                cell.style.width = `${newWidth}px`;
+            });
+
+            // Update title row data cells
+            const titleCells = document.querySelectorAll('.heatmap-title-data-cell');
+            titleCells.forEach(cell => {
+                cell.style.width = `${newWidth}px`;
+            });
+
+            // Update date row cells
+            const dateCells = document.querySelectorAll('.heatmap-date-cell');
+            dateCells.forEach(cell => {
+                cell.style.width = `${newWidth}px`;
+            });
+
+            // Store the new width for data columns
+            heatmapEditState.dataColumnWidth = newWidth;
+        }
+
+        // Update resize line position
+        const resizeLine = document.getElementById('column-resize-line');
+        if (resizeLine) {
+            const containerRect = document.getElementById('heatmapGrid').getBoundingClientRect();
+            resizeLine.style.left = (e.pageX - containerRect.left) + 'px';
+        }
+    }
+
+    function endColumnResize(e) {
+        if (!heatmapEditState.isResizing) return;
+
+        heatmapEditState.isResizing = false;
+
+        // Hide resize line
+        const resizeLine = document.getElementById('column-resize-line');
+        if (resizeLine) {
+            resizeLine.style.display = 'none';
+        }
+
+        // Remove document event listeners
+        document.removeEventListener('mousemove', handleColumnResize);
+        document.removeEventListener('mouseup', endColumnResize);
+
+        // Re-enable text selection
+        document.body.style.userSelect = '';
+        document.body.classList.remove('resizing-column');
+
+        // Reset resize handle backgrounds
+        const resizeHandles = document.querySelectorAll('.column-resize-handle, .data-resize-handle');
+        resizeHandles.forEach(handle => {
+            handle.style.background = 'transparent';
+        });
+
+        if (heatmapEditState.resizeColumnType === 'species') {
+            console.log('Species column resized to:', heatmapEditState.columnWidth, 'px');
+        } else if (heatmapEditState.resizeColumnType === 'data') {
+            console.log('Data columns resized to:', heatmapEditState.dataColumnWidth, 'px');
+        }
+
+        // Reset resize tracking
+        heatmapEditState.resizeColumnType = null;
+    }
+
     // Generate heatmap
     function generateHeatmap(fileData, selectedSpecies) {
         const heatmapGrid = document.getElementById('heatmapGrid');
         heatmapGrid.innerHTML = '';
+
+        // Initialize or preserve species order
+        if (!heatmapEditState.isEditMode || heatmapEditState.speciesOrder.length === 0) {
+            heatmapEditState.speciesOrder = [...selectedSpecies];
+        }
+
+        // Create resize guide line (hidden by default)
+        const resizeLine = document.createElement('div');
+        resizeLine.id = 'column-resize-line';
+        resizeLine.style.cssText = 'position: absolute; width: 2px; background: #2196F3; top: 0; bottom: 0; z-index: 1000; display: none; pointer-events: none;';
+        heatmapGrid.style.position = 'relative';
+        heatmapGrid.appendChild(resizeLine);
 
         // Calculate longest species name for column width
         const longestSpeciesName = selectedSpecies.reduce((longest, current) =>
@@ -7692,20 +8131,49 @@ function initializeHeatmapPage() {
         const speciesTitle = document.createElement('div');
         speciesTitle.className = 'heatmap-species-title';
         speciesTitle.textContent = 'Species';
-        speciesTitle.style.width = `${Math.max(longestSpeciesName.length * 8, 140)}px`;
+        const defaultWidth = Math.max(longestSpeciesName.length * 8, 140);
+        const columnWidth = heatmapEditState.columnWidth || defaultWidth;
+        speciesTitle.style.width = `${columnWidth}px`;
+        speciesTitle.style.position = 'relative';
+
+        // Add resize handle for edit mode
+        if (heatmapEditState.isEditMode) {
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'column-resize-handle';
+            resizeHandle.style.cssText = 'position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent;';
+            resizeHandle.onmouseenter = () => { resizeHandle.style.background = 'rgba(33, 150, 243, 0.3)'; };
+            resizeHandle.onmouseleave = () => { if (!heatmapEditState.isResizing) resizeHandle.style.background = 'transparent'; };
+
+            resizeHandle.onmousedown = startColumnResize;
+            speciesTitle.appendChild(resizeHandle);
+        }
+
         titleRow.appendChild(speciesTitle);
 
-        // Add empty cells for data columns
+        // Add empty cells for data columns with resize handles
         fileData.forEach((row, index) => {
             const emptyCell = document.createElement('div');
             emptyCell.className = 'heatmap-title-data-cell';
+            emptyCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
+            emptyCell.style.position = 'relative';
+
+            // Add resize handle on the first data column only (for uniform resizing)
+            if (index === 0 && heatmapEditState.isEditMode) {
+                const dataResizeHandle = document.createElement('div');
+                dataResizeHandle.className = 'data-resize-handle';
+                dataResizeHandle.style.cssText = 'position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent; z-index: 10;';
+                dataResizeHandle.onmouseenter = () => { dataResizeHandle.style.background = 'rgba(33, 150, 243, 0.3)'; };
+                dataResizeHandle.onmouseleave = () => { if (!heatmapEditState.isResizing) dataResizeHandle.style.background = 'transparent'; };
+                dataResizeHandle.onmousedown = (e) => startColumnResize(e, 'data');
+                emptyCell.appendChild(dataResizeHandle);
+            }
 
             // Add abundance scale to the last cell (far right)
             if (index === fileData.length - 1) {
                 const abundanceScale = document.createElement('div');
                 abundanceScale.className = 'abundance-scale-right';
                 abundanceScale.innerHTML = `
-                    <span class="legend-label">Abundance Scale:</span>
+                    <span class="legend-label">Scale:</span>
                     <div class="legend-gradient-inline">
                         <span class="legend-min">0</span>
                         <div class="gradient-bar-small"></div>
@@ -7720,22 +8188,87 @@ function initializeHeatmapPage() {
 
         heatmapGrid.appendChild(titleRow);
 
-        // Create species rows
-        selectedSpecies.forEach(species => {
+        // Create species rows using current order in edit mode
+        const speciesToRender = heatmapEditState.isEditMode && heatmapEditState.speciesOrder.length > 0
+            ? heatmapEditState.speciesOrder
+            : selectedSpecies;
+
+        speciesToRender.forEach((species, speciesIndex) => {
             const speciesRow = document.createElement('div');
             speciesRow.className = 'heatmap-row';
 
-            // Species name cell
+            // Species name cell with reorder arrows in edit mode
             const speciesNameCell = document.createElement('div');
             speciesNameCell.className = 'heatmap-cell heatmap-species-name';
-            speciesNameCell.textContent = species;
-            speciesNameCell.style.width = `${Math.max(longestSpeciesName.length * 8, 140)}px`;
+            const defaultWidth = Math.max(longestSpeciesName.length * 8, 140);
+            const speciesColumnWidth = heatmapEditState.columnWidth || defaultWidth;
+            speciesNameCell.style.width = `${speciesColumnWidth}px`;
+            speciesNameCell.style.position = 'relative';
+
+            // Create wrapper for content
+            if (heatmapEditState.isEditMode) {
+                const wrapper = document.createElement('div');
+                wrapper.style.cssText = 'display: flex; align-items: center; justify-content: space-between; width: 100%; height: 100%;';
+
+                // Species name
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = species;
+                nameSpan.style.flexGrow = '1';
+                wrapper.appendChild(nameSpan);
+
+                // Arrow buttons container
+                const arrowContainer = document.createElement('div');
+                arrowContainer.style.cssText = 'display: flex; gap: 2px; margin-left: 8px;';
+
+                // Up arrow
+                if (speciesIndex > 0) {
+                    const upBtn = document.createElement('button');
+                    upBtn.innerHTML = '▲';
+                    upBtn.title = 'Move row up';
+                    upBtn.style.cssText = 'padding: 1px 4px; font-size: 10px; cursor: pointer; background: #f0f0f0; border: 1px solid #999; border-radius: 2px;';
+                    upBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        reorderSpecies(speciesIndex, speciesIndex - 1);
+                    };
+                    arrowContainer.appendChild(upBtn);
+                }
+
+                // Down arrow
+                if (speciesIndex < speciesToRender.length - 1) {
+                    const downBtn = document.createElement('button');
+                    downBtn.innerHTML = '▼';
+                    downBtn.title = 'Move row down';
+                    downBtn.style.cssText = 'padding: 1px 4px; font-size: 10px; cursor: pointer; background: #f0f0f0; border: 1px solid #999; border-radius: 2px;';
+                    downBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        reorderSpecies(speciesIndex, speciesIndex + 1);
+                    };
+                    arrowContainer.appendChild(downBtn);
+                }
+
+                wrapper.appendChild(arrowContainer);
+                speciesNameCell.appendChild(wrapper);
+
+                // Add resize handle to right edge
+                const resizeHandle = document.createElement('div');
+                resizeHandle.className = 'column-resize-handle';
+                resizeHandle.style.cssText = 'position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent; z-index: 10;';
+                resizeHandle.onmouseenter = () => { resizeHandle.style.background = 'rgba(33, 150, 243, 0.3)'; };
+                resizeHandle.onmouseleave = () => { if (!heatmapEditState.isResizing) resizeHandle.style.background = 'transparent'; };
+                resizeHandle.onmousedown = startColumnResize;
+                speciesNameCell.appendChild(resizeHandle);
+            } else {
+                speciesNameCell.textContent = species;
+            }
+
             speciesRow.appendChild(speciesNameCell);
 
             // Data cells for each date (show all data)
-            fileData.forEach(row => {
+            fileData.forEach((row, colIndex) => {
                 const dataCell = document.createElement('div');
                 dataCell.className = 'heatmap-cell heatmap-data-cell';
+                dataCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
+                dataCell.style.position = 'relative';
 
                 const value = row[species] || 0;
                 dataCell.textContent = value;
@@ -7743,6 +8276,17 @@ function initializeHeatmapPage() {
 
                 const formattedDate = formatDateForDisplay(row.Date || row.date);
                 dataCell.title = `${species} on ${formattedDate}: ${value}`;
+
+                // Add resize handle on first data cell of first species row (for visual feedback)
+                if (speciesIndex === 0 && colIndex === 0 && heatmapEditState.isEditMode) {
+                    const dataResizeHandle = document.createElement('div');
+                    dataResizeHandle.className = 'data-resize-handle';
+                    dataResizeHandle.style.cssText = 'position: absolute; right: 0; top: 0; bottom: 0; width: 5px; cursor: col-resize; background: transparent; z-index: 10;';
+                    dataResizeHandle.onmouseenter = () => { dataResizeHandle.style.background = 'rgba(33, 150, 243, 0.3)'; };
+                    dataResizeHandle.onmouseleave = () => { if (!heatmapEditState.isResizing) dataResizeHandle.style.background = 'transparent'; };
+                    dataResizeHandle.onmousedown = (e) => startColumnResize(e, 'data');
+                    dataCell.appendChild(dataResizeHandle);
+                }
 
                 speciesRow.appendChild(dataCell);
             });
@@ -7758,13 +8302,15 @@ function initializeHeatmapPage() {
         const dateTitleCell = document.createElement('div');
         dateTitleCell.className = 'heatmap-date-title-cell';
         dateTitleCell.textContent = 'Date';
-        dateTitleCell.style.width = '117px'; // Match the species column width
+        const dateColumnWidth = heatmapEditState.columnWidth || Math.max(longestSpeciesName.length * 8, 140);
+        dateTitleCell.style.width = `${dateColumnWidth}px`;
         dateRow.appendChild(dateTitleCell);
 
         // Add formatted date cells (label every 5th date)
         fileData.forEach((row, index) => {
             const dateCell = document.createElement('div');
             dateCell.className = 'heatmap-date-cell';
+            dateCell.style.width = `${heatmapEditState.dataColumnWidth}px`;
 
             // Only show date label every 5th entry
             if (index % 5 === 0) {
@@ -7942,6 +8488,10 @@ function initializeHeatmapPage() {
     const toggleEditModeBtn = document.getElementById('toggleEditModeBtn');
     const saveHeatmapBtn = document.getElementById('saveHeatmapBtn');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
+    const speciesColWidthSlider = document.getElementById('speciesColWidthSlider');
+    const speciesColWidthValue = document.getElementById('speciesColWidthValue');
+    const dataColWidthSlider = document.getElementById('dataColWidthSlider');
+    const dataColWidthValue = document.getElementById('dataColWidthValue');
 
     if (toggleEditModeBtn) {
         toggleEditModeBtn.addEventListener('click', toggleEditMode);
@@ -7950,6 +8500,9 @@ function initializeHeatmapPage() {
     if (saveHeatmapBtn) {
         saveHeatmapBtn.addEventListener('click', saveHeatmapChanges);
     }
+
+    // Note: Slider event listeners are now attached inside toggleEditMode function
+    // to ensure they work properly when entering edit mode
 
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {

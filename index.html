@@ -90,6 +90,31 @@
                         </div>
                     </div>
                 </div>
+                <!-- Settings Icon -->
+                <div class="settings-container">
+                    <button id="settingsBtn" class="settings-button" title="Settings">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6m4.22-13.22l-4.24 4.24m0 5.96l4.24 4.24M20 12h-6m-6 0H2m16.24 4.24l-4.24-4.24m-5.96 0l-4.24 4.24M18.36 5.64l-4.36 4.36m-5.96 0L3.64 5.64"/>
+                        </svg>
+                    </button>
+                    <div id="settingsDropdown" class="settings-dropdown hidden">
+                        <div class="settings-header">Settings</div>
+                        <div class="settings-section">
+                            <label class="settings-label">Page Width</label>
+                            <div class="settings-options">
+                                <label class="settings-radio">
+                                    <input type="radio" name="pageWidth" value="normal" checked>
+                                    <span>Normal View</span>
+                                </label>
+                                <label class="settings-radio">
+                                    <input type="radio" name="pageWidth" value="wide">
+                                    <span>Wide View (Full Width)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -457,6 +482,39 @@
                                 <button id="cancelEditBtn" class="btn-secondary heatmap-cancel-btn hidden">
                                     ❌ Cancel
                                 </button>
+                                <div id="editControls" class="edit-controls hidden">
+                                    <div class="width-control">
+                                        <label for="speciesColWidth">Dataset Column Width:</label>
+                                        <select id="speciesColWidth" class="width-select">
+                                            <option value="80">1 (Very Thin)</option>
+                                            <option value="100">2</option>
+                                            <option value="120">3</option>
+                                            <option value="140">4</option>
+                                            <option value="160" selected>5 (Normal)</option>
+                                            <option value="180">6</option>
+                                            <option value="200">7</option>
+                                            <option value="230">8</option>
+                                            <option value="260">9</option>
+                                            <option value="300">10 (Very Wide)</option>
+                                        </select>
+                                    </div>
+                                    <div class="width-control">
+                                        <label for="dataColWidth">Data Column Width:</label>
+                                        <select id="dataColWidth" class="width-select">
+                                            <option value="20">1 (Very Thin)</option>
+                                            <option value="25">2</option>
+                                            <option value="30">3</option>
+                                            <option value="35" selected>4 (Normal)</option>
+                                            <option value="40">5</option>
+                                            <option value="45">6</option>
+                                            <option value="50">7</option>
+                                            <option value="55">8</option>
+                                            <option value="60">9</option>
+                                            <option value="70">10 (Very Wide)</option>
+                                        </select>
+                                    </div>
+                                    <button id="updateColumnWidths" class="btn-update">Update View</button>
+                                </div>
                             </div>
                         </div>
                         <div class="heatmap-container">
