@@ -3862,7 +3862,8 @@ class NavigationManager {
             // Prepare data for plotting - first extract all available time points from all sites
             let allTimePoints = new Set();
             siteData.forEach(siteInfo => {
-                const hourlyData = this.extractHourlyData(siteInfo.data, source);
+                // For 24hr files, pass '24hr' as fileType to extract hours only
+                const hourlyData = this.extractHourlyData(siteInfo.data, source, '24hr');
                 Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
             });
 
@@ -3886,7 +3887,8 @@ class NavigationManager {
 
             const plotData = siteData.map((siteInfo, index) => {
                 console.log(`Processing data for site: ${siteInfo.site}`);
-                const hourlyData = this.extractHourlyData(siteInfo.data, source);
+                // For 24hr files, pass '24hr' as fileType to extract hours only
+                const hourlyData = this.extractHourlyData(siteInfo.data, source, '24hr');
                 console.log(`Hourly data for ${siteInfo.site}:`, Object.keys(hourlyData).length, 'hours');
 
                 const dpmValues = sortedHours.map(hour => {
@@ -3941,10 +3943,11 @@ class NavigationManager {
         }
     }
 
-    extractHourlyData(csvData, source) {
+    extractHourlyData(csvData, source, fileType = 'auto') {
         console.log(`=== EXTRACT HOURLY DATA FOR SOURCE: ${source} ===`);
         console.log('CSV headers:', csvData.headers);
         console.log('CSV data rows:', csvData.data.length);
+        console.log('File type parameter:', fileType);
 
         const hourlyData = {};
 
@@ -3974,22 +3977,38 @@ class NavigationManager {
 
                 // Handle different time formats for std files vs 24hr files
                 if (typeof timeIdentifier === 'string' && timeIdentifier.includes('T')) {
-                    // ISO timestamp like "2025-03-30T01:00:00.000Z" (common in std files)
+                    // ISO timestamp like "2025-03-30T01:00:00.000Z"
                     const dateObj = new Date(timeIdentifier);
-                    // Use a unique identifier that combines date and hour for std files
-                    const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
-                    const hourStr = String(dateObj.getUTCHours()).padStart(2, '0'); // Use UTC to match the ISO string
-                    timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2025-03-30_14"
 
-                    if (index < 3) {
-                        console.log(`  [DATE FIX] ISO: ${timeIdentifier} -> ${dateStr}_${hourStr}`);
+                    // For 24hr files, only use the hour (ignore the date)
+                    // This allows multiple 24hr files from different days to align properly
+                    if (fileType === '24hr') {
+                        timeIdentifier = String(dateObj.getUTCHours()).padStart(2, '0');
+                        if (index < 3) {
+                            console.log(`  [24HR FIX] ISO: ${row[hourKey]} -> Hour only: ${timeIdentifier}`);
+                        }
+                    } else {
+                        // For std files, keep date and hour for proper chronological ordering
+                        const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                        const hourStr = String(dateObj.getUTCHours()).padStart(2, '0');
+                        timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2025-03-30_14"
+                        if (index < 3) {
+                            console.log(`  [STD FIX] ISO: ${row[hourKey]} -> ${dateStr}_${hourStr}`);
+                        }
                     }
                 } else {
-                    // Use as-is for 24hr files (simple hour numbers)
+                    // Use as-is for simple hour numbers
                     timeIdentifier = String(timeIdentifier).padStart(2, '0');
                 }
 
                 const dpm = parseFloat(row[sourceKey]) || 0;
+
+                // For 24hr files, if we already have data for this hour from another file,
+                // we could average them or take the latest. For now, we'll take the latest.
+                if (fileType === '24hr' && hourlyData[timeIdentifier] !== undefined) {
+                    console.log(`  [24HR] Hour ${timeIdentifier} already has data (${hourlyData[timeIdentifier]}), replacing with ${dpm}`);
+                }
+
                 hourlyData[timeIdentifier] = dpm;
 
                 if (index < 3) {
@@ -4572,7 +4591,8 @@ class NavigationManager {
         // Prepare data for plotting - first extract all available time points from all sources
         let allTimePoints = new Set();
         sources.forEach(source => {
-            const hourlyData = this.extractHourlyData(siteData.data, source);
+            // For 24hr files, pass '24hr' as fileType to extract hours only
+            const hourlyData = this.extractHourlyData(siteData.data, source, '24hr');
             Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
         });
 
@@ -4584,7 +4604,8 @@ class NavigationManager {
         let maxDPM = 0;
 
         const plotData = sources.map((source, index) => {
-            const hourlyData = this.extractHourlyData(siteData.data, source);
+            // For 24hr files, pass '24hr' as fileType to extract hours only
+            const hourlyData = this.extractHourlyData(siteData.data, source, '24hr');
             const dpmValues = sortedHours.map(hour => {
                 return hourlyData[hour] || 0;
             });
