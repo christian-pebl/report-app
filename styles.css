@@ -845,7 +845,37 @@ header p {
 }
 
 .form-control[multiple] {
-    min-height: 70px;
+    min-height: 100px;
+    max-height: 400px;
+    height: 150px;
+    resize: vertical;
+    overflow-y: auto;
+    background: white;
+    border: 2px solid #e5e7eb;
+    position: relative;
+    transition: border-color 0.2s;
+}
+
+/* Visual resize handle indicator */
+.form-control[multiple]:hover {
+    border-color: #2B7A78;
+}
+
+/* Style the resize handle */
+.form-control[multiple]::-webkit-resizer {
+    background: transparent;
+}
+
+/* Add visual indicator at bottom right for resize */
+.form-control[multiple]::after {
+    content: '⋮⋮';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 10px;
+    color: #9ca3af;
+    pointer-events: none;
+    transform: rotate(45deg);
 }
 
 .help-text {

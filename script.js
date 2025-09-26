@@ -1327,7 +1327,7 @@ class CSVManager {
         });
         
         // Draw legend
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         const legendY = 20;
         let legendX = margin;
 
@@ -3829,9 +3829,9 @@ class NavigationManager {
             // Define professional journal-style colors (Nature journal style)
             const journalColors = [
                 '#1f77b4', // Blue
-                '#ff7f0e', // Orange  
-                '#2ca02c', // Green
-                '#d62728', // Red
+                '#ff7f0e', // Orange
+                '#d62728', // Red (moved to 3rd for better distinction)
+                '#2ca02c', // Green (moved to 4th)
                 '#9467bd', // Purple
                 '#8c564b', // Brown
                 '#e377c2', // Pink
@@ -4225,7 +4225,7 @@ class NavigationManager {
         // Softer, elegant styling
         ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
         ctx.lineWidth = 1;
-        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '15px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'center';
         ctx.fillStyle = '#666666';  // Softer text color
         
@@ -4339,7 +4339,7 @@ class NavigationManager {
         
         // Elegant axis labels
         ctx.textAlign = 'center';
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.fillStyle = '#555555';
         
         // X-axis label (positioned lower to avoid overlap with rotated tick labels)
@@ -4427,7 +4427,7 @@ class NavigationManager {
         const lineHeight = 20;
 
         // Set font for measurement
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
 
         // Calculate maximum text width
         let maxTextWidth = 0;
@@ -4456,7 +4456,7 @@ class NavigationManager {
         ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
 
         // Draw legend items
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'left';
 
         plotData.forEach((siteData, i) => {
@@ -4696,7 +4696,7 @@ class NavigationManager {
         const lineHeight = 20;
 
         // Set font for measurement
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
 
         // Measure the width of all legend text to determine optimal box size
         let maxTextWidth = 0;
@@ -4719,7 +4719,7 @@ class NavigationManager {
         ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
         
         // Draw legend items
-        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'left';
         
         plotData.forEach((sourceData, i) => {
@@ -5160,8 +5160,8 @@ class NavigationManager {
         const journalColors = [
             '#1f77b4', // Blue
             '#ff7f0e', // Orange
-            '#2ca02c', // Green
-            '#d62728', // Red
+            '#d62728', // Red (moved to 3rd for better distinction)
+            '#2ca02c', // Green (moved to 4th)
             '#9467bd', // Purple
             '#8c564b', // Brown
             '#e377c2', // Pink
@@ -5176,8 +5176,8 @@ class NavigationManager {
         const journalColors = [
             '#1f77b4', // Blue
             '#ff7f0e', // Orange
-            '#2ca02c', // Green
-            '#d62728', // Red
+            '#d62728', // Red (moved to 3rd for better distinction)
+            '#2ca02c', // Green (moved to 4th)
             '#9467bd', // Purple
             '#8c564b', // Brown
             '#e377c2', // Pink
@@ -5212,7 +5212,7 @@ class NavigationManager {
         ctx.stroke();
 
         // Style for axis labels
-        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '15px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'center';
         ctx.fillStyle = '#666666';  // Softer text color
 
@@ -5234,12 +5234,12 @@ class NavigationManager {
         });
 
         // X-axis title (positioned lower to avoid overlap with rotated tick labels)
-        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = 'bold 16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 70);
 
         // Left Y-axis labels (DPM)
         ctx.textAlign = 'right';
-        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '15px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.fillStyle = '#1f77b4'; // Blue for DPM
         const dpmSteps = 5;
         for (let i = 0; i <= dpmSteps; i++) {
@@ -5252,7 +5252,7 @@ class NavigationManager {
         ctx.save();
         ctx.translate(plotArea.left - 60, plotArea.top + plotArea.height / 2);
         ctx.rotate(-Math.PI / 2);
-        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = 'bold 16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'center';
         ctx.fillText('DPM (Detections per Minute)', 0, 0);
         ctx.restore();
@@ -5271,7 +5271,7 @@ class NavigationManager {
         ctx.save();
         ctx.translate(plotArea.right + 80, plotArea.top + plotArea.height / 2);
         ctx.rotate(Math.PI / 2);
-        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = 'bold 16px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'center';
         ctx.fillText('Detection Rate (%)', 0, 0);
         ctx.restore();
@@ -5348,7 +5348,7 @@ class NavigationManager {
         const lineHeight = 18;
 
         // Set font for measurement
-        ctx.font = '12px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
 
         // Measure the width of all legend text to determine optimal box size
         let maxTextWidth = 0;
@@ -5380,7 +5380,7 @@ class NavigationManager {
         ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
 
         // Draw legend headers
-        ctx.font = 'bold 12px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = 'bold 14px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         ctx.textAlign = 'left';
         ctx.fillStyle = '#1f77b4'; // Blue for DPM
         ctx.fillText('DPM (solid lines):', legendX, legendY + 12);
@@ -5389,7 +5389,7 @@ class NavigationManager {
         ctx.fillText('Detection Rate % (dashed):', legendX, legendY + 26);
 
         // Draw legend items
-        ctx.font = '11px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        ctx.font = '13px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif'; // Increased 15%
         let currentY = legendY + 45;
 
         plotData.forEach((siteData, i) => {
