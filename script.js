@@ -3867,7 +3867,18 @@ class NavigationManager {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            // Smart sorting for different time identifier formats
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+                // For std files with "YYYY-MM-DD_HH" format
+                if (a.includes('_') && b.includes('_')) {
+                    // Sort lexicographically (works for ISO date format)
+                    return a.localeCompare(b);
+                }
+                // For 24hr files with simple hour numbers
+                return parseInt(a) - parseInt(b);
+            });
+            console.log('[SORTING] Sorted', sortedHours.length, 'time points');
+            console.log('[SORTING] First 3 after sort:', sortedHours.slice(0, 3));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "time");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
@@ -3967,8 +3978,12 @@ class NavigationManager {
                     const dateObj = new Date(timeIdentifier);
                     // Use a unique identifier that combines date and hour for std files
                     const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
-                    const hourStr = String(dateObj.getHours()).padStart(2, '0'); // 00-23
+                    const hourStr = String(dateObj.getUTCHours()).padStart(2, '0'); // Use UTC to match the ISO string
                     timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2025-03-30_14"
+
+                    if (index < 3) {
+                        console.log(`  [DATE FIX] ISO: ${timeIdentifier} -> ${dateStr}_${hourStr}`);
+                    }
                 } else {
                     // Use as-is for 24hr files (simple hour numbers)
                     timeIdentifier = String(timeIdentifier).padStart(2, '0');
@@ -3999,7 +4014,37 @@ class NavigationManager {
         return spacing;
     }
 
-formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {        // For 24hr file format - use time format when requested (check this FIRST)        if (formatType === "time") {            return sortedHours.map((hour) => {                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);                const hours = String(hourNum).padStart(2, "0");                return `${hours}:00`;            });        }        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {            // This is std file format with date_hour identifiers            return sortedHours.map(timeIdentifier => {                const [dateStr, hourStr] = timeIdentifier.split("_");                const date = new Date(dateStr + "T00:00:00Z");                const day = String(date.getDate()).padStart(2, "0");                const month = String(date.getMonth() + 1).padStart(2, "0");                const year = String(date.getFullYear()).slice(-2);                return `${day}/${month}/${year}`;            });        }        // For 24hr file format - use time format when requested
+    formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
+        console.log('[DATE LABELS] Converting', sortedHours.length, 'time points to labels, format:', formatType);
+        console.log('[DATE LABELS] First 3 sorted hours:', sortedHours.slice(0, 3));
+
+        // For 24hr file format - use time format when requested (check this FIRST)
+        if (formatType === "time") {
+            return sortedHours.map((hour) => {
+                const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
+                const hours = String(hourNum).padStart(2, "0");
+                return `${hours}:00`;
+            });
+        }
+
+        // Check if we're dealing with std file time identifiers (format: "YYYY-MM-DD_HH")
+        if (sortedHours.length > 0 && sortedHours[0].includes("_")) {
+            // This is std file format with date_hour identifiers
+            console.log('[DATE LABELS] Detected STD format with underscore');
+            const labels = sortedHours.map(timeIdentifier => {
+                const [dateStr, hourStr] = timeIdentifier.split("_");
+                const date = new Date(dateStr + "T00:00:00Z");
+                // Use UTC methods to avoid timezone issues
+                const day = String(date.getUTCDate()).padStart(2, "0");
+                const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+                const year = String(date.getUTCFullYear()).slice(-2);
+                return `${day}/${month}/${year}`;
+            });
+            console.log('[DATE LABELS] First 3 formatted labels:', labels.slice(0, 3));
+            return labels;
+        }
+
+        // For 24hr file format - use time format when requested
         if (formatType === "time") {
             return sortedHours.map((hour) => {
                 const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
@@ -4801,7 +4846,18 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            // Smart sorting for different time identifier formats
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+                // For std files with "YYYY-MM-DD_HH" format
+                if (a.includes('_') && b.includes('_')) {
+                    // Sort lexicographically (works for ISO date format)
+                    return a.localeCompare(b);
+                }
+                // For 24hr files with simple hour numbers
+                return parseInt(a) - parseInt(b);
+            });
+            console.log('[SORTING] Sorted', sortedHours.length, 'time points');
+            console.log('[SORTING] First 3 after sort:', sortedHours.slice(0, 3));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
@@ -5004,7 +5060,18 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => parseInt(a) - parseInt(b));
+            // Smart sorting for different time identifier formats
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+                // For std files with "YYYY-MM-DD_HH" format
+                if (a.includes('_') && b.includes('_')) {
+                    // Sort lexicographically (works for ISO date format)
+                    return a.localeCompare(b);
+                }
+                // For 24hr files with simple hour numbers
+                return parseInt(a) - parseInt(b);
+            });
+            console.log('[SORTING] Sorted', sortedHours.length, 'time points');
+            console.log('[SORTING] First 3 after sort:', sortedHours.slice(0, 3));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, {data: siteData}, "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
 
