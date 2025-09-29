@@ -4028,82 +4028,29 @@ class NavigationManager {
     }
 
     initializeNavigation() {
-        // Handle SUBCAM navigation buttons
-        const subcamButtons = document.querySelectorAll('.subcam-nav');
-        subcamButtons.forEach(button => {
-            button.addEventListener('click', async () => {
-                const targetPage = button.getAttribute('data-page');
-                await this.switchPage(targetPage, 'subcam');
-            });
-        });
-
-        // Handle FPOD navigation (slider style)
-        const fpodButtons = document.querySelectorAll('.fpod-nav');
-        fpodButtons.forEach(button => {
-            button.addEventListener('click', async () => {
-                const targetPage = button.getAttribute('data-page');
-                await this.switchPage(targetPage, 'fpod');
-            });
-        });
-
-        // Keep backward compatibility for any remaining nav-button class
-        const navButtons = document.querySelectorAll('.nav-button:not(.subcam-nav):not(.fpod-nav)');
+        const navButtons = document.querySelectorAll('.nav-button');
         navButtons.forEach(button => {
             button.addEventListener('click', async () => {
                 const targetPage = button.getAttribute('data-page');
-                await this.switchPage(targetPage, 'subcam');
+                await this.switchPage(targetPage);
             });
         });
     }
 
-    async switchPage(pageName, device = 'subcam') {
-        // Update navigation buttons based on device
-        if (device === 'subcam') {
-            document.querySelectorAll('.subcam-nav').forEach(button => {
-                button.classList.remove('active');
-            });
-            const activeBtn = document.querySelector(`.subcam-nav[data-page="${pageName}"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-        } else if (device === 'fpod') {
-            document.querySelectorAll('.fpod-nav').forEach(button => {
-                button.classList.remove('active');
-            });
-            const activeBtn = document.querySelector(`.fpod-nav[data-page="${pageName}"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-
-            // Update slider position for FPOD
-            const sliderThumb = document.querySelector('.fpod-container .slider-thumb');
-            if (sliderThumb) {
-                if (pageName === 'fpod-plot') {
-                    sliderThumb.style.left = '50%';
-                } else {
-                    sliderThumb.style.left = '0%';
-                }
-            }
-        }
+    async switchPage(pageName) {
+        // Update navigation buttons
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.classList.remove('active');
+        });
+        document.querySelector(`.nav-button[data-page="${pageName}"]`).classList.add('active');
 
         // Update page content
         document.querySelectorAll('.page-content').forEach(page => {
             page.classList.remove('active');
         });
-
-        // Map page names to actual page IDs
-        let actualPageId = pageName;
-        if (pageName === 'fpod-reformat') {
-            actualPageId = 'reformatPage'; // Share the same reformat page
-        } else if (pageName === 'fpod-plot') {
-            actualPageId = 'fpod-plotPage';
-        } else {
-            actualPageId = `${pageName}Page`;
-        }
-
-        const targetPage = document.getElementById(actualPageId);
-        if (targetPage) {
-            targetPage.classList.add('active');
-        }
+        document.getElementById(`${pageName}Page`).classList.add('active');
 
         this.currentPage = pageName;
-        this.currentDevice = device;
 
         // If switching to plot page, update file info
         if (pageName === 'plot') {
@@ -4130,12 +4077,6 @@ class NavigationManager {
                 window.updateHeatmapFileDropdown();
             }
             console.log(`${pageName} page file dropdown updated`);
-        }
-
-        // If switching to FPOD plot page, initialize FPOD plot controls
-        if (pageName === 'fpod-plot') {
-            console.log('Switching to FPOD plot page - initializing controls...');
-            this.initializeFPODPlotPage();
         }
     }
 
@@ -7061,140 +7002,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Heatmap functionality
     initializeHeatmapPage();
 });
-
-// Add FPOD Plot Page Initialization
-NavigationManager.prototype.initializeFPODPlotPage = function() {
-    console.log('Initializing FPOD plot page controls...');
-
-    // Update file dropdowns for FPOD
-    const fpodFiles24hr = [];
-    const fpodFilesStd = [];
-    const dpmColumns = ['Porpoise (DPM)', 'Dolphin (DPM)', 'Sonar (DPM)'];
-
-    // Get files from csvManager
-    if (csvManager && csvManager.workingDirFiles) {
-        csvManager.workingDirFiles.forEach(file => {
-            const fileName = file.name.toLowerCase();
-            if (fileName.includes('_24hr.csv')) {
-                fpodFiles24hr.push(file);
-            } else if (fileName.includes('_std.csv')) {
-                fpodFilesStd.push(file);
-            }
-        });
-    }
-
-    // Update 24hr dropdowns
-    const sourceSelect1 = document.getElementById('fpod-sourceSelect1');
-    const sitesSelect1 = document.getElementById('fpod-sitesSelect1');
-    const siteSelect2 = document.getElementById('fpod-siteSelect2');
-    const sourcesSelect2 = document.getElementById('fpod-sourcesSelect2');
-
-    if (sourceSelect1) {
-        sourceSelect1.innerHTML = '<option value="">Select DPM column to plot...</option>';
-        dpmColumns.forEach(col => {
-            sourceSelect1.innerHTML += `<option value="${col}">${col}</option>`;
-        });
-    }
-
-    if (sitesSelect1) {
-        sitesSelect1.innerHTML = '';
-        fpodFiles24hr.forEach(file => {
-            sitesSelect1.innerHTML += `<option value="${file.name}">${file.name}</option>`;
-        });
-    }
-
-    if (siteSelect2) {
-        siteSelect2.innerHTML = '<option value="">Select a _24hr.csv file...</option>';
-        fpodFiles24hr.forEach(file => {
-            siteSelect2.innerHTML += `<option value="${file.name}">${file.name}</option>`;
-        });
-    }
-
-    if (sourcesSelect2) {
-        sourcesSelect2.innerHTML = '';
-        dpmColumns.forEach(col => {
-            sourcesSelect2.innerHTML += `<option value="${col}">${col}</option>`;
-        });
-    }
-
-    // Update standard dropdowns
-    const sourceSelectStd1 = document.getElementById('fpod-sourceSelectStd1');
-    const sitesSelectStd1 = document.getElementById('fpod-sitesSelectStd1');
-    const siteSelectStd2 = document.getElementById('fpod-siteSelectStd2');
-    const sourcesSelectStd2 = document.getElementById('fpod-sourcesSelectStd2');
-
-    if (sourceSelectStd1) {
-        sourceSelectStd1.innerHTML = '<option value="">Select DPM column to plot...</option>';
-        dpmColumns.forEach(col => {
-            sourceSelectStd1.innerHTML += `<option value="${col}">${col}</option>`;
-        });
-    }
-
-    if (sitesSelectStd1) {
-        sitesSelectStd1.innerHTML = '';
-        fpodFilesStd.forEach(file => {
-            sitesSelectStd1.innerHTML += `<option value="${file.name}">${file.name}</option>`;
-        });
-    }
-
-    if (siteSelectStd2) {
-        siteSelectStd2.innerHTML = '<option value="">Select a _std.csv file...</option>';
-        fpodFilesStd.forEach(file => {
-            siteSelectStd2.innerHTML += `<option value="${file.name}">${file.name}</option>`;
-        });
-    }
-
-    if (sourcesSelectStd2) {
-        sourcesSelectStd2.innerHTML = '';
-        dpmColumns.forEach(col => {
-            sourcesSelectStd2.innerHTML += `<option value="${col}">${col}</option>`;
-        });
-    }
-
-    // Enable/disable buttons based on selections
-    const enableDisableButtons = () => {
-        // 24hr buttons
-        const btn1 = document.getElementById('fpod-generateSiteComparisonBtn');
-        if (btn1) {
-            const sourceSelected = sourceSelect1 && sourceSelect1.value;
-            const sitesSelected = sitesSelect1 && sitesSelect1.selectedOptions.length > 0;
-            btn1.disabled = !sourceSelected || !sitesSelected;
-        }
-
-        const btn2 = document.getElementById('fpod-generateSourceComparisonBtn');
-        if (btn2) {
-            const siteSelected = siteSelect2 && siteSelect2.value;
-            const sourcesSelected = sourcesSelect2 && sourcesSelect2.selectedOptions.length > 0;
-            btn2.disabled = !siteSelected || !sourcesSelected;
-        }
-
-        // Standard buttons
-        const btnStd1 = document.getElementById('fpod-generateSiteComparisonStdBtn');
-        if (btnStd1) {
-            const sourceSelected = sourceSelectStd1 && sourceSelectStd1.value;
-            const sitesSelected = sitesSelectStd1 && sitesSelectStd1.selectedOptions.length > 0;
-            btnStd1.disabled = !sourceSelected || !sitesSelected;
-        }
-
-        const btnStd2 = document.getElementById('fpod-generateSourceComparisonStdBtn');
-        if (btnStd2) {
-            const siteSelected = siteSelectStd2 && siteSelectStd2.value;
-            const sourcesSelected = sourcesSelectStd2 && sourcesSelectStd2.selectedOptions.length > 0;
-            btnStd2.disabled = !siteSelected || !sourcesSelected;
-        }
-    };
-
-    // Add event listeners
-    [sourceSelect1, sitesSelect1, siteSelect2, sourcesSelect2,
-     sourceSelectStd1, sitesSelectStd1, siteSelectStd2, sourcesSelectStd2].forEach(el => {
-        if (el) {
-            el.addEventListener('change', enableDisableButtons);
-        }
-    });
-
-    // Initial button state
-    enableDisableButtons();
-};
 
 // Debug logging system
 class DebugLogger {

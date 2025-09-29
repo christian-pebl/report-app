@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SUBCAMreport 0.3 - CSV Manager</title>
+    <title>ReportApp 0.1 - Unified Report Manager</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -37,29 +37,30 @@
     <nav class="top-banner">
         <div class="banner-content">
             <div class="banner-left">
-                <h1 class="banner-title">SUBCAMreport 0.3</h1>
+                <h1 class="banner-title">ReportApp 0.1</h1>
             </div>
             <div class="banner-right">
                 <div class="device-navigation">
-                    <div class="fpod-container">
+                    <!-- SUBCAM Navigation -->
+                    <div class="device-container subcam-container">
                         <div class="navigation-buttons">
                             <div class="device-label">SUBCAM</div>
                             <div class="nav-buttons-container">
-                                <button class="nav-button active" data-page="reformat" title="Load Data">
+                                <button class="nav-button subcam-nav active" data-page="reformat" data-device="subcam" title="Load Data">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M12 3v12l-4-4m4 4l4-4"/>
                                         <path d="M8 21h8"/>
                                     </svg>
                                     <span>Load</span>
                                 </button>
-                                <button class="nav-button" data-page="plot" title="Plot Data">
+                                <button class="nav-button subcam-nav" data-page="plot" data-device="subcam" title="Plot Data">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
                                         <polyline points="13,6 22,6 22,15"/>
                                     </svg>
                                     <span>Plot</span>
                                 </button>
-                                <button class="nav-button" data-page="heatmap" title="Heatmap">
+                                <button class="nav-button subcam-nav" data-page="heatmap" data-device="subcam" title="Heatmap">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                                         <path d="M9 9h6v6H9z"/>
@@ -67,7 +68,8 @@
                                         <path d="M15 15h3v3h-3z"/>
                                     </svg>
                                     <span>Heatmap</span>
-                                <button class="nav-button" data-page="compact">
+                                </button>
+                                <button class="nav-button subcam-nav" data-page="compact" data-device="subcam">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="2" y="2" width="20" height="20" rx="2"/>
                                         <rect x="6" y="6" width="2" height="2"/>
@@ -85,6 +87,29 @@
                                     </svg>
                                     <span>Compact</span>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FPOD Navigation -->
+                    <div class="device-container fpod-container">
+                        <div class="mode-slider-container">
+                            <div class="device-label">FPOD</div>
+                            <div class="slider-track">
+                                <div class="slider-thumb"></div>
+                            </div>
+                            <div class="slider-icons">
+                                <button class="slider-icon fpod-nav" data-page="fpod-reformat" data-device="fpod" title="Load Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 3v12l-4-4m4 4l4-4"/>
+                                        <path d="M8 21h8"/>
+                                    </svg>
+                                </button>
+                                <button class="slider-icon fpod-nav" data-page="fpod-plot" data-device="fpod" title="Plot Data">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
+                                        <polyline points="13,6 22,6 22,15"/>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -527,6 +552,151 @@
             </main>
         </div> <!-- End heatmapPage -->
 <!-- Compact Heatmap Page -->        <div id="compactPage" class="page-content">            <main>                <div class="heatmap-section-container">                    <div class="section-header">                        <h2>Compact Species Heatmap</h2>                        <p>Optimized visualization for wide datasets and screenshots</p>                    </div>                    <div class="heatmap-controls-container">                        <div class="heatmap-card">                            <div class="card-header">                                <h3>Load Data for Compact View</h3>                            </div>                            <div class="card-body">                                <div class="form-row">                                    <div class="form-group">                                        <label for="compactFileSelect">Load _nmax.csv File:</label>                                        <div style="display: flex; gap: 10px; align-items: center;"><select id="compactFileSelect" class="form-control" style="flex: 1;"><option value="">Select from loaded files...</option></select><span style="color: #999; font-size: 0.8rem;">OR</span><input type="file" id="compactFileInput" class="form-control" accept=".csv" style="flex: 1;"></div>                                        <small class="help-text">📁 Browse and select any _nmax.csv file from your computer</small>                                    </div>                                </div>                                <div id="compactSpeciesSelection" class="species-selection hidden">                                    <div class="form-group species-select-group">                                        <label>Select Species to Display:</label>                                        <div class="species-controls">                                            <button id="compactSelectAllSpecies" class="btn-secondary">Select All</button>                                            <button id="compactDeselectAllSpecies" class="btn-secondary">Deselect All</button>                                        </div>                                        <div id="compactSpeciesCheckboxes" class="species-checkbox-container">                                            <!-- Species checkboxes will be populated here -->                                        </div>                                    </div>                                </div>                                <div class="button-row">                                    <button id="generateCompactHeatmapBtn" class="btn-primary" disabled>                                        Generate Compact Heatmap                                    </button>                                </div>                            </div>                        </div>                    </div>                    <div class="heatmap-visualization hidden" id="compactHeatmapVisualization">                        <div class="heatmap-header">                            <h3 id="compactHeatmapTitle">Compact Species Abundance Heatmap</h3>                            <div class="heatmap-controls">                                <div style="font-size: 0.8rem; color: #666;">                                    <span id="compactDataInfo">Loading...</span>                                </div>                            </div>                        </div>                        <div class="heatmap-container">                            <div id="compactHeatmapGrid" class="heatmap-grid compact-view">                                <!-- Compact heatmap will be generated here -->                            </div>                        </div>                    </div>                </div>            </main>        </div> <!-- End compactPage -->
+
+        <!-- FPOD Plot Page -->
+        <div id="fpod-plotPage" class="page-content">
+            <main>
+                <!-- 24 Hour Average DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>24 Hour Average DPM</h2>
+                    </div>
+
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. 24hr constant source, comparing sites</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fpod-sourceSelect1">Select DPM Column:</label>
+                                        <select id="fpod-sourceSelect1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fpod-sitesSelect1">Select _24hr.csv Files:</label>
+                                        <select id="fpod-sitesSelect1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _24hr.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="fpod-generateSiteComparisonBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="fpod-siteComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. 24hr constant site, comparing sources</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fpod-siteSelect2">Select _24hr.csv File:</label>
+                                        <select id="fpod-siteSelect2" class="form-control">
+                                            <option value="">Select a _24hr.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _24hr.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fpod-sourcesSelect2">Select DPM Columns:</label>
+                                        <select id="fpod-sourcesSelect2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="fpod-generateSourceComparisonBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="fpod-sourceComparisonOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Standard DPM Section -->
+                <div class="plot-section-container">
+                    <div class="section-header">
+                        <h2>Standard DPM Analysis</h2>
+                    </div>
+
+                    <div class="comparison-container">
+                        <!-- Compare sites for specified source -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>1. Standard constant source, comparing sites</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fpod-sourceSelectStd1">Select DPM Column:</label>
+                                        <select id="fpod-sourceSelectStd1" class="form-control">
+                                            <option value="">Select DPM column to plot...</option>
+                                        </select>
+                                        <small class="help-text">Choose Porpoise (DPM), Dolphin (DPM), or Sonar (DPM)</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fpod-sitesSelectStd1">Select _std.csv Files:</label>
+                                        <select id="fpod-sitesSelectStd1" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple _std.csv files</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="fpod-generateSiteComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Site Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="fpod-siteComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+
+                        <!-- Compare sources for specified site -->
+                        <div class="comparison-card">
+                            <div class="card-header">
+                                <h3>2. Standard constant site, comparing sources</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fpod-siteSelectStd2">Select _std.csv File:</label>
+                                        <select id="fpod-siteSelectStd2" class="form-control">
+                                            <option value="">Select a _std.csv file...</option>
+                                        </select>
+                                        <small class="help-text">Choose one _std.csv file to analyze</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fpod-sourcesSelectStd2">Select DPM Columns:</label>
+                                        <select id="fpod-sourcesSelectStd2" class="form-control" multiple>
+                                        </select>
+                                        <small class="help-text">Hold Ctrl/Cmd to select multiple DPM columns</small>
+                                    </div>
+                                </div>
+                                <div class="button-row">
+                                    <button id="fpod-generateSourceComparisonStdBtn" class="btn-primary" disabled>
+                                        Generate Source Comparison Plot
+                                    </button>
+                                </div>
+                                <div id="fpod-sourceComparisonStdOutput" class="output-area"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div> <!-- End fpod-plotPage -->
 
 
     </div>

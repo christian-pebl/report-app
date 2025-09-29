@@ -1108,7 +1108,17 @@ header p {
 /* Device Navigation Styles */
 .device-navigation {
     display: flex;
-    gap: 20px;
+    gap: 30px;
+    align-items: center;
+}
+
+.device-container {
+    display: flex;
+    align-items: center;
+}
+
+.subcam-container {
+    display: flex;
     align-items: center;
 }
 
