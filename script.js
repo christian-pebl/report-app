@@ -7187,6 +7187,202 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
 
     // Initial button state
     enableDisableButtons();
+
+    // Add click handlers for FPOD plot buttons
+    const navigationManager = window.navigationManager;  // Get the global navigation manager instance
+
+    const fpodBtn1 = document.getElementById('fpod-generateSiteComparisonBtn');
+    if (fpodBtn1) {
+        fpodBtn1.addEventListener('click', () => {
+            const source = sourceSelect1.value;
+            const sites = Array.from(sitesSelect1.selectedOptions).map(option => option.value);
+            navigationManager.generateFPODSiteComparison(source, sites, 'fpod-siteComparisonOutput');
+        });
+    }
+
+    const fpodBtn2 = document.getElementById('fpod-generateSourceComparisonBtn');
+    if (fpodBtn2) {
+        fpodBtn2.addEventListener('click', () => {
+            const site = siteSelect2.value;
+            const sources = Array.from(sourcesSelect2.selectedOptions).map(option => option.value);
+            navigationManager.generateFPODSourceComparison(site, sources, 'fpod-sourceComparisonOutput');
+        });
+    }
+
+    const fpodBtnStd1 = document.getElementById('fpod-generateSiteComparisonStdBtn');
+    if (fpodBtnStd1) {
+        fpodBtnStd1.addEventListener('click', () => {
+            const source = sourceSelectStd1.value;
+            const sites = Array.from(sitesSelectStd1.selectedOptions).map(option => option.value);
+            navigationManager.generateFPODSiteComparison(source, sites, 'fpod-siteComparisonStdOutput', true);
+        });
+    }
+
+    const fpodBtnStd2 = document.getElementById('fpod-generateSourceComparisonStdBtn');
+    if (fpodBtnStd2) {
+        fpodBtnStd2.addEventListener('click', () => {
+            const site = siteSelectStd2.value;
+            const sources = Array.from(sourcesSelectStd2.selectedOptions).map(option => option.value);
+            navigationManager.generateFPODSourceComparison(site, sources, 'fpod-sourceComparisonStdOutput', true);
+        });
+    }
+};
+
+// FPOD Plot Generation Functions
+NavigationManager.prototype.generateFPODSiteComparison = async function(source, sites, outputDivId, isStandard = false) {
+    console.log('=== FPOD SITE COMPARISON START ===');
+    console.log('Source:', source);
+    console.log('Sites:', sites);
+    console.log('Is Standard:', isStandard);
+
+    const outputDiv = document.getElementById(outputDivId);
+    if (!outputDiv) {
+        console.error('Output div not found:', outputDivId);
+        return;
+    }
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating FPOD Plot...</h4>
+            <p>Loading ${sites.join(', ')} data for ${source} analysis...</p>
+        </div>
+    `;
+
+    try {
+        // Create a sample plot for now
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+
+        // Draw a simple placeholder chart
+        ctx.fillStyle = '#f0f9ff';
+        ctx.fillRect(0, 0, 800, 400);
+        ctx.fillStyle = '#0369a1';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`FPOD ${isStandard ? 'Standard' : '24hr'} DPM Analysis`, 400, 30);
+        ctx.fillText(`Source: ${source}`, 400, 60);
+        ctx.fillText(`Sites: ${sites.join(', ')}`, 400, 90);
+
+        // Draw sample bars
+        const barWidth = 60;
+        const barGap = 20;
+        const startX = (800 - (sites.length * (barWidth + barGap) - barGap)) / 2;
+
+        sites.forEach((site, index) => {
+            const x = startX + index * (barWidth + barGap);
+            const height = Math.random() * 200 + 50;
+            const y = 350 - height;
+
+            ctx.fillStyle = `hsl(${200 + index * 30}, 70%, 50%)`;
+            ctx.fillRect(x, y, barWidth, height);
+
+            ctx.fillStyle = '#333';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(site.substring(0, 10), x + barWidth/2, 370);
+        });
+
+        outputDiv.innerHTML = `
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #1f2937; margin-bottom: 10px;">📊 ${isStandard ? 'Standard' : '24hr'} DPM Site Comparison</h4>
+                <div style="text-align: center;">
+                    ${canvas.outerHTML}
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+                    Comparing ${source} across ${sites.length} sites
+                </p>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error generating FPOD site comparison:', error);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+            </div>
+        `;
+    }
+};
+
+NavigationManager.prototype.generateFPODSourceComparison = async function(site, sources, outputDivId, isStandard = false) {
+    console.log('=== FPOD SOURCE COMPARISON START ===');
+    console.log('Site:', site);
+    console.log('Sources:', sources);
+    console.log('Is Standard:', isStandard);
+
+    const outputDiv = document.getElementById(outputDivId);
+    if (!outputDiv) {
+        console.error('Output div not found:', outputDivId);
+        return;
+    }
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating FPOD Plot...</h4>
+            <p>Loading ${site} data for ${sources.join(', ')} analysis...</p>
+        </div>
+    `;
+
+    try {
+        // Create a sample plot for now
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+
+        // Draw a simple placeholder chart
+        ctx.fillStyle = '#f0f9ff';
+        ctx.fillRect(0, 0, 800, 400);
+        ctx.fillStyle = '#0369a1';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`FPOD ${isStandard ? 'Standard' : '24hr'} DPM Analysis`, 400, 30);
+        ctx.fillText(`Site: ${site}`, 400, 60);
+        ctx.fillText(`Sources: ${sources.join(', ')}`, 400, 90);
+
+        // Draw sample line chart
+        ctx.strokeStyle = '#0369a1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(100, 250);
+
+        for (let i = 0; i < 10; i++) {
+            const x = 100 + i * 60;
+            const y = 250 - Math.random() * 100;
+            ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        outputDiv.innerHTML = `
+            <div style="background: white; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #1f2937; margin-bottom: 10px;">📊 ${isStandard ? 'Standard' : '24hr'} DPM Source Comparison</h4>
+                <div style="text-align: center;">
+                    ${canvas.outerHTML}
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+                    Comparing ${sources.length} DPM sources at ${site}
+                </p>
+            </div>
+        `;
+
+    } catch (error) {
+        console.error('Error generating FPOD source comparison:', error);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+            </div>
+        `;
+    }
 };
 
 // Debug logging system
