@@ -1101,11 +1101,71 @@ header p {
 
 .banner-right {
     display: flex;
-    gap: 10px;
+    gap: 20px;
     align-items: center;
+    flex: 1;
+    justify-content: space-between;
 }
 
-/* Device Navigation Styles */
+/* Main Navigation Styles */
+.main-navigation {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+}
+
+.load-btn {
+    background: #059669;
+    color: white;
+    padding: 8px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.load-btn:hover {
+    background: #047857;
+    transform: translateY(-1px);
+}
+
+.load-btn.active {
+    background: #059669;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.nav-divider {
+    width: 1px;
+    height: 30px;
+    background: #e5e7eb;
+}
+
+.device-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.device-label {
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.device-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* Keep existing styles for compatibility */
 .device-navigation {
     display: flex;
     gap: 30px;

@@ -4028,6 +4028,14 @@ class NavigationManager {
     }
 
     initializeNavigation() {
+        // Handle unified Load button
+        const loadBtn = document.querySelector('.load-btn');
+        if (loadBtn) {
+            loadBtn.addEventListener('click', async () => {
+                await this.switchPage('reformat', 'universal');
+            });
+        }
+
         // Handle SUBCAM navigation buttons
         const subcamButtons = document.querySelectorAll('.subcam-nav');
         subcamButtons.forEach(button => {
@@ -4037,7 +4045,7 @@ class NavigationManager {
             });
         });
 
-        // Handle FPOD navigation (slider style)
+        // Handle FPOD navigation buttons
         const fpodButtons = document.querySelectorAll('.fpod-nav');
         fpodButtons.forEach(button => {
             button.addEventListener('click', async () => {
@@ -4045,41 +4053,26 @@ class NavigationManager {
                 await this.switchPage(targetPage, 'fpod');
             });
         });
-
-        // Keep backward compatibility for any remaining nav-button class
-        const navButtons = document.querySelectorAll('.nav-button:not(.subcam-nav):not(.fpod-nav)');
-        navButtons.forEach(button => {
-            button.addEventListener('click', async () => {
-                const targetPage = button.getAttribute('data-page');
-                await this.switchPage(targetPage, 'subcam');
-            });
-        });
     }
 
     async switchPage(pageName, device = 'subcam') {
+        // Clear all active states first
+        document.querySelectorAll('.nav-button').forEach(button => {
+            button.classList.remove('active');
+        });
+
+        // Handle Load button specially
+        if (pageName === 'reformat') {
+            const loadBtn = document.querySelector('.load-btn');
+            if (loadBtn) loadBtn.classList.add('active');
+        }
         // Update navigation buttons based on device
-        if (device === 'subcam') {
-            document.querySelectorAll('.subcam-nav').forEach(button => {
-                button.classList.remove('active');
-            });
+        else if (device === 'subcam') {
             const activeBtn = document.querySelector(`.subcam-nav[data-page="${pageName}"]`);
             if (activeBtn) activeBtn.classList.add('active');
         } else if (device === 'fpod') {
-            document.querySelectorAll('.fpod-nav').forEach(button => {
-                button.classList.remove('active');
-            });
             const activeBtn = document.querySelector(`.fpod-nav[data-page="${pageName}"]`);
             if (activeBtn) activeBtn.classList.add('active');
-
-            // Update slider position for FPOD
-            const sliderThumb = document.querySelector('.fpod-container .slider-thumb');
-            if (sliderThumb) {
-                if (pageName === 'fpod-plot') {
-                    sliderThumb.style.left = '50%';
-                } else {
-                    sliderThumb.style.left = '0%';
-                }
-            }
         }
 
         // Update page content

@@ -40,82 +40,79 @@
                 <h1 class="banner-title">ReportApp 0.1</h1>
             </div>
             <div class="banner-right">
-                <div class="device-navigation">
-                    <!-- SUBCAM Navigation -->
-                    <div class="device-container subcam-container">
-                        <div class="navigation-buttons">
-                            <div class="device-label">SUBCAM</div>
-                            <div class="nav-buttons-container">
-                                <button class="nav-button subcam-nav active" data-page="reformat" data-device="subcam" title="Load Data">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 3v12l-4-4m4 4l4-4"/>
-                                        <path d="M8 21h8"/>
-                                    </svg>
-                                    <span>Load</span>
-                                </button>
-                                <button class="nav-button subcam-nav" data-page="plot" data-device="subcam" title="Plot Data">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
-                                        <polyline points="13,6 22,6 22,15"/>
-                                    </svg>
-                                    <span>Plot</span>
-                                </button>
-                                <button class="nav-button subcam-nav" data-page="heatmap" data-device="subcam" title="Heatmap">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                        <path d="M9 9h6v6H9z"/>
-                                        <path d="M6 6h3v3H6z"/>
-                                        <path d="M15 15h3v3h-3z"/>
-                                    </svg>
-                                    <span>Heatmap</span>
-                                </button>
-                                <button class="nav-button subcam-nav" data-page="compact" data-device="subcam">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="2" width="20" height="20" rx="2"/>
-                                        <rect x="6" y="6" width="2" height="2"/>
-                                        <rect x="10" y="6" width="2" height="2"/>
-                                        <rect x="14" y="6" width="2" height="2"/>
-                                        <rect x="18" y="6" width="2" height="2"/>
-                                        <rect x="6" y="10" width="2" height="2"/>
-                                        <rect x="10" y="10" width="2" height="2"/>
-                                        <rect x="14" y="10" width="2" height="2"/>
-                                        <rect x="18" y="10" width="2" height="2"/>
-                                        <rect x="6" y="14" width="2" height="2"/>
-                                        <rect x="10" y="14" width="2" height="2"/>
-                                        <rect x="14" y="14" width="2" height="2"/>
-                                        <rect x="18" y="14" width="2" height="2"/>
-                                    </svg>
-                                    <span>Compact</span>
-                                </button>
-                            </div>
+                <div class="main-navigation">
+                    <!-- Universal Load Button -->
+                    <button class="nav-button load-btn active" data-page="reformat" title="Load Data">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 3v12l-4-4m4 4l4-4"/>
+                            <path d="M8 21h8"/>
+                        </svg>
+                        <span>LOAD</span>
+                    </button>
+
+                    <!-- Divider -->
+                    <div class="nav-divider"></div>
+
+                    <!-- SUBCAM Group -->
+                    <div class="device-group">
+                        <span class="device-label">SUBCAM</span>
+                        <div class="device-buttons">
+                            <button class="nav-button subcam-nav" data-page="plot" data-device="subcam" title="Plot Data">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
+                                    <polyline points="13,6 22,6 22,15"/>
+                                </svg>
+                                <span>Plot</span>
+                            </button>
+                            <button class="nav-button subcam-nav" data-page="heatmap" data-device="subcam" title="Heatmap">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M9 9h6v6H9z"/>
+                                    <path d="M6 6h3v3H6z"/>
+                                    <path d="M15 15h3v3h-3z"/>
+                                </svg>
+                                <span>Heatmap</span>
+                            </button>
+                            <button class="nav-button subcam-nav" data-page="compact" data-device="subcam" title="Compact View">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="2" width="20" height="20" rx="2"/>
+                                    <rect x="6" y="6" width="2" height="2"/>
+                                    <rect x="10" y="6" width="2" height="2"/>
+                                    <rect x="14" y="6" width="2" height="2"/>
+                                    <rect x="18" y="6" width="2" height="2"/>
+                                    <rect x="6" y="10" width="2" height="2"/>
+                                    <rect x="10" y="10" width="2" height="2"/>
+                                    <rect x="14" y="10" width="2" height="2"/>
+                                    <rect x="18" y="10" width="2" height="2"/>
+                                    <rect x="6" y="14" width="2" height="2"/>
+                                    <rect x="10" y="14" width="2" height="2"/>
+                                    <rect x="14" y="14" width="2" height="2"/>
+                                    <rect x="18" y="14" width="2" height="2"/>
+                                </svg>
+                                <span>Compact</span>
+                            </button>
                         </div>
                     </div>
 
-                    <!-- FPOD Navigation -->
-                    <div class="device-container fpod-container">
-                        <div class="mode-slider-container">
-                            <div class="device-label">FPOD</div>
-                            <div class="slider-track">
-                                <div class="slider-thumb"></div>
-                            </div>
-                            <div class="slider-icons">
-                                <button class="slider-icon fpod-nav" data-page="fpod-reformat" data-device="fpod" title="Load Data">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 3v12l-4-4m4 4l4-4"/>
-                                        <path d="M8 21h8"/>
-                                    </svg>
-                                </button>
-                                <button class="slider-icon fpod-nav" data-page="fpod-plot" data-device="fpod" title="Plot Data">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
-                                        <polyline points="13,6 22,6 22,15"/>
-                                    </svg>
-                                </button>
-                            </div>
+                    <!-- Divider -->
+                    <div class="nav-divider"></div>
+
+                    <!-- FPOD Group -->
+                    <div class="device-group">
+                        <span class="device-label">FPOD</span>
+                        <div class="device-buttons">
+                            <button class="nav-button fpod-nav" data-page="fpod-plot" data-device="fpod" title="Plot Data">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="22,6 13.5,15.5 8.5,10.5 2,17"/>
+                                    <polyline points="13,6 22,6 22,15"/>
+                                </svg>
+                                <span>Plot</span>
+                            </button>
                         </div>
                     </div>
                 </div>
-                <!-- Settings Icon -->
+
+                <!-- Settings Icon (Far Right) -->
                 <div class="settings-container">
                     <button id="settingsBtn" class="settings-button" title="Settings">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
