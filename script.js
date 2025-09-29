@@ -386,13 +386,16 @@ class CSVManager {
         this.analyzeWorkingDirFiles();
         this.hideWorkingDirModal();
         this.renderFileBrowser();
-        
+
         // Auto-load the first CSV file found
         if (this.workingDirFiles.length > 0) {
             const firstFile = this.workingDirFiles[0];
             this.handleFileUpload(firstFile);
         }
-        
+
+        // Initialize SUBCAM plot page with loaded files
+        this.initializeSubcamPlotPage();
+
         // Show success message
         const message = `Successfully loaded ${this.workingDirFiles.length} CSV file${this.workingDirFiles.length !== 1 ? 's' : ''}.`;
         this.showSuccess(message);
@@ -4013,6 +4016,659 @@ class CSVManager {
         }
     }
 
+    // ==================== SUBCAM PLOTTING FUNCTIONS ====================
+
+    async parseCSVFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const csvText = e.target.result;
+                    const lines = csvText.trim().split(/\r\n|\n/);
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    const data = [];
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const values = lines[i].split(',').map(v => v.trim());
+                        const row = {};
+                        headers.forEach((header, index) => {
+                            row[header] = values[index];
+                        });
+                        data.push(row);
+                    }
+
+                    resolve({ headers, data });
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsText(file);
+        });
+    }
+
+    async generateSubcamSiteComparison(source, sites) {
+        console.log('=== SUBCAM GENERATE SITE COMPARISON ===');
+        console.log('Source:', source);
+        console.log('Sites:', sites);
+
+        const outputDiv = document.getElementById('siteComparisonOutput');
+        if (!outputDiv) {
+            console.error('Output div not found');
+            return;
+        }
+
+        outputDiv.classList.add('active');
+        outputDiv.innerHTML = `
+            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+                <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Plot...</h4>
+                <p>Loading ${sites.join(', ')} data for ${source} analysis...</p>
+            </div>
+        `;
+
+        try {
+            const siteData = await this.loadNmaxFilesForSites(sites, source);
+
+            if (siteData.length === 0) {
+                throw new Error('No _nmax files found for the selected sites');
+            }
+
+            this.createSubcamSiteComparisonPlot(siteData, source, sites, outputDiv);
+
+        } catch (error) {
+            console.error('Error generating SUBCAM site comparison plot:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 0.85rem;">
+                        Make sure the corresponding _nmax files exist for: ${sites.join(', ')}
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    async generateSubcamSourceComparison(site, sources) {
+        console.log('=== SUBCAM GENERATE SOURCE COMPARISON ===');
+        console.log('Site:', site);
+        console.log('Sources:', sources);
+
+        const outputDiv = document.getElementById('sourceComparisonOutput');
+        if (!outputDiv) {
+            console.error('Output div not found');
+            return;
+        }
+
+        outputDiv.classList.add('active');
+        outputDiv.innerHTML = `
+            <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+                <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Plot...</h4>
+                <p>Loading ${sources.join(', ')} data for ${site} analysis...</p>
+            </div>
+        `;
+
+        try {
+            const siteData = await this.loadNmaxFileForSite(site, sources);
+
+            if (!siteData) {
+                throw new Error(`No _nmax file found for: ${site}`);
+            }
+
+            this.createSubcamSourceComparisonPlot(siteData, site, sources, outputDiv);
+
+        } catch (error) {
+            console.error('Error generating SUBCAM source comparison plot:', error);
+            outputDiv.innerHTML = `
+                <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                    <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                    <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 0.85rem;">
+                        Make sure the _nmax file exists for: ${site}
+                    </p>
+                </div>
+            `;
+        }
+    }
+
+    async loadNmaxFilesForSites(selectedFilenames, source) {
+        const siteData = [];
+
+        for (const filename of selectedFilenames) {
+            const file = this.workingDirFiles.find(f => f.name === filename);
+            if (file) {
+                const data = await this.parseCSVFile(file);
+                siteData.push({
+                    site: filename,
+                    file: file,
+                    data: data,
+                    source: source
+                });
+            }
+        }
+
+        return siteData;
+    }
+
+    async loadNmaxFileForSite(filename, sources) {
+        const file = this.workingDirFiles.find(f => f.name === filename);
+        if (!file) return null;
+
+        const data = await this.parseCSVFile(file);
+        return {
+            site: filename,
+            file: file,
+            data: data,
+            sources: sources
+        };
+    }
+
+    extractHourlyDataSubcam(csvData, source) {
+        const hourlyData = {};
+
+        csvData.data.forEach(row => {
+            // Find time column (flexible key matching)
+            const hourKey = Object.keys(row).find(key =>
+                key.toLowerCase().includes('hour') ||
+                key.toLowerCase().includes('time') ||
+                key.toLowerCase().includes('date')
+            );
+
+            // Find source column
+            let sourceKey = Object.keys(row).find(key => key === source);
+            if (!sourceKey) {
+                sourceKey = Object.keys(row).find(key =>
+                    key.toLowerCase().includes(source.toLowerCase())
+                );
+            }
+
+            if (hourKey && sourceKey && row[hourKey] && row[sourceKey] !== undefined) {
+                let timeIdentifier = row[hourKey];
+
+                // Handle different time formats
+                if (timeIdentifier.includes('T')) {
+                    // ISO format
+                    const dateObj = new Date(timeIdentifier);
+                    const dateStr = dateObj.toISOString().split('T')[0];
+                    timeIdentifier = dateStr;
+                } else if (timeIdentifier.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    // Daily format: "2024-08-01"
+                    timeIdentifier = timeIdentifier;
+                } else {
+                    // Simple identifier
+                    timeIdentifier = String(timeIdentifier).padStart(2, '0');
+                }
+
+                const value = parseFloat(row[sourceKey]) || 0;
+                hourlyData[timeIdentifier] = value;
+            }
+        });
+
+        return hourlyData;
+    }
+
+    formatTimePointsAsActualTimestamps(sortedHours) {
+        // For daily date format (YYYY-MM-DD)
+        if (sortedHours[0] && sortedHours[0].match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return sortedHours.map(dateStr => {
+                const date = new Date(dateStr + 'T00:00:00Z');
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const year = String(date.getUTCFullYear()).slice(-2);
+                return `${day}/${month}/${year}`;
+            });
+        }
+
+        // For ISO timestamps
+        if (sortedHours[0] && sortedHours[0].includes('_')) {
+            return sortedHours.map(timeIdentifier => {
+                const [dateStr, hourStr] = timeIdentifier.split('_');
+                const date = new Date(dateStr + `T${hourStr}:00:00Z`);
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const year = String(date.getUTCFullYear()).slice(-2);
+                return `${day}/${month}/${year}`;
+            });
+        }
+
+        // For simple hours
+        return sortedHours.map(hour => `${String(hour).padStart(2, '0')}:00`);
+    }
+
+    createSubcamSiteComparisonPlot(siteData, source, sites, outputDiv) {
+        // Create plot container
+        const plotContainer = document.createElement('div');
+        plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        canvas.style.cssText = 'width: 100%; height: 100%;';
+        plotContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+
+        // Journal colors
+        const journalColors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+            '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+        ];
+
+        // Plot area
+        const plotArea = {
+            left: 80, top: 40, right: 760, bottom: 320,
+            width: 680, height: 280
+        };
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Extract all time points
+        let allTimePoints = new Set();
+        siteData.forEach(siteInfo => {
+            const hourlyData = this.extractHourlyDataSubcam(siteInfo.data, source);
+            Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+        });
+
+        const sortedHours = Array.from(allTimePoints).sort();
+        const hours = this.formatTimePointsAsActualTimestamps(sortedHours);
+
+        let maxValue = 0;
+
+        const plotData = siteData.map((siteInfo, index) => {
+            const hourlyData = this.extractHourlyDataSubcam(siteInfo.data, source);
+            const values = sortedHours.map(hour => hourlyData[hour] !== undefined ? hourlyData[hour] : null);
+            const maxSiteValue = Math.max(...values.filter(v => v !== null));
+            maxValue = Math.max(maxValue, maxSiteValue);
+
+            return {
+                site: siteInfo.site.replace(/_nmax\.csv$/i, '').replace(/_/g, ' '),
+                values: values,
+                color: journalColors[index % journalColors.length]
+            };
+        });
+
+        maxValue = Math.ceil(maxValue * 1.1);
+
+        // Draw axes
+        this.drawSubcamAxes(ctx, plotArea, hours, maxValue, canvas);
+
+        // Plot data
+        plotData.forEach(site => {
+            this.plotSubcamSiteData(ctx, plotArea, site, maxValue);
+        });
+
+        // Draw legend
+        this.drawSubcamLegend(ctx, plotData, plotArea);
+
+        outputDiv.innerHTML = '';
+        outputDiv.appendChild(plotContainer);
+    }
+
+    createSubcamSourceComparisonPlot(siteData, site, sources, outputDiv) {
+        // Create plot container
+        const plotContainer = document.createElement('div');
+        plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 400;
+        canvas.style.cssText = 'width: 100%; height: 100%;';
+        plotContainer.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+
+        const journalColors = [
+            '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'
+        ];
+
+        const plotArea = {
+            left: 80, top: 40, right: 760, bottom: 320,
+            width: 680, height: 280
+        };
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Extract all time points
+        let allTimePoints = new Set();
+        sources.forEach(source => {
+            const hourlyData = this.extractHourlyDataSubcam(siteData.data, source);
+            Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+        });
+
+        const sortedHours = Array.from(allTimePoints).sort();
+        const hours = this.formatTimePointsAsActualTimestamps(sortedHours);
+
+        let maxValue = 0;
+
+        const plotData = sources.map((source, index) => {
+            const hourlyData = this.extractHourlyDataSubcam(siteData.data, source);
+            const values = sortedHours.map(hour => hourlyData[hour] !== undefined ? hourlyData[hour] : null);
+            const maxSourceValue = Math.max(...values.filter(v => v !== null));
+            maxValue = Math.max(maxValue, maxSourceValue);
+
+            return {
+                site: source,
+                values: values,
+                color: journalColors[index % journalColors.length]
+            };
+        });
+
+        maxValue = Math.ceil(maxValue * 1.1);
+
+        // Draw axes
+        this.drawSubcamAxes(ctx, plotArea, hours, maxValue, canvas);
+
+        // Plot data
+        plotData.forEach(sourceData => {
+            this.plotSubcamSiteData(ctx, plotArea, sourceData, maxValue);
+        });
+
+        // Draw legend
+        this.drawSubcamLegend(ctx, plotData, plotArea);
+
+        outputDiv.innerHTML = '';
+        outputDiv.appendChild(plotContainer);
+    }
+
+    drawSubcamAxes(ctx, plotArea, hours, maxValue, canvas) {
+        ctx.strokeStyle = '#d0d0d0';
+        ctx.lineWidth = 1;
+        ctx.font = '13px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#666666';
+
+        // X-axis
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, plotArea.bottom);
+        ctx.lineTo(plotArea.right, plotArea.bottom);
+        ctx.stroke();
+
+        // Y-axis
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, plotArea.top);
+        ctx.lineTo(plotArea.left, plotArea.bottom);
+        ctx.stroke();
+
+        // X-axis labels
+        const xStep = plotArea.width / Math.max(hours.length - 1, 1);
+        const labelSpacing = Math.max(1, Math.ceil(hours.length / 10));
+
+        hours.forEach((hour, i) => {
+            const x = plotArea.left + (i * xStep);
+
+            // Tick mark
+            ctx.beginPath();
+            ctx.moveTo(x, plotArea.bottom);
+            ctx.lineTo(x, plotArea.bottom + 5);
+            ctx.stroke();
+
+            // Label
+            if (i % labelSpacing === 0 || i === hours.length - 1) {
+                ctx.save();
+                ctx.translate(x, plotArea.bottom + 20);
+                ctx.rotate(-Math.PI / 4);
+                ctx.textAlign = 'right';
+                ctx.fillText(hour, 0, 0);
+                ctx.restore();
+            }
+        });
+
+        // Y-axis labels
+        ctx.textAlign = 'right';
+        const steps = 5;
+
+        for (let i = 0; i <= steps; i++) {
+            const value = (maxValue / steps) * i;
+            const y = plotArea.bottom - (plotArea.height / steps) * i;
+
+            ctx.beginPath();
+            ctx.moveTo(plotArea.left - 5, y);
+            ctx.lineTo(plotArea.left, y);
+            ctx.stroke();
+
+            ctx.fillText(value.toFixed(0), plotArea.left - 6, y + 4);
+        }
+
+        // Gridlines
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 0.5;
+
+        for (let i = 1; i < steps; i++) {
+            const y = plotArea.bottom - (plotArea.height / steps) * i;
+            ctx.beginPath();
+            ctx.moveTo(plotArea.left, y);
+            ctx.lineTo(plotArea.right, y);
+            ctx.stroke();
+        }
+
+        // Axis labels
+        ctx.fillStyle = '#333333';
+        ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+
+        // X-axis label
+        ctx.textAlign = 'center';
+        ctx.fillText('Date', plotArea.left + plotArea.width / 2, canvas.height - 10);
+
+        // Y-axis label
+        ctx.save();
+        ctx.translate(15, plotArea.top + plotArea.height / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('Daily Maximum Individuals (Nmax)', 0, 0);
+        ctx.restore();
+    }
+
+    plotSubcamSiteData(ctx, plotArea, siteData, maxValue) {
+        const { values, color } = siteData;
+        const chartType = this.chartType || 'line';
+        const xStep = plotArea.width / Math.max(values.length - 1, 1);
+
+        if (chartType === 'line') {
+            // Line chart
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            let firstPoint = true;
+
+            values.forEach((value, i) => {
+                if (value !== null && value !== undefined) {
+                    const x = plotArea.left + (i * xStep);
+                    const y = plotArea.bottom - (value / maxValue) * plotArea.height;
+
+                    if (firstPoint) {
+                        ctx.moveTo(x, y);
+                        firstPoint = false;
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+            });
+
+            ctx.stroke();
+
+            // Data points
+            ctx.fillStyle = color;
+            values.forEach((value, i) => {
+                if (value !== null && value !== undefined) {
+                    const x = plotArea.left + (i * xStep);
+                    const y = plotArea.bottom - (value / maxValue) * plotArea.height;
+
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+        } else {
+            // Column chart
+            ctx.fillStyle = this.hexToRgba(color, 0.7);
+            const columnWidth = Math.max(2, xStep * 0.7);
+
+            values.forEach((value, i) => {
+                if (value !== null && value !== undefined) {
+                    const x = plotArea.left + (i * xStep) - columnWidth / 2;
+                    const columnHeight = (value / maxValue) * plotArea.height;
+                    const y = plotArea.bottom - columnHeight;
+
+                    ctx.fillRect(x, y, columnWidth, columnHeight);
+                }
+            });
+        }
+    }
+
+    drawSubcamLegend(ctx, plotData, plotArea) {
+        const legendX = plotArea.right - 20;
+        const legendY = plotArea.top + 10;
+        const lineHeight = 20;
+        const boxSize = 12;
+
+        ctx.font = '12px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'right';
+
+        plotData.forEach((siteData, i) => {
+            const y = legendY + (i * lineHeight);
+
+            // Color box
+            ctx.fillStyle = siteData.color;
+            ctx.fillRect(legendX - boxSize - 60, y - boxSize/2, boxSize, boxSize);
+
+            // Site name
+            ctx.fillStyle = '#333333';
+            ctx.fillText(siteData.site, legendX, y + 4);
+        });
+    }
+
+    hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    async initializeSubcamPlotPage() {
+        console.log('Initializing SUBCAM plot page controls...');
+
+        // Get _nmax files from workingDirFiles
+        const nmaxFiles = this.workingDirFiles.filter(file =>
+            file.name.toLowerCase().includes('_nmax')
+        );
+
+        console.log('Found', nmaxFiles.length, '_nmax files');
+
+        // Populate first card: site comparison
+        const sourceSelect1 = document.getElementById('sourceSelect1');
+        const sitesSelect1 = document.getElementById('sitesSelect1');
+
+        if (sourceSelect1 && nmaxFiles.length > 0) {
+            // Parse first file to get column names
+            const firstFile = nmaxFiles[0];
+            const data = await this.parseCSVFile(firstFile);
+            const excludeColumns = ['date', 'time', 'hour', 'timestamp'];
+
+            sourceSelect1.innerHTML = '<option value="">Select variable to plot...</option>';
+
+            const headers = [];
+            data.headers.forEach(header => {
+                if (!excludeColumns.some(col => header.toLowerCase().includes(col.toLowerCase()))) {
+                    const option = document.createElement('option');
+                    option.value = header;
+                    option.textContent = header;
+                    sourceSelect1.appendChild(option);
+                    headers.push(header);
+                }
+            });
+
+            // Auto-select first source if available
+            if (headers.length > 0) {
+                sourceSelect1.value = headers[0];
+            }
+        }
+
+        if (sitesSelect1) {
+            sitesSelect1.innerHTML = '';
+            nmaxFiles.forEach((file, index) => {
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                sitesSelect1.appendChild(option);
+
+                // Auto-select first 2 files if available
+                if (index < 2 && nmaxFiles.length >= 2) {
+                    option.selected = true;
+                }
+            });
+        }
+
+        // Populate second card: variable comparison
+        const siteSelect2 = document.getElementById('siteSelect2');
+        const sourcesSelect2 = document.getElementById('sourcesSelect2');
+
+        if (siteSelect2) {
+            siteSelect2.innerHTML = '<option value="">Select a _nmax.csv file...</option>';
+            nmaxFiles.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                siteSelect2.appendChild(option);
+            });
+
+            // Auto-select first file if available
+            if (nmaxFiles.length > 0) {
+                siteSelect2.value = nmaxFiles[0].name;
+            }
+        }
+
+        // When site is selected, populate variables
+        if (siteSelect2 && sourcesSelect2) {
+            siteSelect2.addEventListener('change', async () => {
+                const selectedFile = nmaxFiles.find(f => f.name === siteSelect2.value);
+                if (selectedFile) {
+                    const data = await this.parseCSVFile(selectedFile);
+                    const excludeColumns = ['date', 'time', 'hour', 'timestamp'];
+
+                    sourcesSelect2.innerHTML = '';
+
+                    const headers = [];
+                    data.headers.forEach(header => {
+                        if (!excludeColumns.some(col => header.toLowerCase().includes(col.toLowerCase()))) {
+                            const option = document.createElement('option');
+                            option.value = header;
+                            option.textContent = header;
+                            sourcesSelect2.appendChild(option);
+                            headers.push(header);
+                        }
+                    });
+
+                    // Auto-select first 2 sources if available
+                    if (headers.length >= 2) {
+                        sourcesSelect2.options[0].selected = true;
+                        sourcesSelect2.options[1].selected = true;
+                    } else if (headers.length === 1) {
+                        sourcesSelect2.options[0].selected = true;
+                    }
+                }
+            });
+
+            // Trigger initial population if a site is preselected
+            if (nmaxFiles.length > 0) {
+                siteSelect2.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Trigger button state updates after preselection
+        setTimeout(() => {
+            if (sourceSelect1) sourceSelect1.dispatchEvent(new Event('change'));
+            if (sitesSelect1) sitesSelect1.dispatchEvent(new Event('change'));
+            if (siteSelect2) siteSelect2.dispatchEvent(new Event('change'));
+        }, 100);
+
+        console.log('SUBCAM plot page initialized');
+    }
+
 }
 
 // Navigation functionality
@@ -4167,20 +4823,32 @@ class NavigationManager {
         if (siteSelect2) siteSelect2.addEventListener('change', updateSourceComparisonButton);
         if (sourcesSelect2) sourcesSelect2.addEventListener('change', updateSourceComparisonButton);
 
-        // Button click handlers (placeholder functionality)
+        // Button click handlers - delegate to csvManager
         if (generateSiteComparisonBtn) {
-            generateSiteComparisonBtn.addEventListener('click', () => {
+            generateSiteComparisonBtn.addEventListener('click', async () => {
+                console.log('SUBCAM Site Comparison button clicked');
                 const source = sourceSelect1.value;
                 const sites = Array.from(sitesSelect1.selectedOptions).map(option => option.value);
-                this.generateSiteComparison(source, sites);
+
+                if (window.csvManager && typeof window.csvManager.generateSubcamSiteComparison === 'function') {
+                    await window.csvManager.generateSubcamSiteComparison(source, sites);
+                } else {
+                    console.error('csvManager or generateSubcamSiteComparison not available');
+                }
             });
         }
 
         if (generateSourceComparisonBtn) {
-            generateSourceComparisonBtn.addEventListener('click', () => {
+            generateSourceComparisonBtn.addEventListener('click', async () => {
+                console.log('SUBCAM Source Comparison button clicked');
                 const site = siteSelect2.value;
                 const sources = Array.from(sourcesSelect2.selectedOptions).map(option => option.value);
-                this.generateSourceComparison(site, sources);
+
+                if (window.csvManager && typeof window.csvManager.generateSubcamSourceComparison === 'function') {
+                    await window.csvManager.generateSubcamSourceComparison(site, sources);
+                } else {
+                    console.error('csvManager or generateSubcamSourceComparison not available');
+                }
             });
         }
 
@@ -4486,11 +5154,15 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
     }
 
     extractSiteNameFromFilename(filename) {
-        // Extract site name from filename: take text between 2nd and 4th underscore (PROJECT_REQUIREMENTS)
-        // Example: SUBCAM_Alga_Control-S_2406-2407_24hr.csv -> Control-S_2406-2407
+        // Extract site name from filename: remove everything before and up to 2nd underscore
+        // Also remove _std or _24hr suffix
+        // Example: FPOD_Alga_Control_W_2406_2409_std.csv -> Control_W_2406_2409
         const parts = filename.split('_');
-        if (parts.length >= 4) {
-            return parts.slice(2, 4).join('_');
+        if (parts.length >= 3) {
+            // Remove first 2 parts, keep everything from 3rd part onwards
+            return parts.slice(2).join('_')
+                .replace(/_(std|24hr)\.(csv|CSV)$/, '')
+                .replace(/\.(csv|CSV)$/, '');
         }
         // Fallback to the filename if extraction fails
         return filename.replace(/\.(csv|CSV)$/, '');
@@ -4656,7 +5328,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         }
 
         // Update length distribution dropdowns
-        this.updateLengthDropdowns(nmaxFiles, obvFiles, pageName);
+        this.updateLengthDropdowns(nmaxFiles, this.obvFiles || [], pageName);
 
         // Update std dropdowns
         this.updateObvDropdowns(sources, this.obvFiles, pageName);
@@ -4838,7 +5510,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         console.log('Available files:', this.availableFiles?.length || 0);
         console.log('Available files list:', this.availableFiles?.map(f => f.name) || []);
         
-        const outputDiv = document.getElementById('siteComparisonOutput');
+        const outputDiv = document.getElementById('fpod-siteComparisonOutput');
         if (!outputDiv) {
             console.error('Output div not found');
             return;
@@ -5564,8 +6236,12 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         ctx.moveTo(plotArea.left, plotArea.top);
         ctx.lineTo(plotArea.left, plotArea.bottom);
         ctx.stroke();
-        
-        // Right Y-axis removed for cleaner appearance
+
+        // Y-axis (right - Percentage)
+        ctx.beginPath();
+        ctx.moveTo(plotArea.right, plotArea.top);
+        ctx.lineTo(plotArea.right, plotArea.bottom);
+        ctx.stroke();
         
         // X-axis labels (hours)
         const xStep = plotArea.width / (hours.length - 1);
@@ -5606,7 +6282,26 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             // Label (moved closer to axis)
             ctx.fillText(dpm.toFixed(1), plotArea.left - 6, y + 4);
         }
-        
+
+        // Right Y-axis labels (Percentage - 60 DPM = 100%)
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#666666';
+        for (let i = 0; i <= dpmSteps; i++) {
+            const percentage = (maxPercentage / dpmSteps) * i;
+            const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+
+            // Tick mark
+            ctx.strokeStyle = '#d0d0d0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(plotArea.right, y);
+            ctx.lineTo(plotArea.right + 5, y);
+            ctx.stroke();
+
+            // Label
+            ctx.fillText(Math.round(percentage), plotArea.right + 10, y + 4);
+        }
+
         // Add horizontal gridlines for Y-axis major ticks (faint)
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
         ctx.lineWidth = 0.5;
@@ -5799,7 +6494,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     }
 
     async generateSourceComparison(site, sources) {
-        const outputDiv = document.getElementById('sourceComparisonOutput');
+        const outputDiv = document.getElementById('fpod-sourceComparisonOutput');
         if (!outputDiv) return;
 
         outputDiv.classList.add('active');
@@ -5974,22 +6669,22 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         outputDiv.appendChild(plotContainer);
     }
 
-    plotSourceData(ctx, plotArea, sourceData, hours, maxDPM) {
-        const { source, dpmValues, color } = sourceData;
+    plotSourceData(ctx, plotArea, sourceData, hours, maxDPM, forceLineMode = false) {
+        const { source, dpmValues, color, isStdFile } = sourceData;
 
-        // Check chart type from global csvManager
-        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
+        // Standard DPM plots ALWAYS use lines, never columns
+        const chartType = (forceLineMode || isStdFile) ? 'line' :
+            ((typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line');
 
-        const xStep = plotArea.width / (hours.length - 1);
-
-        if (chartType === 'column') {
+        if (chartType === 'column' && !forceLineMode && !isStdFile) {
             // Column chart rendering with transparency
+            const xStep = plotArea.width / hours.length;
             ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
             const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
 
             dpmValues.forEach((dpm, i) => {
                 if (dpm !== null && dpm !== undefined) {
-                    const x = plotArea.left + (i * xStep) - columnWidth / 2;
+                    const x = plotArea.left + (i + 0.5) * xStep - columnWidth / 2;
                     const columnHeight = (dpm / maxDPM) * plotArea.height;
                     const y = plotArea.bottom - columnHeight;
 
@@ -5998,6 +6693,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                 }
             });
         } else {
+            const xStep = plotArea.width / (hours.length - 1);
             // Line chart rendering (default)
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
@@ -6106,7 +6802,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         console.log('Sites:', sites);
         console.log('Available std files:', this.stdFiles?.length || 0);
         
-        const outputDiv = document.getElementById('siteComparisonStdOutput');
+        const outputDiv = document.getElementById('fpod-siteComparisonStdOutput');
         if (!outputDiv) {
             console.error('Std output div not found');
             return;
@@ -6127,11 +6823,11 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             console.log('Starting to load std files...');
             // Load the _std CSV files for each selected site
             const siteData = await this.loadStdFilesForSites(sites, source);
-            
+
             console.log('Loaded std site data:', siteData.length, 'files');
-            
+
             if (siteData.length === 0) {
-                throw new Error('No _obvs files found for the selected sites');
+                throw new Error('No _std files found for the selected sites');
             }
 
             console.log('Creating std plot...');
@@ -6163,7 +6859,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         for (const filename of selectedFilenames) {
             console.log(`Looking for std file: ${filename}`);
             // Find the file by exact filename match
-            const fileStd = this.obvFiles.find(file => file.name === filename);
+            const fileStd = this.stdFiles.find(file => file.name === filename);
             
             console.log(`Found std file for ${filename}:`, fileStd?.name || 'NOT FOUND');
             
@@ -6227,12 +6923,20 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             });
 
             // Sort time points and format them as dates in dd/mm/yy format
-            const sortedHours = Array.from(allTimePoints).sort((a, b) => new Date(a) - new Date(b));
+            // Smart sorting for different time identifier formats
+            const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+                // For std files with "YYYY-MM-DD_HH" format
+                if (a.includes('_') && b.includes('_')) {
+                    // Sort lexicographically (works for ISO date format)
+                    return a.localeCompare(b);
+                }
+                // For 24hr files with simple hour numbers
+                return parseInt(a) - parseInt(b);
+            });
+            console.log('[SORTING] Sorted', sortedHours.length, 'time points');
+            console.log('[SORTING] First 3 after sort:', sortedHours.slice(0, 3));
             const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "date");
             console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
-            console.log("=== DEBUG: SUBCAMreport Time Range ===");
-            console.log("All time points found:", Array.from(allTimePoints).slice(0, 10));
-            console.log("Sorted hours sample:", sortedHours.slice(0, 10));
 
             let maxDPM = 0;
             let maxStdDPM = 0;
@@ -6317,16 +7021,21 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             // Round up max value to nice number
             maxDPM = Math.ceil(maxDPM * 1.1);
 
+            // Calculate percentage for right Y-axis (60 DPM = 100%)
+            const maxPercentage = Math.ceil((maxDPM / 60) * 100);
+
             console.log('Drawing axes...');
             // Draw axes and labels
-            this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxDPM, 800, "Date");
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, 800, "Date");
 
-            console.log('Plotting DPM data...');
+            console.log('Plotting DPM data as smooth lines...');
+            // Standard DPM plots use smooth line rendering (no column charts)
+
             // Apply layer ordering and plot each site's DPM data
             const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
                 csvManager.applyLayerOrder(plotData) : plotData;
             orderedPlotData.forEach((siteData, index) => {
-                this.plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM);
+                this.plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM, true); // Force line mode for Standard DPM
             });
 
             console.log('Drawing legend...');
@@ -6357,7 +7066,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     async generateStdSourceComparison(site, sources) {
         console.log('=== GENERATE STD SOURCE COMPARISON START ===');
         
-        const outputDiv = document.getElementById('sourceComparisonStdOutput');
+        const outputDiv = document.getElementById('fpod-sourceComparisonStdOutput');
         if (!outputDiv) {
             console.error('Std source output div not found');
             return;
@@ -6375,17 +7084,17 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
 
         try {
             // Find the std file for the selected site
-            const siteFile = this.obvFiles.find(file => file.name === site);
+            const siteFile = this.stdFiles.find(file => file.name === site);
             if (!siteFile) {
-                throw new Error(`No _obvs file found for site: ${site}`);
+                throw new Error(`No _std.csv file found for site: ${site}`);
             }
 
             // Parse the file data
             const siteData = await this.parseCSVFile(siteFile);
-            
+
             // Generate the plot using same format as 24hr
             this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv);
-            
+
         } catch (error) {
             console.error('Error generating std source comparison plot:', error);
             outputDiv.innerHTML = `
@@ -6393,7 +7102,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                     <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
                     <p><strong>Could not generate plot:</strong> ${error.message}</p>
                     <p style="margin-top: 10px; font-size: 0.85rem;">
-                        Make sure the corresponding _obvs file exists for: ${site}
+                        Make sure the corresponding _std.csv file exists for: ${site}
                     </p>
                 </div>
             `;
@@ -6467,14 +7176,19 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                 height: 240
             };
 
+            // Calculate percentage for right Y-axis (60 DPM = 100%)
+            const maxPercentage = Math.ceil((maxDPM / 60) * 100);
+
             // Draw axes and labels
-            this.drawPlotAxes(ctx, plotArea, sortedDisplayHours, maxDPM, maxDPM, 800, "Date");
-            
+            this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, 800, "Date");
+
+            // Standard Source plots use smooth line rendering (no column charts)
+
             // Apply layer ordering and plot each source's data
             const orderedPlotData = (typeof csvManager !== 'undefined' && csvManager.applyLayerOrder) ?
                 csvManager.applyLayerOrder(plotData) : plotData;
             orderedPlotData.forEach((sourceData, index) => {
-                this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM);
+                this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM, true); // Force line mode for Standard DPM
             });
             
             // Draw legend
@@ -6743,15 +7457,17 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         ctx.restore();
     }
 
-    plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM) {
-        const { site, dpmValues, color } = siteData;
+    plotSiteDataDPM(ctx, plotArea, siteData, hours, maxDPM, forceLineMode = false) {
+        const { site, dpmValues, color, isStdFile } = siteData;
 
-        // Check chart type from global csvManager
-        const chartType = (typeof csvManager !== 'undefined' && csvManager.chartType) ? csvManager.chartType : 'line';
+        // Standard DPM plots ALWAYS use lines, never columns
+        // Check chart type from global csvManager only if not forcing line mode and not std file
+        const chartType = (forceLineMode || isStdFile || (typeof csvManager !== 'undefined' && csvManager.chartType)) ?
+            (forceLineMode || isStdFile ? 'line' : csvManager.chartType) : 'line';
 
         const xStep = plotArea.width / dpmValues.length;
 
-        if (chartType === 'column') {
+        if (chartType === 'column' && !forceLineMode && !isStdFile) {
             // Column chart rendering with transparency
             ctx.fillStyle = csvManager.hexToRgba(color, 0.7); // 70% transparency
             const columnWidth = Math.max(2, xStep * 0.7); // 70% of available space per column
@@ -6767,7 +7483,7 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
                 }
             });
         } else {
-            // Line chart rendering (default)
+            // Line chart rendering (default for Standard DPM)
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.lineCap = 'round';
@@ -6934,12 +7650,1471 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
     }
 }
 
+// FPOD Plot Functions - Integrated from FPODreport 0.3
+// These extend NavigationManager with FPOD-specific plotting capabilities
+// Missing FPOD Helper Functions from FPODreport 0.3
+
+// Load 24hr files for multiple sites
+NavigationManager.prototype.load24hrFilesForSites = async function(selectedFilenames, source) {
+    console.log('=== LOAD 24HR FILES FOR SITES ===');
+    console.log('Selected filenames:', selectedFilenames);
+    console.log('Available files count:', this.availableFiles?.length || 0);
+
+    const siteData = [];
+
+    for (const filename of selectedFilenames) {
+        console.log(`Looking for file: ${filename}`);
+        // Find the file by exact filename match
+        const file24hr = this.availableFiles.find(file => file.name === filename);
+
+        console.log(`Found file for ${filename}:`, file24hr?.name || 'NOT FOUND');
+
+        if (file24hr) {
+            try {
+                console.log(`Parsing CSV file: ${file24hr.name}`);
+                const data = await this.parseCSVFile(file24hr);
+                console.log(`Parsed data for ${filename}:`, data.headers?.length || 0, 'headers,', data.data?.length || 0, 'rows');
+
+                siteData.push({
+                    site: filename, // Use filename as site identifier
+                    file: file24hr,
+                    data: data,
+                    source: source
+                });
+            } catch (error) {
+                console.error(`Error loading file ${filename}:`, error);
+            }
+        } else {
+            console.warn(`File not found: ${filename}`);
+        }
+    }
+
+    console.log('Total site data loaded:', siteData.length);
+    return siteData;
+};
+
+// Load 24hr file for site
+NavigationManager.prototype.load24hrFileForSite = async function(filename, sources) {
+    console.log('=== LOAD 24HR FILE FOR SOURCE COMPARISON ===');
+    console.log('Selected filename:', filename);
+
+    // Find the file by exact filename match
+    const file24hr = this.availableFiles.find(file => file.name === filename);
+
+    if (file24hr) {
+        try {
+            console.log(`Parsing CSV file: ${file24hr.name}`);
+            const data = await this.parseCSVFile(file24hr);
+            console.log(`Parsed data:`, data.headers?.length || 0, 'headers,', data.data?.length || 0, 'rows');
+
+            return {
+                site: filename, // Use filename as identifier
+                file: file24hr,
+                data: data,
+                sources: sources
+            };
+        } catch (error) {
+            console.error(`Error loading file ${filename}:`, error);
+            throw error;
+        }
+    }
+
+    console.warn(`File not found: ${filename}`);
+    return null;
+};
+
+// Load std files for multiple sites
+NavigationManager.prototype.loadStdFilesForSites = async function(selectedFilenames, source) {
+    console.log('=== LOAD STD FILES FOR SITES ===');
+    console.log('Selected filenames:', selectedFilenames);
+
+    const siteData = [];
+
+    for (const filename of selectedFilenames) {
+        console.log(`Looking for file: ${filename}`);
+        // Find the file by exact filename match
+        const fileStd = this.availableFiles.find(file => file.name === filename);
+
+        console.log(`Found file for ${filename}:`, fileStd?.name || 'NOT FOUND');
+
+        if (fileStd) {
+            try {
+                console.log(`Parsing CSV file: ${fileStd.name}`);
+                const data = await this.parseCSVFile(fileStd);
+                console.log(`Parsed data for ${filename}:`, data.headers?.length || 0, 'headers,', data.data?.length || 0, 'rows');
+
+                siteData.push({
+                    site: filename,
+                    file: fileStd,
+                    data: data,
+                    source: source
+                });
+            } catch (error) {
+                console.error(`Error loading file ${filename}:`, error);
+            }
+        } else {
+            console.warn(`File not found: ${filename}`);
+        }
+    }
+
+    console.log('Total std site data loaded:', siteData.length);
+    return siteData;
+};
+
+// Load std file for site
+NavigationManager.prototype.loadStdFileForSite = async function(filename, sources) {
+    console.log('=== LOAD STD FILE FOR SOURCE COMPARISON ===');
+    console.log('Selected filename:', filename);
+
+    // Find the file by exact filename match
+    const fileStd = this.availableFiles.find(file => file.name === filename);
+
+    if (fileStd) {
+        try {
+            console.log(`Parsing CSV file: ${fileStd.name}`);
+            const data = await this.parseCSVFile(fileStd);
+            console.log(`Parsed data:`, data.headers?.length || 0, 'headers,', data.data?.length || 0, 'rows');
+
+            return {
+                site: filename,
+                file: fileStd,
+                data: data,
+                sources: sources
+            };
+        } catch (error) {
+            console.error(`Error loading file ${filename}:`, error);
+            throw error;
+        }
+    }
+
+    console.warn(`File not found: ${filename}`);
+    return null;
+};
+
+// Parse CSV file
+NavigationManager.prototype.parseCSVFile = async function(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const csvText = e.target.result;
+                const lines = csvText.trim().split(/\r\n|\n/);
+                const headers = lines[0].split(',').map(h => h.trim());
+                const data = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',').map(v => v.trim());
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index];
+                    });
+                    data.push(row);
+                }
+
+                resolve({ headers, data });
+            } catch (error) {
+                reject(error);
+            }
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(file);
+    });
+};
+
+// Extract hourly data
+NavigationManager.prototype.extractHourlyData = function(csvData, source, fileType = 'auto') {
+    console.log(`=== EXTRACT HOURLY DATA FOR SOURCE: ${source} ===`);
+    console.log('CSV headers:', csvData.headers);
+    console.log('CSV data rows:', csvData.data.length);
+    console.log('File type parameter:', fileType);
+
+    const hourlyData = {};
+
+    csvData.data.forEach((row, index) => {
+        if (index < 3) { // Log first few rows for debugging
+            console.log(`Row ${index}:`, row);
+            console.log(`Row ${index} keys:`, Object.keys(row));
+        }
+
+        // Look for hour column (might be 'Hour', 'Time', etc.)
+        const hourKey = Object.keys(row).find(key =>
+            key.toLowerCase().includes('hour') || key.toLowerCase().includes('time')
+        );
+
+        // Look for the source column - need to handle "Porpoise (DPM)" format
+        let sourceKey = Object.keys(row).find(key =>
+            key === source || key.toLowerCase().includes(source.toLowerCase().replace(' (dpm)', ''))
+        );
+
+        if (index < 3) {
+            console.log(`Row ${index} - Hour key: "${hourKey}", Source key: "${sourceKey}"`);
+            if (hourKey) console.log(`  Hour value: "${row[hourKey]}"`);
+            if (sourceKey) console.log(`  Source value: "${row[sourceKey]}"`);
+        }
+
+        if (hourKey && sourceKey && row[hourKey] && row[sourceKey] !== undefined) {
+            let timeIdentifier = row[hourKey];
+
+            // Handle different time formats for std files vs 24hr files
+            if (typeof timeIdentifier === 'string' && timeIdentifier.includes('T')) {
+                // ISO timestamp like "2024-06-06T01:00:00.000Z"
+                const dateObj = new Date(timeIdentifier);
+
+                // For 24hr files, only use the hour (ignore the date)
+                // This allows multiple 24hr files from different days to align properly
+                if (fileType === '24hr') {
+                    timeIdentifier = String(dateObj.getUTCHours()).padStart(2, '0');
+                    if (index < 3) {
+                        console.log(`  [24HR FIX] ISO: ${row[hourKey]} -> Hour only: ${timeIdentifier}`);
+                    }
+                } else {
+                    // For std files, keep date and hour for proper chronological ordering
+                    const dateStr = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+                    const hourStr = String(dateObj.getUTCHours()).padStart(2, '0');
+                    timeIdentifier = `${dateStr}_${hourStr}`; // e.g., "2024-06-06_14"
+                    if (index < 3) {
+                        console.log(`  [STD FIX] ISO: ${row[hourKey]} -> ${dateStr}_${hourStr}`);
+                    }
+                }
+            } else {
+                // Use as-is for simple hour numbers
+                timeIdentifier = String(timeIdentifier).padStart(2, '0');
+            }
+
+            const dpm = parseFloat(row[sourceKey]) || 0;
+
+            // For 24hr files, if we already have data for this hour from another file,
+            // we could average them or take the latest. For now, we'll take the latest.
+            if (fileType === '24hr' && hourlyData[timeIdentifier] !== undefined) {
+                console.log(`  [24HR] Hour ${timeIdentifier} already has data (${hourlyData[timeIdentifier]}), replacing with ${dpm}`);
+            }
+
+            hourlyData[timeIdentifier] = dpm;
+
+            if (index < 3) {
+                console.log(`  Stored: timeIdentifier="${timeIdentifier}", dpm=${dpm}`);
+            }
+        }
+    });
+
+    console.log('Extracted hourly data:', Object.keys(hourlyData).length, 'hours');
+    console.log('Sample hourly data:', Object.fromEntries(Object.entries(hourlyData).slice(0, 5)));
+
+    return hourlyData;
+};
+
+// Extract hourly percentages for std files
+NavigationManager.prototype.extractHourlyData = function(csvData, source, fileType = 'std') {
+    console.log(`=== EXTRACT HOURLY DATA FOR SOURCE: ${source} ===`);
+
+    const hourlyData = {};
+
+    csvData.data.forEach(row => {
+        // Look for hour/time column
+        const hourKey = Object.keys(row).find(key =>
+            key.toLowerCase().includes('hour') || key.toLowerCase().includes('time')
+        );
+
+        // Look for the source column
+        let sourceKey = Object.keys(row).find(key =>
+            key === source || key.toLowerCase().includes(source.toLowerCase().replace(' (dpm)', ''))
+        );
+
+        if (hourKey && sourceKey && row[hourKey] && row[sourceKey] !== undefined) {
+            let timeIdentifier = row[hourKey];
+
+            // Extract and format time identifier
+            if (typeof timeIdentifier === 'string' && timeIdentifier.includes('T')) {
+                const dateObj = new Date(timeIdentifier);
+
+                if (fileType === '24hr') {
+                    // Extract ONLY hour (00-23), ignore date
+                    timeIdentifier = String(dateObj.getUTCHours()).padStart(2, '0');
+                } else {
+                    // Keep date AND hour for chronological ordering
+                    const dateStr = dateObj.toISOString().split('T')[0];
+                    const hourStr = String(dateObj.getUTCHours()).padStart(2, '0');
+                    timeIdentifier = `${dateStr}_${hourStr}`;
+                }
+            } else {
+                // Simple hour numbers, pad to 2 digits
+                timeIdentifier = String(timeIdentifier).padStart(2, '0');
+            }
+
+            // Store raw DPM value (no conversion to percentage)
+            const dpm = parseFloat(row[sourceKey]) || 0;
+            hourlyData[timeIdentifier] = dpm;
+        }
+    });
+
+    console.log('Extracted hourly data:', Object.keys(hourlyData).length, 'time points');
+    return hourlyData;
+};
+
+// Format time points as date labels
+NavigationManager.prototype.formatTimePointsAsDateLabels = function(sortedHours, sampleSiteData, formatType = "date") {
+    console.log('[DATE LABELS] Converting', sortedHours.length, 'time points to labels, format:', formatType);
+    console.log('[DATE LABELS] First 3 sorted hours:', sortedHours.slice(0, 3));
+
+    // For 24hr file format - use time format when requested
+    if (formatType === "time") {
+        return sortedHours.map((hour) => {
+            const hourNum = hour.includes("_") ? parseInt(hour.split("_")[1], 10) : parseInt(hour, 10);
+            const hours = String(hourNum).padStart(2, "0");
+            return `${hours}:00`;
+        });
+    }
+
+    // For std file format with date_hour identifiers
+    if (sortedHours.length > 0 && sortedHours[0].includes("_")) {
+        console.log('[DATE LABELS] Detected STD format with underscore');
+        const labels = sortedHours.map(timeIdentifier => {
+            const [dateStr, hourStr] = timeIdentifier.split("_");
+            const date = new Date(dateStr + "T00:00:00Z");
+            const day = String(date.getUTCDate()).padStart(2, "0");
+            const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+            const year = String(date.getUTCFullYear()).slice(-2);
+            return `${day}/${month}/${year}`;
+        });
+        console.log('[DATE LABELS] First 3 formatted labels:', labels.slice(0, 3));
+        return labels;
+    }
+
+    // Fallback for simple hour numbers
+    return sortedHours.map(hour => `${hour}:00`);
+};
+
+// Calculate optimal label spacing
+NavigationManager.prototype.calculateOptimalLabelSpacing = function(dataSize) {
+    const targetLabelCount = 10;
+    const spacing = Math.max(1, Math.ceil(dataSize / targetLabelCount));
+    console.log(`Dataset size: ${dataSize}, calculated spacing: ${spacing}, estimated labels: ${Math.ceil(dataSize / spacing)}`);
+    return spacing;
+};
+
+// Extract site name from filename
+NavigationManager.prototype.extractSiteNameFromFilename = function(filename) {
+    // Extract site name from filename: remove everything before and up to 2nd underscore
+    // Also remove _std or _24hr suffix
+    // Example: FPOD_Alga_Control_W_2406_2409_std.csv -> Control_W_2406_2409
+    const parts = filename.split('_');
+    if (parts.length >= 3) {
+        // Remove first 2 parts, keep everything from 3rd part onwards
+        return parts.slice(2).join('_')
+            .replace(/_(std|24hr)\.(csv|CSV)$/, '')
+            .replace(/\.(csv|CSV)$/, '');
+    }
+    // Fallback to the filename if extraction fails
+    return filename.replace(/\.(csv|CSV)$/, '');
+};
+
+// Plot site data
+NavigationManager.prototype.plotSiteData = function(ctx, plotArea, siteData, hours, maxDPM) {
+    const { site, dpmValues, color } = siteData;
+
+    // Professional smooth line styling
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const xStep = plotArea.width / (hours.length - 1);
+
+    // Create smooth curve without data points
+    if (dpmValues.length < 2) return;
+
+    ctx.beginPath();
+
+    // Calculate points
+    const points = dpmValues.map((dpm, i) => ({
+        x: plotArea.left + (i * xStep),
+        y: plotArea.bottom - (dpm / maxDPM) * plotArea.height
+    }));
+
+    // Start the path
+    ctx.moveTo(points[0].x, points[0].y);
+
+    // Draw smooth curves using quadratic bezier curves
+    for (let i = 1; i < points.length; i++) {
+        const current = points[i];
+        const previous = points[i - 1];
+
+        if (i === points.length - 1) {
+            // Last point - draw straight line
+            ctx.lineTo(current.x, current.y);
+        } else {
+            // Create smooth curve using quadratic bezier
+            const next = points[i + 1];
+            const cpX = current.x;
+            const cpY = current.y;
+            const endX = (current.x + next.x) / 2;
+            const endY = (current.y + next.y) / 2;
+
+            ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+        }
+    }
+
+    ctx.stroke();
+};
+
+// Draw plot axes
+NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, xAxisLabel = "Date") {
+    // Softer, elegant styling
+    ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
+    ctx.lineWidth = 1;
+    ctx.font = '17px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#666666';  // Softer text color
+
+    // X-axis
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, plotArea.bottom);
+    ctx.lineTo(plotArea.right, plotArea.bottom);
+    ctx.stroke();
+
+    // Y-axis (left - DPM)
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, plotArea.top);
+    ctx.lineTo(plotArea.left, plotArea.bottom);
+    ctx.stroke();
+
+    // Y-axis (right - Percentage)
+    ctx.beginPath();
+    ctx.moveTo(plotArea.right, plotArea.top);
+    ctx.lineTo(plotArea.right, plotArea.bottom);
+    ctx.stroke();
+
+    // X-axis labels (hours)
+    const xStep = plotArea.width / (hours.length - 1);
+    hours.forEach((hour, i) => {
+        const x = plotArea.left + (i * xStep);
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.moveTo(x, plotArea.bottom);
+        ctx.lineTo(x, plotArea.bottom + 5);
+        ctx.stroke();
+
+        // Label with intelligent spacing to avoid crowding - rotated at 45 degrees
+        const labelSpacing = this.calculateOptimalLabelSpacing(hours.length);
+        if (i % labelSpacing === 0 || i === hours.length - 1) { // Always show first, last, and spaced labels
+            ctx.save();
+            ctx.translate(x, plotArea.bottom + 20);
+            ctx.rotate(-Math.PI / 4); // -45 degrees
+            ctx.textAlign = 'right';
+            ctx.fillText(hour, 0, 0);
+            ctx.restore();
+        }
+    });
+
+    // Left Y-axis labels (DPM)
+    ctx.textAlign = 'right';
+    const dpmSteps = 5;
+    for (let i = 0; i <= dpmSteps; i++) {
+        const dpm = (maxDPM / dpmSteps) * i;
+        const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left - 5, y);
+        ctx.lineTo(plotArea.left, y);
+        ctx.stroke();
+
+        // Label (moved closer to axis)
+        ctx.fillText(dpm.toFixed(1), plotArea.left - 6, y + 4);
+    }
+
+    // Add horizontal gridlines for Y-axis major ticks (faint)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < dpmSteps; i++) { // Skip 0 and max to avoid overlapping with axes
+        const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, y);
+        ctx.lineTo(plotArea.right, y);
+        ctx.stroke();
+    }
+
+    // Add vertical gridlines for X-axis major ticks (faint)
+    const gridSpacing = this.calculateOptimalLabelSpacing(hours.length);
+    for (let i = gridSpacing; i < hours.length - 1; i += gridSpacing) {
+        const x = plotArea.left + (i * xStep);
+        ctx.beginPath();
+        ctx.moveTo(x, plotArea.top);
+        ctx.lineTo(x, plotArea.bottom);
+        ctx.stroke();
+    }
+
+    // Add horizontal line at top to complete the rectangle
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, plotArea.top);
+    ctx.lineTo(plotArea.right, plotArea.top);
+    ctx.stroke();
+
+    // Reset styles for other elements
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+
+    // Right Y-axis labels (Percentage)
+    ctx.textAlign = 'left';
+    for (let i = 0; i <= dpmSteps; i++) {
+        const percentage = (maxPercentage / dpmSteps) * i;
+        const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.moveTo(plotArea.right, y);
+        ctx.lineTo(plotArea.right + 5, y);
+        ctx.stroke();
+
+        // Label (moved closer to axis)
+        ctx.fillText(percentage.toFixed(1) + '%', plotArea.right + 6, y + 4);
+    }
+
+    // Elegant axis labels
+    ctx.textAlign = 'center';
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.fillStyle = '#555555';
+
+    // X-axis label
+    ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 76 : plotArea.bottom + 60);
+
+    // Left Y-axis label
+    ctx.save();
+    ctx.translate(40, plotArea.top + plotArea.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Detection Positive Minutes (DPM)', 0, 0);
+    ctx.restore();
+
+    // Right Y-axis label
+    ctx.save();
+    ctx.translate(plotArea.right + 70, plotArea.top + plotArea.height / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillText('Detection rate (% of hour)', 0, 0);
+    ctx.restore();
+};
+
+// Draw plot legend
+NavigationManager.prototype.drawPlotLegend = function(ctx, plotData, plotArea) {
+    // Legend positioning aligned to left like the second plot
+    const legendX = plotArea.left + 20;
+    const legendY = plotArea.top + 20;
+
+    // File name truncation function (2nd to 4th underscore)
+    const truncateFileName = (fileName) => {
+        const parts = fileName.split('_');
+        if (parts.length >= 4) {
+            return parts.slice(2, 4).join('_');
+        }
+        return fileName; // Return original if not enough underscores
+    };
+
+    // Calculate legend box dimensions dynamically based on text content
+    const legendPadding = 6;
+    const lineHeight = 20;
+
+    // Set font for measurement
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+    // Calculate maximum text width
+    let maxTextWidth = 0;
+    plotData.forEach((siteData) => {
+        let displayName;
+        if (plotData.length === 1) {
+            displayName = truncateFileName(siteData.site);
+        } else {
+            displayName = siteData.site; // Already truncated by extractSiteNameFromFilename
+        }
+        const textWidth = ctx.measureText(displayName).width;
+        maxTextWidth = Math.max(maxTextWidth, textWidth);
+    });
+
+    // Legend width: line sample (30px) + text width + padding
+    const legendWidth = maxTextWidth + 46; // Component-based: 8px padding + 24px icon + 6px gap + text + 8px padding
+    const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
+
+    // Draw legend background box with transparency
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // White with 30% transparency
+    ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    // Draw legend border
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; // Light grey with 50% transparency
+    ctx.lineWidth = 0.5; // Reduced from 1 to 0.5 for thinner border
+    ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    // Draw legend items
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.textAlign = 'left';
+
+    plotData.forEach((siteData, i) => {
+        const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
+
+        // Draw line sample only (no boxes) - adjusted for double padding
+        ctx.strokeStyle = siteData.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(legendX, y - 2);
+        ctx.lineTo(legendX + 24, y - 2);
+        ctx.stroke();
+
+        // Site name with truncation - adjusted for double padding
+        ctx.fillStyle = '#374151';
+        const displayName = truncateFileName(siteData.site);
+        ctx.fillText(displayName, legendX + 30, y + 2);
+    });
+};
+
+// Draw dual axis legend (both DPM and percentage lines)
+NavigationManager.prototype.drawDualAxisLegend = function(ctx, plotData, plotArea) {
+    const legendPadding = 6;
+    const lineHeight = 20;
+
+    // Set font for measurement (same as 24hr plot)
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+    // Measure text widths (site names are already truncated by extractSiteNameFromFilename)
+    let maxTextWidth = 0;
+    plotData.forEach(site => {
+        const textWidth = ctx.measureText(site.site).width;
+        maxTextWidth = Math.max(maxTextWidth, textWidth);
+    });
+
+    // Legend width calculation (same as 24hr plot)
+    const legendWidth = maxTextWidth + 46;
+    const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
+
+    // Position legend at top-left inside plot area
+    const legendX = plotArea.left + 20;
+    const legendY = plotArea.top + 20;
+
+    // Background box (same transparency as 24hr plot)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    // Border
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    // Set text alignment to left
+    ctx.textAlign = 'left';
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+    // Legend entries (one per site, formatted like 24hr plot)
+    plotData.forEach((site, i) => {
+        const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
+
+        // Line sample (same as 24hr plot)
+        ctx.strokeStyle = site.color;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(legendX, y - 2);
+        ctx.lineTo(legendX + 24, y - 2);
+        ctx.stroke();
+
+        // Site name (same text color as 24hr plot)
+        ctx.fillStyle = '#374151';
+        ctx.fillText(site.site, legendX + 30, y + 2);
+    });
+
+    // Reset line dash
+    ctx.setLineDash([]);
+};
+
+// FPOD Plot Functions - Exact implementation from FPODreport 0.3
+// These extend NavigationManager with FPOD-specific plotting capabilities
+
+// Site comparison for 24hr files
+NavigationManager.prototype.generateSiteComparison = async function(source, sites) {
+    console.log('=== GENERATE SITE COMPARISON START ===');
+    console.log('Source:', source);
+    console.log('Sites:', sites);
+    console.log('Available files:', this.availableFiles?.length || 0);
+    console.log('Available files list:', this.availableFiles?.map(f => f.name) || []);
+
+    const outputDiv = document.getElementById('fpod-siteComparisonOutput');
+    if (!outputDiv) {
+        console.error('Output div not found');
+        return;
+    }
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Plot...</h4>
+            <p>Loading ${sites.join(', ')} data for ${source} analysis...</p>
+            <p style="font-size: 0.8rem; margin-top: 10px;">Debug: Found ${this.availableFiles?.length || 0} files</p>
+        </div>
+    `;
+
+    try {
+        console.log('Starting to load 24hr files...');
+        // Load the 24hr CSV files for each selected site
+        const siteData = await this.load24hrFilesForSites(sites, source);
+
+        console.log('Loaded site data:', siteData.length, 'files');
+        siteData.forEach((data, i) => {
+            console.log(`Site ${i + 1}:`, data.site, 'File:', data.file?.name);
+        });
+
+        if (siteData.length === 0) {
+            throw new Error('No _24hr files found for the selected sites');
+        }
+
+        console.log('Creating plot...');
+        // Generate the plot
+        this.createSiteComparisonPlot(siteData, source, sites, outputDiv);
+        console.log('Plot creation completed');
+
+    } catch (error) {
+        console.error('Error generating site comparison plot:', error);
+        console.error('Error stack:', error.stack);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                <p style="margin-top: 10px; font-size: 0.85rem;">
+                    Make sure the corresponding _24hr files exist for: ${sites.join(', ')}
+                </p>
+                <p style="margin-top: 10px; font-size: 0.75rem; font-family: monospace;">
+                    Debug: Available files: ${this.availableFiles?.map(f => f.name).join(', ') || 'None'}
+                </p>
+            </div>
+        `;
+    }
+};
+
+// Site comparison for std files
+NavigationManager.prototype.generateStdSiteComparison = async function(source, sites) {
+    console.log('=== GENERATE STD SITE COMPARISON START ===');
+    console.log('Source:', source);
+    console.log('Sites:', sites);
+
+    const outputDiv = document.getElementById('fpod-siteComparisonStdOutput');
+    if (!outputDiv) {
+        console.error('Output div not found');
+        return;
+    }
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Standard DPM Plot...</h4>
+            <p>Loading ${sites.join(', ')} data for ${source} analysis...</p>
+        </div>
+    `;
+
+    try {
+        // Load the std CSV files for each selected site
+        const siteData = await this.loadStdFilesForSites(sites, source);
+
+        if (siteData.length === 0) {
+            throw new Error('No _std files found for the selected sites');
+        }
+
+        // Generate the plot
+        this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv);
+
+    } catch (error) {
+        console.error('Error generating std site comparison plot:', error);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                <p style="margin-top: 10px; font-size: 0.85rem;">
+                    Make sure the corresponding _std files exist for: ${sites.join(', ')}
+                </p>
+            </div>
+        `;
+    }
+};
+
+// Source comparison for 24hr files
+NavigationManager.prototype.generateSourceComparison = async function(site, sources) {
+    const outputDiv = document.getElementById('fpod-sourceComparisonOutput');
+    if (!outputDiv) return;
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Plot...</h4>
+            <p>Loading ${sources.join(', ')} data for ${site} analysis...</p>
+        </div>
+    `;
+
+    try {
+        // Load the 24hr CSV file for the selected site
+        const siteData = await this.load24hrFileForSite(site, sources);
+
+        if (!siteData) {
+            throw new Error(`No _24hr file found for site: ${site}`);
+        }
+
+        // Generate the plot
+        this.createSourceComparisonPlot(siteData, site, sources, outputDiv);
+
+    } catch (error) {
+        console.error('Error generating source comparison plot:', error);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                <p style="margin-top: 10px; font-size: 0.85rem;">
+                    Make sure the corresponding _24hr file exists for: ${site}
+                </p>
+            </div>
+        `;
+    }
+};
+
+// Source comparison for std files
+NavigationManager.prototype.generateStdSourceComparison = async function(site, sources) {
+    const outputDiv = document.getElementById('fpod-sourceComparisonStdOutput');
+    if (!outputDiv) return;
+
+    outputDiv.classList.add('active');
+
+    // Show loading message
+    outputDiv.innerHTML = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 6px; padding: 15px; text-align: center;">
+            <h4 style="color: #0369a1; margin-bottom: 8px;">🔄 Generating Standard DPM Plot...</h4>
+            <p>Loading ${sources.join(', ')} data for ${site} analysis...</p>
+        </div>
+    `;
+
+    try {
+        // Load the std CSV file for the selected site
+        const siteData = await this.loadStdFileForSite(site, sources);
+
+        if (!siteData) {
+            throw new Error(`No _std file found for site: ${site}`);
+        }
+
+        // Generate the plot
+        this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv);
+
+    } catch (error) {
+        console.error('Error generating std source comparison plot:', error);
+        outputDiv.innerHTML = `
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 6px; padding: 15px;">
+                <h4 style="color: #dc2626; margin-bottom: 8px;">❌ Error</h4>
+                <p><strong>Could not generate plot:</strong> ${error.message}</p>
+                <p style="margin-top: 10px; font-size: 0.85rem;">
+                    Make sure the corresponding _std file exists for: ${site}
+                </p>
+            </div>
+        `;
+    }
+};
+
+// Helper function to create site comparison plot (24hr)
+NavigationManager.prototype.createSiteComparisonPlot = function(siteData, source, sites, outputDiv) {
+    console.log('=== CREATE SITE COMPARISON PLOT ===');
+    console.log('Site data:', siteData.length, 'sites');
+    console.log('Source:', source);
+    console.log('Sites:', sites);
+    console.log('Output div:', !!outputDiv);
+
+    try {
+        // Create the plot container
+        console.log('Creating plot container...');
+        const plotContainer = document.createElement('div');
+        if (!plotContainer) {
+            throw new Error('Failed to create plot container div');
+        }
+        plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+        console.log('Creating canvas element...');
+        const canvas = document.createElement('canvas');
+        if (!canvas) {
+            throw new Error('Failed to create canvas element');
+        }
+
+        console.log('Setting canvas properties...');
+        canvas.width = 800;
+        canvas.height = 400;
+        canvas.style.cssText = 'width: 100%; height: 100%;';
+
+        console.log('Appending canvas to container...');
+        plotContainer.appendChild(canvas);
+
+        console.log('Getting 2D context...');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Failed to get 2D context from canvas');
+        }
+        console.log('Canvas and context created successfully');
+
+        // Define professional journal-style colors (Nature journal style)
+        const journalColors = [
+            '#1f77b4', // Blue
+            '#ff7f0e', // Orange
+            '#d62728', // Red (moved to 3rd for better distinction)
+            '#2ca02c', // Green (moved to 4th)
+            '#9467bd', // Purple
+            '#8c564b', // Brown
+            '#e377c2', // Pink
+            '#7f7f7f', // Gray
+            '#bcbd22', // Olive
+            '#17becf'  // Cyan
+        ];
+
+        // Set up professional plot dimensions with more space for labels
+        const plotArea = {
+            left: 90,
+            right: 700,
+            top: 80,
+            bottom: 320,
+            width: 610,
+            height: 240
+        };
+
+        console.log('Clearing canvas...');
+        // Clear canvas with professional white background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        console.log('Title and subtitle removed for cleaner appearance');
+        // Title and subtitle removed
+
+        console.log('Preparing data for plotting...');
+        // Prepare data for plotting - first extract all available time points from all sites
+        let allTimePoints = new Set();
+        siteData.forEach(siteInfo => {
+            // For 24hr files, pass '24hr' as fileType to extract hours only
+            const hourlyData = this.extractHourlyData(siteInfo.data, source, '24hr');
+            Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+        });
+
+        // Sort time points and format them as dates in dd/mm/yy format
+        // Smart sorting for different time identifier formats
+        const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+            // For std files with "YYYY-MM-DD_HH" format
+            if (a.includes('_') && b.includes('_')) {
+                // Sort lexicographically (works for ISO date format)
+                return a.localeCompare(b);
+            }
+            // For 24hr files with simple hour numbers
+            return parseInt(a) - parseInt(b);
+        });
+        console.log('[SORTING] Sorted', sortedHours.length, 'time points');
+        console.log('[SORTING] First 3 after sort:', sortedHours.slice(0, 3));
+        const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "time");
+        console.log(`Using ${hours.length} time points from actual data:`, hours.slice(0, 5), '...');
+
+        let maxDPM = 0;
+
+        const plotData = siteData.map((siteInfo, index) => {
+            console.log(`Processing data for site: ${siteInfo.site}`);
+            // For 24hr files, pass '24hr' as fileType to extract hours only
+            const hourlyData = this.extractHourlyData(siteInfo.data, source, '24hr');
+            console.log(`Hourly data for ${siteInfo.site}:`, Object.keys(hourlyData).length, 'hours');
+
+            const dpmValues = sortedHours.map(hour => {
+                return hourlyData[hour] || 0;
+            });
+            maxDPM = Math.max(maxDPM, ...dpmValues);
+
+            // Extract clean site name from filename
+            const siteName = this.extractSiteNameFromFilename(siteInfo.site);
+
+            return {
+                site: siteName, // Use clean site name
+                filename: siteInfo.site, // Keep original filename for reference
+                dpmValues: dpmValues,
+                color: journalColors[index % journalColors.length] // Assign color by index
+            };
+        });
+
+        console.log('Max DPM found:', maxDPM);
+
+        // Round up maxDPM to nice number
+        maxDPM = Math.ceil(maxDPM * 1.1);
+        const maxPercentage = Math.ceil((maxDPM / 60) * 100);
+
+        console.log('Drawing axes...');
+        // Draw axes
+        this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
+
+        console.log('Plotting site data...');
+        // Plot data for each site
+        plotData.forEach(siteData => {
+            console.log(`Plotting data for site: ${siteData.site}`);
+            this.plotSiteData(ctx, plotArea, siteData, hours, maxDPM);
+        });
+
+        console.log('Drawing legend...');
+        // Draw legend
+        this.drawPlotLegend(ctx, plotData, plotArea);
+
+        console.log('Updating output div...');
+        // Clear output div and append plot container directly
+        outputDiv.innerHTML = '';
+
+        console.log('Appending plot container...');
+        outputDiv.appendChild(plotContainer);
+        console.log('Plot creation completed successfully');
+
+    } catch (error) {
+        console.error('Error in createSiteComparisonPlot:', error);
+        console.error('Error stack:', error.stack);
+        throw error; // Re-throw to be caught by the calling function
+    }
+};
+
+// Similar plot creation for source comparison
+NavigationManager.prototype.createSourceComparisonPlot = function(siteData, site, sources, outputDiv) {
+    // Create the plot container
+    const plotContainer = document.createElement('div');
+    plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    canvas.style.cssText = 'width: 100%; height: 100%;';
+
+    plotContainer.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+
+    // Use professional journal colors for sources
+    const journalColors = [
+        '#1f77b4', // Blue
+        '#ff7f0e', // Orange
+        '#2ca02c', // Green
+        '#d62728', // Red
+        '#9467bd', // Purple
+        '#8c564b', // Brown
+    ];
+
+    // Set up professional plot dimensions
+    const plotArea = {
+        left: 90,
+        right: 700,
+        top: 80,
+        bottom: 320,
+        width: 610,
+        height: 240
+    };
+
+    // Clear canvas with professional white background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Extract clean site name for processing
+    const siteName = this.extractSiteNameFromFilename(site);
+
+    // Title and subtitle removed for cleaner appearance
+
+    // Prepare data for plotting - first extract all available time points from all sources
+    let allTimePoints = new Set();
+    sources.forEach(source => {
+        // For 24hr files, pass '24hr' as fileType to extract hours only
+        const hourlyData = this.extractHourlyData(siteData.data, source, '24hr');
+        Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+    });
+
+    // Sort time points and format them as dates in dd/mm/yy format
+    const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+        // For std files with "YYYY-MM-DD_HH" format
+        if (a.includes('_') && b.includes('_')) {
+            // Sort lexicographically (works for ISO date format)
+            return a.localeCompare(b);
+        }
+        // For 24hr files with simple hour numbers
+        return parseInt(a) - parseInt(b);
+    });
+
+    const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData, "time");
+
+    let maxDPM = 0;
+
+    const plotData = sources.map((source, index) => {
+        // For 24hr files, pass '24hr' as fileType to extract hours only
+        const hourlyData = this.extractHourlyData(siteData.data, source, '24hr');
+        const dpmValues = sortedHours.map(hour => hourlyData[hour] || 0);
+        maxDPM = Math.max(maxDPM, ...dpmValues);
+
+        return {
+            source: source, // This will be Porpoise (DPM), Dolphin (DPM), Sonar (DPM)
+            displayName: source.replace(' (DPM)', ''), // Remove (DPM) for cleaner display
+            dpmValues: dpmValues,
+            color: journalColors[index % journalColors.length]
+        };
+    });
+
+    // Round up maxDPM to nice number
+    maxDPM = Math.ceil(maxDPM * 1.1);
+    const maxPercentage = Math.ceil((maxDPM / 60) * 100);
+
+    // Draw axes
+    this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Time");
+
+    // Plot data for each source
+    plotData.forEach(sourceData => {
+        this.plotSourceData(ctx, plotArea, sourceData, hours, maxDPM);
+    });
+
+    // Draw legend for sources
+    this.drawSourceLegend(ctx, plotData, plotArea);
+
+    // Clear output div and append plot
+    outputDiv.innerHTML = '';
+    outputDiv.appendChild(plotContainer);
+};// FPOD Plot Helper Functions - From FPODreport 0.3
+
+// Create std site comparison plot
+NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv) {
+    console.log('=== CREATE STD SITE COMPARISON PLOT ===');
+
+    // Create plot container
+    const plotContainer = document.createElement('div');
+    plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 420;
+    canvas.style.cssText = 'width: 100%; height: 100%;';
+    plotContainer.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+
+    // Professional colors
+    const journalColors = [
+        '#1f77b4', '#ff7f0e', '#d62728', '#2ca02c', '#9467bd',
+        '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
+    ];
+
+    // Plot dimensions
+    const plotArea = {
+        left: 90, right: 700, top: 80, bottom: 325,
+        width: 610, height: 245
+    };
+
+    // Clear canvas
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Extract all time points from all sites
+    let allTimePoints = new Set();
+    siteData.forEach(siteInfo => {
+        const hourlyData = this.extractHourlyData(siteInfo.data, source, 'std');
+        Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+    });
+
+    // Sort time points (lexicographic for date_hour format)
+    const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+        if (a.includes('_') && b.includes('_')) {
+            return a.localeCompare(b);
+        }
+        return parseInt(a) - parseInt(b);
+    });
+
+    const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData[0], "date");
+
+    // Track maxDPM for different file types
+    let maxDPM = 0;
+    let maxStdDPM = 0;
+    let maxNonStdDPM = 0;
+
+    // Prepare plot data with DPM values
+    const plotData = siteData.map((siteInfo, index) => {
+        const hourlyData = this.extractHourlyData(siteInfo.data, source, 'std');
+        const dpmValues = sortedHours.map(hour => hourlyData[hour] || 0);
+
+        const maxSiteValue = Math.max(...dpmValues);
+        const isStdFile = siteInfo.site.toLowerCase().includes('_std');
+
+        if (isStdFile) {
+            maxStdDPM = Math.max(maxStdDPM, maxSiteValue);
+        } else {
+            maxNonStdDPM = Math.max(maxNonStdDPM, maxSiteValue);
+        }
+        maxDPM = Math.max(maxDPM, maxSiteValue);
+
+        const siteName = this.extractSiteNameFromFilename(siteInfo.site);
+
+        return {
+            site: siteName,
+            dpmValues: dpmValues,
+            color: journalColors[index % journalColors.length],
+            isStdFile: isStdFile
+        };
+    });
+
+    // Apply std scaling algorithm
+    const hasStdFiles = plotData.some(site => site.isStdFile);
+    const hasNonStdFiles = plotData.some(site => !site.isStdFile);
+
+    if (hasStdFiles) {
+        let stdScaleFactor;
+
+        if (hasNonStdFiles && maxStdDPM > 0 && maxNonStdDPM > 0) {
+            // Scale std to 80% of non-std range
+            stdScaleFactor = (maxNonStdDPM / maxStdDPM) * 0.8;
+        } else if (maxStdDPM > 50) {
+            // Scale down to 0-50 range
+            stdScaleFactor = 40 / maxStdDPM;
+        } else {
+            stdScaleFactor = 1;
+        }
+
+        if (stdScaleFactor !== 1) {
+            plotData.forEach(site => {
+                if (site.isStdFile) {
+                    site.dpmValues = site.dpmValues.map(val => val * stdScaleFactor);
+                    // Scaling applied but not shown in legend
+                }
+            });
+
+            // Recalculate maxDPM after scaling
+            let newMaxDPM = 0;
+            plotData.forEach(site => {
+                const siteMax = Math.max(...site.dpmValues);
+                newMaxDPM = Math.max(newMaxDPM, siteMax);
+            });
+            maxDPM = newMaxDPM;
+        }
+    }
+
+    // Add 10% headroom
+    maxDPM = Math.ceil(maxDPM * 1.1);
+    const maxPercentage = (maxDPM / 60) * 100;
+
+    // Draw dual axes
+    this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
+
+    // Plot data
+    plotData.forEach(site => {
+        this.plotSiteDataDPM(ctx, plotArea, site, hours, maxDPM);
+    });
+
+    // Draw legend
+    this.drawDualAxisLegend(ctx, plotData, plotArea);
+
+    outputDiv.innerHTML = '';
+    outputDiv.appendChild(plotContainer);
+};
+
+// Create std source comparison plot
+NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv) {
+    const plotContainer = document.createElement('div');
+    plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 420;
+    canvas.style.cssText = 'width: 100%; height: 100%;';
+    plotContainer.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+
+    const journalColors = [
+        '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'
+    ];
+
+    const plotArea = {
+        left: 90, right: 700, top: 80, bottom: 325,
+        width: 610, height: 245
+    };
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Extract all time points from all sources
+    let allTimePoints = new Set();
+    sources.forEach(source => {
+        const hourlyData = this.extractHourlyData(siteData.data, source, 'std');
+        Object.keys(hourlyData).forEach(hour => allTimePoints.add(hour));
+    });
+
+    // Sort time points (lexicographic for date_hour format)
+    const sortedHours = Array.from(allTimePoints).sort((a, b) => {
+        if (a.includes('_') && b.includes('_')) {
+            return a.localeCompare(b);
+        }
+        return parseInt(a) - parseInt(b);
+    });
+
+    const hours = this.formatTimePointsAsDateLabels(sortedHours, siteData, "date");
+
+    let maxDPM = 0;
+
+    const plotData = sources.map((source, index) => {
+        const hourlyData = this.extractHourlyData(siteData.data, source, 'std');
+        const dpmValues = sortedHours.map(hour => hourlyData[hour] || 0);
+        maxDPM = Math.max(maxDPM, ...dpmValues);
+
+        return {
+            site: source.replace(' (DPM)', ''),
+            dpmValues: dpmValues,
+            color: journalColors[index % journalColors.length]
+        };
+    });
+
+    maxDPM = Math.ceil(maxDPM * 1.1);
+    const maxPercentage = (maxDPM / 60) * 100;
+
+    // Draw dual axes
+    this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
+
+    // Plot data
+    plotData.forEach(sourceData => {
+        this.plotSiteDataDPM(ctx, plotArea, sourceData, hours, maxDPM);
+    });
+
+    // Draw legend
+    this.drawDualAxisLegend(ctx, plotData, plotArea);
+
+    outputDiv.innerHTML = '';
+    outputDiv.appendChild(plotContainer);
+};
+
+// Plot site data for DPM plots with centered bin positioning
+NavigationManager.prototype.plotSiteDataDPM = function(ctx, plotArea, siteData, hours, maxDPM) {
+    const { dpmValues, color } = siteData;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([]);
+
+    const xStep = plotArea.width / dpmValues.length;
+
+    if (dpmValues.length < 2) return;
+
+    ctx.beginPath();
+    let firstPoint = true;
+
+    dpmValues.forEach((dpm, index) => {
+        // X position: centered in each bin
+        const x = plotArea.left + (index + 0.5) * xStep;
+
+        // Y position: scaled by maxDPM
+        const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+
+        if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+};
+
+// Plot source data for regular DPM plots
+NavigationManager.prototype.plotSourceData = function(ctx, plotArea, sourceData, hours, maxDPM) {
+    const { dpmValues, color } = sourceData;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const xStep = plotArea.width / (hours.length - 1);
+
+    if (dpmValues.length < 2) return;
+
+    ctx.beginPath();
+
+    const points = dpmValues.map((dpm, i) => ({
+        x: plotArea.left + (i * xStep),
+        y: plotArea.bottom - (dpm / maxDPM) * plotArea.height
+    }));
+
+    ctx.moveTo(points[0].x, points[0].y);
+
+    for (let i = 1; i < points.length; i++) {
+        const current = points[i];
+
+        if (i === points.length - 1) {
+            ctx.lineTo(current.x, current.y);
+        } else {
+            const next = points[i + 1];
+            const cpX = current.x;
+            const cpY = current.y;
+            const endX = (current.x + next.x) / 2;
+            const endY = (current.y + next.y) / 2;
+
+            ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+        }
+    }
+
+    ctx.stroke();
+};
+
+// Draw source legend
+NavigationManager.prototype.drawSourceLegend = function(ctx, plotData, plotArea) {
+    const legendX = plotArea.left + 20;
+    const legendY = plotArea.top + 20;
+
+    const legendPadding = 6;
+    const lineHeight = 20;
+
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+
+    let maxTextWidth = 0;
+    plotData.forEach((sourceData) => {
+        const displayName = sourceData.displayName || sourceData.source;
+        const textWidth = ctx.measureText(displayName).width;
+        maxTextWidth = Math.max(maxTextWidth, textWidth);
+    });
+
+    const legendWidth = maxTextWidth + 46;
+    const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
+
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.fillRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+    ctx.lineWidth = 0.5;
+    ctx.strokeRect(legendX - legendPadding, legendY - legendPadding, legendWidth, legendHeight);
+
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.textAlign = 'left';
+
+    plotData.forEach((sourceData, i) => {
+        const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
+
+        ctx.strokeStyle = sourceData.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(legendX, y - 2);
+        ctx.lineTo(legendX + 24, y - 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#374151';
+        const displayName = sourceData.displayName || sourceData.source;
+        ctx.fillText(displayName, legendX + 30, y + 2);
+    });
+};
+
+// Plot std site data
 // Initialize the CSV Manager and Navigation when the page loads
 let csvManager;
 let navigationManager;
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Create csvManager first and expose it globally BEFORE creating NavigationManager
+    // This ensures the delegation in NavigationManager's initializeComparisonControls works
     csvManager = new CSVManager();
+    window.csvManager = csvManager;
+
+    // Now create NavigationManager - its constructor can safely reference window.csvManager
     navigationManager = new NavigationManager();
+    window.navigationManager = navigationManager;
     
     // Hook into csvManager's file loading to update plot page
     const originalUpdateFileBrowser = csvManager.updateFileBrowser;
@@ -7064,8 +9239,10 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
     const fpodFilesStd = [];
     const dpmColumns = ['Porpoise (DPM)', 'Dolphin (DPM)', 'Sonar (DPM)'];
 
-    // Get files from csvManager
+    // Get files from csvManager and update availableFiles for FPOD functions
+    this.availableFiles = [];
     if (csvManager && csvManager.workingDirFiles) {
+        this.availableFiles = csvManager.workingDirFiles;
         csvManager.workingDirFiles.forEach(file => {
             const fileName = file.name.toLowerCase();
             if (fileName.includes('_24hr.csv')) {
@@ -7075,6 +9252,7 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
             }
         });
     }
+    console.log('FPOD availableFiles populated:', this.availableFiles.length, 'files');
 
     // Update 24hr dropdowns
     const sourceSelect1 = document.getElementById('fpod-sourceSelect1');
@@ -7087,12 +9265,23 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         dpmColumns.forEach(col => {
             sourceSelect1.innerHTML += `<option value="${col}">${col}</option>`;
         });
+        // Auto-select first DPM column if available
+        if (dpmColumns.length > 0) {
+            sourceSelect1.value = dpmColumns[0];
+        }
     }
 
     if (sitesSelect1) {
         sitesSelect1.innerHTML = '';
-        fpodFiles24hr.forEach(file => {
-            sitesSelect1.innerHTML += `<option value="${file.name}">${file.name}</option>`;
+        fpodFiles24hr.forEach((file, index) => {
+            const option = document.createElement('option');
+            option.value = file.name;
+            option.textContent = file.name;
+            sitesSelect1.appendChild(option);
+            // Auto-select first 2 files if available
+            if (index < 2 && fpodFiles24hr.length >= 2) {
+                option.selected = true;
+            }
         });
     }
 
@@ -7101,12 +9290,23 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodFiles24hr.forEach(file => {
             siteSelect2.innerHTML += `<option value="${file.name}">${file.name}</option>`;
         });
+        // Auto-select first file if available
+        if (fpodFiles24hr.length > 0) {
+            siteSelect2.value = fpodFiles24hr[0].name;
+        }
     }
 
     if (sourcesSelect2) {
         sourcesSelect2.innerHTML = '';
-        dpmColumns.forEach(col => {
-            sourcesSelect2.innerHTML += `<option value="${col}">${col}</option>`;
+        dpmColumns.forEach((col, index) => {
+            const option = document.createElement('option');
+            option.value = col;
+            option.textContent = col;
+            sourcesSelect2.appendChild(option);
+            // Auto-select first 2 DPM columns if available
+            if (index < 2 && dpmColumns.length >= 2) {
+                option.selected = true;
+            }
         });
     }
 
@@ -7121,12 +9321,23 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         dpmColumns.forEach(col => {
             sourceSelectStd1.innerHTML += `<option value="${col}">${col}</option>`;
         });
+        // Auto-select first DPM column if available
+        if (dpmColumns.length > 0) {
+            sourceSelectStd1.value = dpmColumns[0];
+        }
     }
 
     if (sitesSelectStd1) {
         sitesSelectStd1.innerHTML = '';
-        fpodFilesStd.forEach(file => {
-            sitesSelectStd1.innerHTML += `<option value="${file.name}">${file.name}</option>`;
+        fpodFilesStd.forEach((file, index) => {
+            const option = document.createElement('option');
+            option.value = file.name;
+            option.textContent = file.name;
+            sitesSelectStd1.appendChild(option);
+            // Auto-select first 2 files if available
+            if (index < 2 && fpodFilesStd.length >= 2) {
+                option.selected = true;
+            }
         });
     }
 
@@ -7135,12 +9346,23 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodFilesStd.forEach(file => {
             siteSelectStd2.innerHTML += `<option value="${file.name}">${file.name}</option>`;
         });
+        // Auto-select first file if available
+        if (fpodFilesStd.length > 0) {
+            siteSelectStd2.value = fpodFilesStd[0].name;
+        }
     }
 
     if (sourcesSelectStd2) {
         sourcesSelectStd2.innerHTML = '';
-        dpmColumns.forEach(col => {
-            sourcesSelectStd2.innerHTML += `<option value="${col}">${col}</option>`;
+        dpmColumns.forEach((col, index) => {
+            const option = document.createElement('option');
+            option.value = col;
+            option.textContent = col;
+            sourcesSelectStd2.appendChild(option);
+            // Auto-select first 2 DPM columns if available
+            if (index < 2 && dpmColumns.length >= 2) {
+                option.selected = true;
+            }
         });
     }
 
@@ -7196,7 +9418,7 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodBtn1.addEventListener('click', () => {
             const source = sourceSelect1.value;
             const sites = Array.from(sitesSelect1.selectedOptions).map(option => option.value);
-            navigationManager.generateFPODSiteComparison(source, sites, 'fpod-siteComparisonOutput');
+            this.generateSiteComparison(source, sites);
         });
     }
 
@@ -7205,7 +9427,7 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodBtn2.addEventListener('click', () => {
             const site = siteSelect2.value;
             const sources = Array.from(sourcesSelect2.selectedOptions).map(option => option.value);
-            navigationManager.generateFPODSourceComparison(site, sources, 'fpod-sourceComparisonOutput');
+            this.generateSourceComparison(site, sources);
         });
     }
 
@@ -7214,7 +9436,7 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodBtnStd1.addEventListener('click', () => {
             const source = sourceSelectStd1.value;
             const sites = Array.from(sitesSelectStd1.selectedOptions).map(option => option.value);
-            navigationManager.generateFPODSiteComparison(source, sites, 'fpod-siteComparisonStdOutput', true);
+            this.generateStdSiteComparison(source, sites);
         });
     }
 
@@ -7223,7 +9445,7 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
         fpodBtnStd2.addEventListener('click', () => {
             const site = siteSelectStd2.value;
             const sources = Array.from(sourcesSelectStd2.selectedOptions).map(option => option.value);
-            navigationManager.generateFPODSourceComparison(site, sources, 'fpod-sourceComparisonStdOutput', true);
+            this.generateStdSourceComparison(site, sources);
         });
     }
 };
