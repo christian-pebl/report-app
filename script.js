@@ -8419,8 +8419,9 @@ NavigationManager.prototype.generateStdSiteComparison = async function(source, s
             throw new Error('No _std files found for the selected sites');
         }
 
-        // Generate the plot
-        this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv);
+        // Generate the plot with default transparency array (all 0.7)
+        const transparencyValues = sites.map(() => 0.7);
+        this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues);
 
     } catch (error) {
         console.error('Error generating std site comparison plot:', error);
@@ -8499,8 +8500,9 @@ NavigationManager.prototype.generateStdSourceComparison = async function(site, s
             throw new Error(`No _std file found for site: ${site}`);
         }
 
-        // Generate the plot
-        this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv);
+        // Generate the plot with default transparency array (all 0.7)
+        const transparencyValues = sources.map(() => 0.7);
+        this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues);
 
     } catch (error) {
         console.error('Error generating std source comparison plot:', error);
@@ -8773,8 +8775,99 @@ NavigationManager.prototype.createSourceComparisonPlot = function(siteData, site
 };// FPOD Plot Helper Functions - From FPODreport 0.3
 
 // Create std site comparison plot
-NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv) {
+NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv, transparencyValues = null, layerOrder = null) {
     console.log('=== CREATE STD SITE COMPARISON PLOT ===');
+
+    // Default transparency values if not provided
+    if (!transparencyValues) {
+        transparencyValues = sites.map(() => 0.7);
+    }
+
+    // Default layer order if not provided (sequential: 0, 1, 2, ...)
+    if (!layerOrder) {
+        layerOrder = sites.map((_, i) => i);
+    }
+
+    // Create main container
+    const mainContainer = document.createElement('div');
+    mainContainer.style.cssText = 'width: 100%;';
+
+    // Create transparency controls container
+    const controlsContainer = document.createElement('div');
+    controlsContainer.id = 'std-site-transparency-controls';
+    controlsContainer.style.cssText = 'background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 15px;';
+
+    const controlsTitle = document.createElement('h4');
+    controlsTitle.textContent = 'Line Transparency Controls';
+    controlsTitle.style.cssText = 'margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #374151;';
+    controlsContainer.appendChild(controlsTitle);
+
+    // Create individual sliders for each site
+    sites.forEach((site, index) => {
+        const sliderRow = document.createElement('div');
+        sliderRow.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 8px;';
+
+        const label = document.createElement('label');
+        label.textContent = this.extractSiteNameFromFilename(site) + ':';
+        label.style.cssText = 'min-width: 200px; font-size: 13px; color: #4b5563;';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0';
+        slider.max = '100';
+        slider.value = Math.round(transparencyValues[index] * 100);
+        slider.style.cssText = 'flex: 1;';
+        slider.dataset.siteIndex = index;
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = slider.value + '%';
+        valueDisplay.style.cssText = 'min-width: 45px; font-size: 13px; color: #6b7280;';
+
+        // Layer order dropdown
+        const layerSelect = document.createElement('select');
+        layerSelect.style.cssText = 'padding: 2px 4px; font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px; background: white; color: #4b5563;';
+        for (let i = 0; i < sites.length; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Layer ${i + 1}`;
+            if (layerOrder[index] === i) {
+                option.selected = true;
+            }
+            layerSelect.appendChild(option);
+        }
+
+        slider.addEventListener('input', (e) => {
+            valueDisplay.textContent = e.target.value + '%';
+            transparencyValues[index] = parseInt(e.target.value) / 100;
+            // Regenerate plot with new transparency values
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder);
+        });
+
+        layerSelect.addEventListener('change', (e) => {
+            const newLayer = parseInt(e.target.value);
+            const oldLayer = layerOrder[index];
+
+            // Swap layers: move current item to new position and shift others
+            layerOrder = layerOrder.map((layer, i) => {
+                if (i === index) return newLayer;
+                if (layer >= Math.min(oldLayer, newLayer) && layer <= Math.max(oldLayer, newLayer)) {
+                    return oldLayer > newLayer ? layer + 1 : layer - 1;
+                }
+                return layer;
+            });
+
+            // Regenerate plot with new layer order
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder);
+        });
+
+        sliderRow.appendChild(label);
+        sliderRow.appendChild(slider);
+        sliderRow.appendChild(valueDisplay);
+        sliderRow.appendChild(layerSelect);
+        controlsContainer.appendChild(sliderRow);
+    });
+
+    mainContainer.appendChild(controlsContainer);
 
     // Create plot container
     const plotContainer = document.createElement('div');
@@ -8893,20 +8986,115 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     // Draw dual axes
     this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
 
-    // Plot data
-    plotData.forEach(site => {
-        this.plotSiteDataDPM(ctx, plotArea, site, hours, maxDPM);
+    // Plot data with individual transparency values in layer order
+    // Create array of indices sorted by layer order (lower layer number = drawn first = behind)
+    const sortedIndices = plotData.map((_, i) => i).sort((a, b) => layerOrder[a] - layerOrder[b]);
+
+    sortedIndices.forEach(index => {
+        this.plotSiteDataDPM(ctx, plotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
     });
 
     // Draw legend
     this.drawDualAxisLegend(ctx, plotData, plotArea);
 
+    mainContainer.appendChild(plotContainer);
     outputDiv.innerHTML = '';
-    outputDiv.appendChild(plotContainer);
+    outputDiv.appendChild(mainContainer);
 };
 
 // Create std source comparison plot
-NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv) {
+NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv, transparencyValues = null, layerOrder = null) {
+    // Default transparency values if not provided
+    if (!transparencyValues) {
+        transparencyValues = sources.map(() => 0.7);
+    }
+
+    // Default layer order if not provided (sequential: 0, 1, 2, ...)
+    if (!layerOrder) {
+        layerOrder = sources.map((_, i) => i);
+    }
+
+    // Create main container
+    const mainContainer = document.createElement('div');
+    mainContainer.style.cssText = 'width: 100%;';
+
+    // Create transparency controls container
+    const controlsContainer = document.createElement('div');
+    controlsContainer.id = 'std-source-transparency-controls';
+    controlsContainer.style.cssText = 'background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 15px;';
+
+    const controlsTitle = document.createElement('h4');
+    controlsTitle.textContent = 'Line Transparency Controls';
+    controlsTitle.style.cssText = 'margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #374151;';
+    controlsContainer.appendChild(controlsTitle);
+
+    // Create individual sliders for each source
+    sources.forEach((source, index) => {
+        const sliderRow = document.createElement('div');
+        sliderRow.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 8px;';
+
+        const label = document.createElement('label');
+        label.textContent = source.replace(' (DPM)', '') + ':';
+        label.style.cssText = 'min-width: 200px; font-size: 13px; color: #4b5563;';
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0';
+        slider.max = '100';
+        slider.value = Math.round(transparencyValues[index] * 100);
+        slider.style.cssText = 'flex: 1;';
+        slider.dataset.sourceIndex = index;
+
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = slider.value + '%';
+        valueDisplay.style.cssText = 'min-width: 45px; font-size: 13px; color: #6b7280;';
+
+        // Layer order dropdown
+        const layerSelect = document.createElement('select');
+        layerSelect.style.cssText = 'padding: 2px 4px; font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px; background: white; color: #4b5563;';
+        for (let i = 0; i < sources.length; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `Layer ${i + 1}`;
+            if (layerOrder[index] === i) {
+                option.selected = true;
+            }
+            layerSelect.appendChild(option);
+        }
+
+        slider.addEventListener('input', (e) => {
+            valueDisplay.textContent = e.target.value + '%';
+            transparencyValues[index] = parseInt(e.target.value) / 100;
+            // Regenerate plot with new transparency values
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder);
+        });
+
+        layerSelect.addEventListener('change', (e) => {
+            const newLayer = parseInt(e.target.value);
+            const oldLayer = layerOrder[index];
+
+            // Swap layers: move current item to new position and shift others
+            layerOrder = layerOrder.map((layer, i) => {
+                if (i === index) return newLayer;
+                if (layer >= Math.min(oldLayer, newLayer) && layer <= Math.max(oldLayer, newLayer)) {
+                    return oldLayer > newLayer ? layer + 1 : layer - 1;
+                }
+                return layer;
+            });
+
+            // Regenerate plot with new layer order
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder);
+        });
+
+        sliderRow.appendChild(label);
+        sliderRow.appendChild(slider);
+        sliderRow.appendChild(valueDisplay);
+        sliderRow.appendChild(layerSelect);
+        controlsContainer.appendChild(sliderRow);
+    });
+
+    mainContainer.appendChild(controlsContainer);
+
     const plotContainer = document.createElement('div');
     plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
 
@@ -8967,23 +9155,33 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     // Draw dual axes
     this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
 
-    // Plot data
-    plotData.forEach(sourceData => {
-        this.plotSiteDataDPM(ctx, plotArea, sourceData, hours, maxDPM);
+    // Plot data with individual transparency values in layer order
+    // Create array of indices sorted by layer order (lower layer number = drawn first = behind)
+    const sortedIndices = plotData.map((_, i) => i).sort((a, b) => layerOrder[a] - layerOrder[b]);
+
+    sortedIndices.forEach(index => {
+        this.plotSiteDataDPM(ctx, plotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
     });
 
     // Draw legend
     this.drawDualAxisLegend(ctx, plotData, plotArea);
 
+    mainContainer.appendChild(plotContainer);
     outputDiv.innerHTML = '';
-    outputDiv.appendChild(plotContainer);
+    outputDiv.appendChild(mainContainer);
 };
 
 // Plot site data for DPM plots with centered bin positioning
-NavigationManager.prototype.plotSiteDataDPM = function(ctx, plotArea, siteData, hours, maxDPM) {
+NavigationManager.prototype.plotSiteDataDPM = function(ctx, plotArea, siteData, hours, maxDPM, transparency = 0.7) {
     const { dpmValues, color } = siteData;
 
-    ctx.strokeStyle = color;
+    // Convert hex color to rgba with transparency
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    const colorWithTransparency = `rgba(${r}, ${g}, ${b}, ${transparency})`;
+
+    ctx.strokeStyle = colorWithTransparency;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
