@@ -4241,12 +4241,14 @@ class CSVManager {
         plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
 
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
+        const scale = window.devicePixelRatio || 2;
+        canvas.width = 800 * scale;
+        canvas.height = 400 * scale;
         canvas.style.cssText = 'width: 100%; height: 100%;';
         plotContainer.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
 
         // Journal colors
         const journalColors = [
@@ -4311,12 +4313,14 @@ class CSVManager {
         plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
 
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
+        const scale = window.devicePixelRatio || 2;
+        canvas.width = 800 * scale;
+        canvas.height = 400 * scale;
         canvas.style.cssText = 'width: 100%; height: 100%;';
         plotContainer.appendChild(canvas);
 
         const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
 
         const journalColors = [
             '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'
@@ -4552,10 +4556,10 @@ class CSVManager {
     async initializeSubcamPlotPage() {
         console.log('Initializing SUBCAM plot page controls...');
 
-        // Get _nmax files from workingDirFiles
-        const nmaxFiles = this.workingDirFiles.filter(file =>
-            file.name.toLowerCase().includes('_nmax')
-        );
+        // Get _nmax files from workingDirFiles and sort alphabetically
+        const nmaxFiles = this.workingDirFiles
+            .filter(file => file.name.toLowerCase().includes('_nmax'))
+            .sort((a, b) => a.name.localeCompare(b.name));
 
         console.log('Found', nmaxFiles.length, '_nmax files');
 
@@ -5271,7 +5275,7 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
         console.log("🎛️ DEBUG: Starting dropdown update process");        console.log("📊 DEBUG: Available sources:", Array.from(this.sources));        console.log("📁 DEBUG: Available nmaxFiles:", this.nmaxFiles?.length || 0);        console.log("📁 DEBUG: Available obvFiles:", this.obvFiles?.length || 0);
         const idPrefix = "";
         const sources = Array.from(this.sources).sort();
-        const nmaxFiles = this.nmaxFiles || [];
+        const nmaxFiles = (this.nmaxFiles || []).sort((a, b) => a.name.localeCompare(b.name));
 
 
         // Update source dropdown for nmax site comparison (columns 2-7 only)
@@ -5370,6 +5374,11 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
     updateObvDropdowns(sources, obvFiles, pageName = 'plot') {
         console.log("🎛️ DEBUG: Starting obvs dropdown update process");        console.log("📊 DEBUG: Sources for obvs dropdowns:", sources);        console.log("📁 DEBUG: ObvFiles for dropdowns:", obvFiles?.length || 0);
         const idPrefix = "";
+
+        // Sort obvFiles alphabetically
+        if (obvFiles) {
+            obvFiles.sort((a, b) => a.name.localeCompare(b.name));
+        }
 
         // Update source dropdown for std site comparison (DPM columns)
         const sourceSelectStd1 = document.getElementById(idPrefix + 'sourceSelectStd1');
@@ -5761,18 +5770,20 @@ console.log("DEBUG: Starting plot page file info update for", pageName);        
             }
             
             console.log('Setting canvas properties...');
-            canvas.width = 800;
-            canvas.height = 400;
+            const scale = window.devicePixelRatio || 2;
+            canvas.width = 800 * scale;
+            canvas.height = 400 * scale;
             canvas.style.cssText = 'width: 100%; height: 100%;';
-            
+
             console.log('Appending canvas to container...');
             plotContainer.appendChild(canvas);
-            
+
             console.log('Getting 2D context...');
             const ctx = canvas.getContext('2d');
             if (!ctx) {
                 throw new Error('Failed to get 2D context from canvas');
             }
+            ctx.scale(scale, scale);
             console.log('Canvas and context created successfully');
         
             // Define professional journal-style colors (Nature journal style)
@@ -6578,13 +6589,15 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
         plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
         
         const canvas = document.createElement('canvas');
-        canvas.width = 800;
-        canvas.height = 400;
+        const scale = window.devicePixelRatio || 2;
+        canvas.width = 800 * scale;
+        canvas.height = 400 * scale;
         canvas.style.cssText = 'width: 100%; height: 100%;';
-        
+
         plotContainer.appendChild(canvas);
-        
+
         const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
         
         // Use professional journal colors for sources
         const journalColors = [
@@ -6898,18 +6911,20 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             console.log('Creating canvas element...');
             const canvas = document.createElement('canvas');
 
-            // Use same simple approach as 24hr charts
-            canvas.width = 800;
-            canvas.height = 400;
+            // Use same simple approach as 24hr charts with high-res scaling
+            const scale = window.devicePixelRatio || 2;
+            canvas.width = 800 * scale;
+            canvas.height = 400 * scale;
             canvas.style.cssText = 'width: 100%; height: 100%;';
-            
+
             plotContainer.appendChild(canvas);
 
             const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
 
             // Clear canvas with professional white background
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 400);
 
             console.log('Title and subtitle removed for cleaner appearance');
             // Title and subtitle removed
@@ -7117,18 +7132,20 @@ formatTimePointsAsDateLabels(sortedHours, sampleSiteData, formatType = "date") {
             
             const canvas = document.createElement('canvas');
 
-            // Use same simple approach as 24hr charts
-            canvas.width = 800;
-            canvas.height = 400;
+            // Use same simple approach as 24hr charts with high-res scaling
+            const scale = window.devicePixelRatio || 2;
+            canvas.width = 800 * scale;
+            canvas.height = 400 * scale;
             canvas.style.cssText = 'width: 100%; height: 100%;';
 
             plotContainer.appendChild(canvas);
 
             const ctx = canvas.getContext('2d');
+            ctx.scale(scale, scale);
 
             // Clear canvas with professional white background
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 400);
             
             // Extract clean site name for processing
             const siteName = this.extractSiteNameFromFilename(site);
@@ -8058,7 +8075,7 @@ NavigationManager.prototype.plotSiteData = function(ctx, plotArea, siteData, hou
 };
 
 // Draw plot axes
-NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, xAxisLabel = "Date") {
+NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, xAxisLabel = "Date", heightScale = 1.0) {
     // Softer, elegant styling
     ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
     ctx.lineWidth = 1;
@@ -8084,32 +8101,37 @@ NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM
     ctx.lineTo(plotArea.right, plotArea.bottom);
     ctx.stroke();
 
-    // X-axis labels (hours)
+    // X-axis labels (hours) - only if xAxisLabel is provided (not in difference mode)
     const xStep = plotArea.width / (hours.length - 1);
-    hours.forEach((hour, i) => {
-        const x = plotArea.left + (i * xStep);
+    if (xAxisLabel) {
+        hours.forEach((hour, i) => {
+            const x = plotArea.left + (i * xStep);
 
-        // Tick mark
-        ctx.beginPath();
-        ctx.moveTo(x, plotArea.bottom);
-        ctx.lineTo(x, plotArea.bottom + 5);
-        ctx.stroke();
+            // Tick mark
+            ctx.beginPath();
+            ctx.moveTo(x, plotArea.bottom);
+            ctx.lineTo(x, plotArea.bottom + 5);
+            ctx.stroke();
 
-        // Label with intelligent spacing to avoid crowding - rotated at 45 degrees
-        const labelSpacing = this.calculateOptimalLabelSpacing(hours.length);
-        if (i % labelSpacing === 0 || i === hours.length - 1) { // Always show first, last, and spaced labels
-            ctx.save();
-            ctx.translate(x, plotArea.bottom + 20);
-            ctx.rotate(-Math.PI / 4); // -45 degrees
-            ctx.textAlign = 'right';
-            ctx.fillText(hour, 0, 0);
-            ctx.restore();
-        }
-    });
+            // Label with intelligent spacing - adjust based on height scale
+            const baseLabelSpacing = this.calculateOptimalLabelSpacing(hours.length);
+            // Increase spacing for smaller heights
+            const heightMultiplier = heightScale >= 0.8 ? 1 : heightScale >= 0.5 ? 1.5 : 2;
+            const labelSpacing = Math.round(baseLabelSpacing * heightMultiplier);
+            if (i % labelSpacing === 0 || i === hours.length - 1) { // Always show first, last, and spaced labels
+                ctx.save();
+                ctx.translate(x, plotArea.bottom + 20);
+                ctx.rotate(-Math.PI / 4); // -45 degrees
+                ctx.textAlign = 'right';
+                ctx.fillText(hour, 0, 0);
+                ctx.restore();
+            }
+        });
+    }
 
-    // Left Y-axis labels (DPM)
+    // Left Y-axis labels (DPM) - adjust tick count based on height scale
     ctx.textAlign = 'right';
-    const dpmSteps = 5;
+    const dpmSteps = heightScale >= 0.8 ? 5 : heightScale >= 0.5 ? 4 : 3;
     for (let i = 0; i <= dpmSteps; i++) {
         const dpm = (maxDPM / dpmSteps) * i;
         const y = plotArea.bottom - (plotArea.height / dpmSteps) * i;
@@ -8136,13 +8158,16 @@ NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM
     }
 
     // Add vertical gridlines for X-axis major ticks (faint)
-    const gridSpacing = this.calculateOptimalLabelSpacing(hours.length);
-    for (let i = gridSpacing; i < hours.length - 1; i += gridSpacing) {
-        const x = plotArea.left + (i * xStep);
-        ctx.beginPath();
-        ctx.moveTo(x, plotArea.top);
-        ctx.lineTo(x, plotArea.bottom);
-        ctx.stroke();
+    // Only draw if xAxisLabel provided (not in difference mode, where drawDifferenceAxes handles them)
+    if (xAxisLabel) {
+        const gridSpacing = this.calculateOptimalLabelSpacing(hours.length);
+        for (let i = gridSpacing; i < hours.length - 1; i += gridSpacing) {
+            const x = plotArea.left + (i * xStep);
+            ctx.beginPath();
+            ctx.moveTo(x, plotArea.top);
+            ctx.lineTo(x, plotArea.bottom);
+            ctx.stroke();
+        }
     }
 
     // Add horizontal line at top to complete the rectangle
@@ -8178,21 +8203,25 @@ NavigationManager.prototype.drawPlotAxes = function(ctx, plotArea, hours, maxDPM
     ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
     ctx.fillStyle = '#555555';
 
-    // X-axis label
-    ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 76 : plotArea.bottom + 60);
+    // X-axis label (only if provided)
+    if (xAxisLabel) {
+        ctx.fillText(xAxisLabel, plotArea.left + plotArea.width / 2, xAxisLabel === "Date" ? plotArea.bottom + 81 : plotArea.bottom + 65);
+    }
 
-    // Left Y-axis label
+    // Left Y-axis label (short version for reduced heights)
     ctx.save();
     ctx.translate(40, plotArea.top + plotArea.height / 2);
     ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Detection Positive Minutes (DPM)', 0, 0);
+    const leftLabel = heightScale < 1.0 ? 'DPM' : 'Detection Positive Minutes (DPM)';
+    ctx.fillText(leftLabel, 0, 0);
     ctx.restore();
 
-    // Right Y-axis label
+    // Right Y-axis label (short version for reduced heights)
     ctx.save();
     ctx.translate(plotArea.right + 70, plotArea.top + plotArea.height / 2);
     ctx.rotate(Math.PI / 2);
-    ctx.fillText('Detection rate (% of hour)', 0, 0);
+    const rightLabel = heightScale < 1.0 ? 'DPM rate (%hr)' : 'Detection rate (% of hour)';
+    ctx.fillText(rightLabel, 0, 0);
     ctx.restore();
 };
 
@@ -8267,23 +8296,44 @@ NavigationManager.prototype.drawPlotLegend = function(ctx, plotData, plotArea) {
 };
 
 // Draw dual axis legend (both DPM and percentage lines)
-NavigationManager.prototype.drawDualAxisLegend = function(ctx, plotData, plotArea) {
+NavigationManager.prototype.drawDualAxisLegend = function(ctx, plotData, plotArea, movingAverageData = []) {
     const legendPadding = 6;
     const lineHeight = 20;
 
     // Set font for measurement (same as 24hr plot)
     ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
 
-    // Measure text widths (site names are already truncated by extractSiteNameFromFilename)
-    let maxTextWidth = 0;
+    // Combine plot data and moving average data for legend
+    const allLegendEntries = [];
+
+    // Add main data entries
     plotData.forEach(site => {
-        const textWidth = ctx.measureText(site.site).width;
+        allLegendEntries.push({
+            site: site.site,
+            color: site.color,
+            isMovingAverage: false
+        });
+    });
+
+    // Add moving average entries
+    movingAverageData.forEach(ma => {
+        allLegendEntries.push({
+            site: `${ma.site} (${ma.windowSize}d MA)`,
+            color: ma.color,
+            isMovingAverage: true
+        });
+    });
+
+    // Measure text widths
+    let maxTextWidth = 0;
+    allLegendEntries.forEach(entry => {
+        const textWidth = ctx.measureText(entry.site).width;
         maxTextWidth = Math.max(maxTextWidth, textWidth);
     });
 
     // Legend width calculation (same as 24hr plot)
     const legendWidth = maxTextWidth + 46;
-    const legendHeight = (plotData.length * lineHeight) + (legendPadding * 2);
+    const legendHeight = (allLegendEntries.length * lineHeight) + (legendPadding * 2);
 
     // Position legend at top-left inside plot area
     const legendX = plotArea.left + 20;
@@ -8302,13 +8352,13 @@ NavigationManager.prototype.drawDualAxisLegend = function(ctx, plotData, plotAre
     ctx.textAlign = 'left';
     ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
 
-    // Legend entries (one per site, formatted like 24hr plot)
-    plotData.forEach((site, i) => {
+    // Legend entries
+    allLegendEntries.forEach((entry, i) => {
         const y = legendY + legendPadding + (i * lineHeight) + (lineHeight / 2);
 
-        // Line sample (same as 24hr plot)
-        ctx.strokeStyle = site.color;
-        ctx.lineWidth = 2.5;
+        // Line sample (thin line for moving averages)
+        ctx.strokeStyle = entry.color;
+        ctx.lineWidth = entry.isMovingAverage ? 1 : 2.5;
         ctx.setLineDash([]);
         ctx.beginPath();
         ctx.moveTo(legendX, y - 2);
@@ -8317,7 +8367,7 @@ NavigationManager.prototype.drawDualAxisLegend = function(ctx, plotData, plotAre
 
         // Site name (same text color as 24hr plot)
         ctx.fillStyle = '#374151';
-        ctx.fillText(site.site, legendX + 30, y + 2);
+        ctx.fillText(entry.site, legendX + 30, y + 2);
     });
 
     // Reset line dash
@@ -8542,8 +8592,9 @@ NavigationManager.prototype.createSiteComparisonPlot = function(siteData, source
         }
 
         console.log('Setting canvas properties...');
-        canvas.width = 800;
-        canvas.height = 400;
+        const scale = window.devicePixelRatio || 2;
+        canvas.width = 800 * scale;
+        canvas.height = 400 * scale;
         canvas.style.cssText = 'width: 100%; height: 100%;';
 
         console.log('Appending canvas to container...');
@@ -8554,6 +8605,7 @@ NavigationManager.prototype.createSiteComparisonPlot = function(siteData, source
         if (!ctx) {
             throw new Error('Failed to get 2D context from canvas');
         }
+        ctx.scale(scale, scale);
         console.log('Canvas and context created successfully');
 
         // Define professional journal-style colors (Nature journal style)
@@ -8680,13 +8732,15 @@ NavigationManager.prototype.createSourceComparisonPlot = function(siteData, site
     plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
 
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 400;
+    const scale = window.devicePixelRatio || 2;
+    canvas.width = 800 * scale;
+    canvas.height = 400 * scale;
     canvas.style.cssText = 'width: 100%; height: 100%;';
 
     plotContainer.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
 
     // Use professional journal colors for sources
     const journalColors = [
@@ -8775,7 +8829,7 @@ NavigationManager.prototype.createSourceComparisonPlot = function(siteData, site
 };// FPOD Plot Helper Functions - From FPODreport 0.3
 
 // Create std site comparison plot
-NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv, transparencyValues = null, layerOrder = null) {
+NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = 0, isDifferenceMode = false, movingAvgWindow = 10, heightScale = 1.0, datasetMovingAvgWindows = null) {
     console.log('=== CREATE STD SITE COMPARISON PLOT ===');
 
     // Default transparency values if not provided
@@ -8788,6 +8842,11 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
         layerOrder = sites.map((_, i) => i);
     }
 
+    // Default moving average windows if not provided (0 = off)
+    if (!datasetMovingAvgWindows) {
+        datasetMovingAvgWindows = sites.map(() => 0);
+    }
+
     // Create main container
     const mainContainer = document.createElement('div');
     mainContainer.style.cssText = 'width: 100%;';
@@ -8797,10 +8856,163 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     controlsContainer.id = 'std-site-transparency-controls';
     controlsContainer.style.cssText = 'background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 15px;';
 
+    // Title row with wide plot toggle
+    const titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;';
+
     const controlsTitle = document.createElement('h4');
     controlsTitle.textContent = 'Line Transparency Controls';
-    controlsTitle.style.cssText = 'margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #374151;';
-    controlsContainer.appendChild(controlsTitle);
+    controlsTitle.style.cssText = 'margin: 0; font-size: 14px; font-weight: 600; color: #374151;';
+
+    // Button container for Difference and Wide buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 8px;';
+
+    // Difference plot toggle button
+    const differenceButton = document.createElement('button');
+    differenceButton.textContent = 'Difference';
+    const canShowDifference = sites.length >= 2;
+    differenceButton.style.cssText = `
+        padding: 4px 12px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: ${isDifferenceMode ? '#3b82f6' : 'white'};
+        color: ${isDifferenceMode ? 'white' : (canShowDifference ? '#374151' : '#9ca3af')};
+        cursor: ${canShowDifference ? 'pointer' : 'not-allowed'};
+        font-weight: 500;
+        opacity: ${canShowDifference ? '1' : '0.5'};
+    `;
+    if (canShowDifference) {
+        differenceButton.addEventListener('click', () => {
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, !isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+        });
+    } else {
+        differenceButton.title = 'Select 2+ files to enable';
+    }
+
+    // Width expansion dropdown
+    const widthLabel = document.createElement('span');
+    widthLabel.textContent = 'Width:';
+    widthLabel.style.cssText = 'font-size: 12px; color: #4b5563; font-weight: 500; margin-right: 4px;';
+
+    const widthSelect = document.createElement('select');
+    widthSelect.style.cssText = `
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 500;
+    `;
+    const widthOptions = [
+        { value: 0, label: 'Normal' },
+        { value: 0.2, label: '+20%' },
+        { value: 0.4, label: '+40%' },
+        { value: 0.6, label: '+60%' },
+        { value: 0.8, label: '+80%' },
+        { value: 1.0, label: '+100%' }
+    ];
+    widthOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        if (opt.value === widthIncrease) {
+            option.selected = true;
+        }
+        widthSelect.appendChild(option);
+    });
+    widthSelect.addEventListener('change', (e) => {
+        const newWidthIncrease = parseFloat(e.target.value);
+        this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, newWidthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+    });
+
+    // Moving average window dropdown (only enabled in difference mode)
+    const movingAvgLabel = document.createElement('span');
+    movingAvgLabel.textContent = 'Avg Window:';
+    movingAvgLabel.style.cssText = `font-size: 12px; color: ${isDifferenceMode ? '#4b5563' : '#9ca3af'}; font-weight: 500; margin-right: 4px; margin-left: 12px;`;
+
+    const movingAvgSelect = document.createElement('select');
+    movingAvgSelect.style.cssText = `
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: ${isDifferenceMode ? 'white' : '#f3f4f6'};
+        color: ${isDifferenceMode ? '#374151' : '#9ca3af'};
+        cursor: ${isDifferenceMode ? 'pointer' : 'not-allowed'};
+        font-weight: 500;
+    `;
+    movingAvgSelect.disabled = !isDifferenceMode;
+
+    const avgWindowOptions = [5, 10, 15, 20, 25, 30];
+    avgWindowOptions.forEach(days => {
+        const option = document.createElement('option');
+        option.value = days;
+        option.textContent = `${days} days`;
+        if (days === movingAvgWindow) {
+            option.selected = true;
+        }
+        movingAvgSelect.appendChild(option);
+    });
+
+    if (isDifferenceMode) {
+        movingAvgSelect.addEventListener('change', (e) => {
+            const newWindow = parseInt(e.target.value);
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, newWindow, heightScale, datasetMovingAvgWindows);
+        });
+    }
+
+    // Height scale dropdown
+    const heightLabel = document.createElement('span');
+    heightLabel.textContent = 'Height:';
+    heightLabel.style.cssText = 'font-size: 12px; color: #4b5563; font-weight: 500; margin-right: 4px; margin-left: 12px;';
+
+    const heightSelect = document.createElement('select');
+    heightSelect.style.cssText = `
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 500;
+    `;
+    const heightOptions = [
+        { value: 1.0, label: '100%' },
+        { value: 0.8, label: '80%' },
+        { value: 0.6, label: '60%' },
+        { value: 0.4, label: '40%' },
+        { value: 0.2, label: '20%' }
+    ];
+    heightOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        if (opt.value === heightScale) {
+            option.selected = true;
+        }
+        heightSelect.appendChild(option);
+    });
+    heightSelect.addEventListener('change', (e) => {
+        const newHeightScale = parseFloat(e.target.value);
+        this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, newHeightScale, datasetMovingAvgWindows);
+    });
+
+    buttonContainer.appendChild(differenceButton);
+    buttonContainer.appendChild(widthLabel);
+    buttonContainer.appendChild(widthSelect);
+    buttonContainer.appendChild(movingAvgLabel);
+    buttonContainer.appendChild(movingAvgSelect);
+    buttonContainer.appendChild(heightLabel);
+    buttonContainer.appendChild(heightSelect);
+
+    titleRow.appendChild(controlsTitle);
+    titleRow.appendChild(buttonContainer);
+    controlsContainer.appendChild(titleRow);
 
     // Create individual sliders for each site
     sites.forEach((site, index) => {
@@ -8840,7 +9052,7 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
             valueDisplay.textContent = e.target.value + '%';
             transparencyValues[index] = parseInt(e.target.value) / 100;
             // Regenerate plot with new transparency values
-            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder);
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
         });
 
         layerSelect.addEventListener('change', (e) => {
@@ -8857,13 +9069,40 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
             });
 
             // Regenerate plot with new layer order
-            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder);
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+        });
+
+        // Moving average dropdown for this dataset
+        const datasetMovingAvgSelect = document.createElement('select');
+        datasetMovingAvgSelect.style.cssText = 'padding: 2px 4px; font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px; background: white; color: #4b5563;';
+
+        const offOption = document.createElement('option');
+        offOption.value = '0';
+        offOption.textContent = 'Off';
+        datasetMovingAvgSelect.appendChild(offOption);
+
+        const avgWindowOptions = [5, 10, 15, 20, 25, 30];
+        avgWindowOptions.forEach(days => {
+            const option = document.createElement('option');
+            option.value = days;
+            option.textContent = `${days}d`;
+            if (datasetMovingAvgWindows[index] === days) {
+                option.selected = true;
+            }
+            datasetMovingAvgSelect.appendChild(option);
+        });
+
+        datasetMovingAvgSelect.addEventListener('change', (e) => {
+            datasetMovingAvgWindows[index] = parseInt(e.target.value);
+            // Regenerate plot with new moving average settings
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
         });
 
         sliderRow.appendChild(label);
         sliderRow.appendChild(slider);
         sliderRow.appendChild(valueDisplay);
         sliderRow.appendChild(layerSelect);
+        sliderRow.appendChild(datasetMovingAvgSelect);
         controlsContainer.appendChild(sliderRow);
     });
 
@@ -8871,15 +9110,24 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
 
     // Create plot container
     const plotContainer = document.createElement('div');
-    plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+    const baseContainerHeight = isDifferenceMode ? 680 : 400;
+    const containerHeight = Math.round(baseContainerHeight * heightScale);
+    plotContainer.style.cssText = `width: 100%; height: ${containerHeight}px; position: relative; background: white; border-radius: 6px; padding: 20px;`;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 420;
-    canvas.style.cssText = 'width: 100%; height: 100%;';
+    const scale = window.devicePixelRatio || 2;
+    const baseWidth = 800 + (800 * widthIncrease);
+    const baseCanvasHeight = isDifferenceMode ? 700 : 420;
+    // Add extra bottom padding (20px) when height is reduced to prevent Date label cutoff
+    const extraBottomPadding = heightScale < 1.0 ? 20 : 0;
+    const baseHeight = Math.round(baseCanvasHeight * heightScale) + extraBottomPadding;
+    canvas.width = baseWidth * scale;
+    canvas.height = baseHeight * scale;
+    canvas.style.cssText = `width: ${baseWidth}px; height: 100%;`;
     plotContainer.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
 
     // Professional colors
     const journalColors = [
@@ -8887,15 +9135,34 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
         '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'
     ];
 
-    // Plot dimensions
-    const plotArea = {
-        left: 90, right: 700, top: 80, bottom: 325,
-        width: 610, height: 245
+    // Plot dimensions (adjust for width expansion, difference mode, and height scale)
+    const plotWidth = 610 + (610 * widthIncrease);
+    const baseMainTop = isDifferenceMode ? 60 : 80;
+    const baseMainBottom = isDifferenceMode ? 310 : 325;
+    const baseMainHeight = isDifferenceMode ? 250 : 245;
+
+    const mainPlotArea = {
+        left: 90,
+        right: 90 + plotWidth,
+        top: Math.round(baseMainTop * heightScale),
+        bottom: Math.round(baseMainBottom * heightScale),
+        width: plotWidth,
+        height: Math.round(baseMainHeight * heightScale)
     };
+
+    // Difference plot area (only if difference mode enabled)
+    const diffPlotArea = isDifferenceMode ? {
+        left: 90,
+        right: 90 + plotWidth,
+        top: Math.round(360 * heightScale),
+        bottom: Math.round(610 * heightScale),
+        width: plotWidth,
+        height: Math.round(250 * heightScale)
+    } : null;
 
     // Clear canvas
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Extract all time points from all sites
     let allTimePoints = new Set();
@@ -8983,27 +9250,374 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     maxDPM = Math.ceil(maxDPM * 1.1);
     const maxPercentage = (maxDPM / 60) * 100;
 
-    // Draw dual axes
-    this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
+    // Draw dual axes for main plot (without X-axis labels if difference mode)
+    if (isDifferenceMode) {
+        this.drawPlotAxes(ctx, mainPlotArea, hours, maxDPM, maxPercentage, canvas, null); // No x-axis label
+    } else {
+        this.drawPlotAxes(ctx, mainPlotArea, hours, maxDPM, maxPercentage, canvas, "Date");
+    }
 
     // Plot data with individual transparency values in layer order
     // Create array of indices sorted by layer order (lower layer number = drawn first = behind)
     const sortedIndices = plotData.map((_, i) => i).sort((a, b) => layerOrder[a] - layerOrder[b]);
 
     sortedIndices.forEach(index => {
-        this.plotSiteDataDPM(ctx, plotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
+        this.plotSiteDataDPM(ctx, mainPlotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
     });
 
-    // Draw legend
-    this.drawDualAxisLegend(ctx, plotData, plotArea);
+    // Calculate and plot moving averages for datasets that have it enabled
+    const movingAverageData = [];
+    sortedIndices.forEach(index => {
+        const windowSize = datasetMovingAvgWindows[index];
+        if (windowSize > 0) {
+            const dpmValues = plotData[index].dpmValues;
+            const movingAvgValues = this.calculateMovingAverage(dpmValues, windowSize);
+            const darkenedColor = this.darkenColor(plotData[index].color, 0.4);
+
+            this.plotDatasetMovingAverage(ctx, mainPlotArea, movingAvgValues, hours, maxDPM, darkenedColor);
+
+            // Store for legend
+            movingAverageData.push({
+                site: plotData[index].site,
+                color: darkenedColor,
+                windowSize: windowSize,
+                isMovingAverage: true
+            });
+        }
+    });
+
+    // Draw legend (with moving averages included)
+    this.drawDualAxisLegend(ctx, plotData, mainPlotArea, movingAverageData);
+
+    // Draw difference plot if enabled and we have 2+ files
+    if (isDifferenceMode && sortedIndices.length >= 2) {
+        // Get Layer 1 and Layer 2 data (lowest two layers)
+        const layer1Index = sortedIndices[0];
+        const layer2Index = sortedIndices[1];
+        const layer1Data = plotData[layer1Index].dpmValues;
+        const layer2Data = plotData[layer2Index].dpmValues;
+
+        // Calculate difference (Layer 1 - Layer 2)
+        const differenceValues = layer1Data.map((val, i) => val - (layer2Data[i] || 0));
+
+        // Calculate 10-day moving average of difference values
+        const movingAverageValues = this.calculateMovingAverage(differenceValues, movingAvgWindow);
+
+        // Find max absolute difference for symmetric Y-axis
+        const maxAbsDiff = Math.max(...differenceValues.map(Math.abs));
+        const maxDiff = Math.ceil(maxAbsDiff * 1.1);
+
+        // Draw difference plot axes
+        this.drawDifferenceAxes(ctx, diffPlotArea, mainPlotArea, hours, maxDiff, canvas);
+
+        // Plot difference line
+        this.plotDifferenceLine(ctx, diffPlotArea, differenceValues, hours, maxDiff);
+
+        // Plot 10-day moving average line (dashed)
+        this.plotMeanLine(ctx, diffPlotArea, movingAverageValues, maxDiff);
+
+        // Draw zero reference line on top layer
+        this.drawZeroLine(ctx, diffPlotArea);
+
+        // Draw difference plot legend
+        const diffLegendData = [
+            { site: `Difference: ${plotData[layer1Index].site} - ${plotData[layer2Index].site}`, color: '#fca5a5' },
+            { site: `${movingAvgWindow}-day Moving Average`, color: '#6b7280' }
+        ];
+        this.drawDifferenceLegend(ctx, diffLegendData, diffPlotArea);
+    }
 
     mainContainer.appendChild(plotContainer);
     outputDiv.innerHTML = '';
     outputDiv.appendChild(mainContainer);
+
+    // Allow parent containers to expand with plot width
+    // Set outputDiv and its parent card to allow horizontal overflow
+    outputDiv.style.overflowX = 'visible';
+    const parentCard = outputDiv.closest('.comparison-card');
+    if (parentCard) {
+        parentCard.style.overflow = 'visible';
+    }
+};
+
+// Draw axes for difference plot
+NavigationManager.prototype.drawDifferenceAxes = function(ctx, plotArea, mainPlotArea, hours, maxDiff, canvas) {
+    // Match main plot styling
+    ctx.strokeStyle = '#d0d0d0';  // Light gray for axes
+    ctx.lineWidth = 1;
+    ctx.font = '17px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.fillStyle = '#666666';  // Softer text color
+
+    // Draw left Y-axis
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, plotArea.top);
+    ctx.lineTo(plotArea.left, plotArea.bottom);
+    ctx.stroke();
+
+    // Draw right Y-axis border
+    ctx.beginPath();
+    ctx.moveTo(plotArea.right, plotArea.top);
+    ctx.lineTo(plotArea.right, plotArea.bottom);
+    ctx.stroke();
+
+    // Draw X-axis at bottom
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, plotArea.bottom);
+    ctx.lineTo(plotArea.right, plotArea.bottom);
+    ctx.stroke();
+
+    // Y-axis ticks and labels (symmetric around zero)
+    ctx.textAlign = 'right';
+    const dpmSteps = 5;
+    for (let i = 0; i <= dpmSteps; i++) {
+        const ratio = i / dpmSteps;
+        const value = maxDiff - (2 * maxDiff * ratio); // Goes from +maxDiff to -maxDiff
+        const y = plotArea.top + ratio * plotArea.height;
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left - 5, y);
+        ctx.lineTo(plotArea.left, y);
+        ctx.stroke();
+
+        // Label (match main plot positioning)
+        ctx.fillText(value.toFixed(1), plotArea.left - 6, y + 4);
+    }
+
+    // Horizontal gridlines (faint, match main plot)
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.lineWidth = 0.5;
+    for (let i = 1; i < dpmSteps; i++) {
+        const ratio = i / dpmSteps;
+        const y = plotArea.top + ratio * plotArea.height;
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, y);
+        ctx.lineTo(plotArea.right, y);
+        ctx.stroke();
+    }
+
+    // Vertical gridlines extending from main plot through difference plot
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+    ctx.lineWidth = 0.5;
+    const xStep = plotArea.width / (hours.length - 1);
+    const gridSpacing = this.calculateOptimalLabelSpacing(hours.length);
+    for (let i = gridSpacing; i < hours.length - 1; i += gridSpacing) {
+        const x = plotArea.left + (i * xStep);
+        ctx.beginPath();
+        ctx.moveTo(x, mainPlotArea.top);  // Start from main plot top
+        ctx.lineTo(x, plotArea.bottom);    // End at difference plot bottom
+        ctx.stroke();
+    }
+
+    // X-axis tick marks and labels (match main plot style)
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = '#666666';
+
+    hours.forEach((hour, i) => {
+        const x = plotArea.left + (i * xStep);
+
+        // Tick mark
+        ctx.beginPath();
+        ctx.moveTo(x, plotArea.bottom);
+        ctx.lineTo(x, plotArea.bottom + 5);
+        ctx.stroke();
+
+        // Label with intelligent spacing - rotated at 45 degrees (match main plot)
+        const labelSpacing = this.calculateOptimalLabelSpacing(hours.length);
+        if (i % labelSpacing === 0 || i === hours.length - 1) {
+            ctx.save();
+            ctx.translate(x, plotArea.bottom + 20);
+            ctx.rotate(-Math.PI / 4); // -45 degrees
+            ctx.textAlign = 'right';
+            ctx.fillText(hour, 0, 0);
+            ctx.restore();
+        }
+    });
+
+    // Y-axis label (left side)
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.fillStyle = '#555555';
+    ctx.save();
+    ctx.translate(40, plotArea.top + plotArea.height / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center';
+    ctx.fillText('Difference (DPM)', 0, 0);
+    ctx.restore();
+
+    // X-axis label
+    ctx.textAlign = 'center';
+    ctx.fillText('Date', plotArea.left + plotArea.width / 2, plotArea.bottom + 81);
+};
+
+// Plot difference line
+NavigationManager.prototype.plotDifferenceLine = function(ctx, plotArea, differenceValues, hours, maxDiff) {
+    ctx.strokeStyle = '#fca5a5'; // Light red color
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    const xStep = plotArea.width / differenceValues.length;
+    const zeroY = plotArea.top + plotArea.height / 2;
+
+    ctx.beginPath();
+    let firstPoint = true;
+
+    differenceValues.forEach((diff, index) => {
+        const x = plotArea.left + (index + 0.5) * xStep;
+        // Map difference to Y position (inverted because canvas Y goes down)
+        const y = zeroY - (diff / maxDiff) * (plotArea.height / 2);
+
+        if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+};
+
+// Calculate N-day moving average
+NavigationManager.prototype.calculateMovingAverage = function(values, windowSize = 10) {
+    const movingAverages = [];
+
+    for (let i = 0; i < values.length; i++) {
+        // For points near the start, use all available data up to that point
+        const start = Math.max(0, i - Math.floor(windowSize / 2));
+        const end = Math.min(values.length, i + Math.ceil(windowSize / 2));
+        const window = values.slice(start, end);
+
+        const avg = window.reduce((sum, val) => sum + val, 0) / window.length;
+        movingAverages.push(avg);
+    }
+
+    return movingAverages;
+};
+
+// Darken a hex color by mixing with black
+NavigationManager.prototype.darkenColor = function(hexColor, amount = 0.4) {
+    // Parse hex color
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+
+    // Mix with black (0,0,0)
+    const darkR = Math.round(r * (1 - amount));
+    const darkG = Math.round(g * (1 - amount));
+    const darkB = Math.round(b * (1 - amount));
+
+    // Convert back to hex
+    return '#' + [darkR, darkG, darkB].map(x => x.toString(16).padStart(2, '0')).join('');
+};
+
+// Plot moving average line (solid) on difference plot
+NavigationManager.prototype.plotMeanLine = function(ctx, plotArea, meanValues, maxDiff) {
+    if (!Array.isArray(meanValues)) {
+        // Legacy support: if single value provided, draw straight line
+        const zeroY = plotArea.top + plotArea.height / 2;
+        const meanY = zeroY - (meanValues / maxDiff) * (plotArea.height / 2);
+
+        ctx.strokeStyle = '#6b7280'; // Gray color
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+
+        ctx.beginPath();
+        ctx.moveTo(plotArea.left, meanY);
+        ctx.lineTo(plotArea.right, meanY);
+        ctx.stroke();
+        return;
+    }
+
+    // Plot moving average as a solid line
+    const zeroY = plotArea.top + plotArea.height / 2;
+    const xStep = plotArea.width / meanValues.length;
+
+    ctx.strokeStyle = '#6b7280'; // Gray color
+    ctx.lineWidth = 1.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    let firstPoint = true;
+
+    meanValues.forEach((meanVal, index) => {
+        const x = plotArea.left + (index + 0.5) * xStep;
+        const y = zeroY - (meanVal / maxDiff) * (plotArea.height / 2);
+
+        if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+};
+
+// Draw zero reference line on top layer
+NavigationManager.prototype.drawZeroLine = function(ctx, plotArea) {
+    const zeroY = plotArea.top + plotArea.height / 2;
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(plotArea.left, zeroY);
+    ctx.lineTo(plotArea.right, zeroY);
+    ctx.stroke();
+};
+
+// Draw legend for difference plot (matching main plot style)
+NavigationManager.prototype.drawDifferenceLegend = function(ctx, legendData, plotArea) {
+    // Match main plot legend styling
+    const legendX = plotArea.left + 15;
+    const legendY = plotArea.top + 15;
+    const lineLength = 30;
+    const lineSpacing = 20;
+    const padding = 6;
+
+    // Calculate legend background dimensions
+    const maxTextWidth = Math.max(...legendData.map(item => {
+        ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+        return ctx.measureText(item.site).width;
+    }));
+    const legendWidth = lineLength + 8 + maxTextWidth + (padding * 2);
+    const legendHeight = (legendData.length * lineSpacing) + (padding * 2);
+
+    // Draw semi-transparent white background rectangle
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.fillRect(legendX - padding, legendY - padding - 8, legendWidth, legendHeight);
+
+    // Draw legend items
+    ctx.font = '18px "Segoe UI", "SF Pro Display", "Helvetica Neue", "DejaVu Sans", Arial, sans-serif';
+    ctx.lineWidth = 2.5;
+
+    legendData.forEach((item, index) => {
+        const y = legendY + (index * lineSpacing);
+
+        // Draw line sample
+        ctx.strokeStyle = item.color;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(legendX, y);
+        ctx.lineTo(legendX + lineLength, y);
+        ctx.stroke();
+
+        // Draw text label
+        ctx.fillStyle = '#374151';
+        ctx.globalAlpha = 0.7;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(item.site, legendX + lineLength + 8, y);
+        ctx.globalAlpha = 1.0;
+    });
+
+    ctx.setLineDash([]); // Reset to solid line
 };
 
 // Create std source comparison plot
-NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv, transparencyValues = null, layerOrder = null) {
+NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = 0, isDifferenceMode = false, movingAvgWindow = 10, heightScale = 1.0, datasetMovingAvgWindows = null) {
     // Default transparency values if not provided
     if (!transparencyValues) {
         transparencyValues = sources.map(() => 0.7);
@@ -9012,6 +9626,11 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     // Default layer order if not provided (sequential: 0, 1, 2, ...)
     if (!layerOrder) {
         layerOrder = sources.map((_, i) => i);
+    }
+
+    // Default moving average windows if not provided (0 = off)
+    if (!datasetMovingAvgWindows) {
+        datasetMovingAvgWindows = sources.map(() => 0);
     }
 
     // Create main container
@@ -9023,10 +9642,124 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     controlsContainer.id = 'std-source-transparency-controls';
     controlsContainer.style.cssText = 'background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 15px; margin-bottom: 15px;';
 
+    // Title row with wide plot toggle
+    const titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;';
+
     const controlsTitle = document.createElement('h4');
     controlsTitle.textContent = 'Line Transparency Controls';
-    controlsTitle.style.cssText = 'margin: 0 0 10px 0; font-size: 14px; font-weight: 600; color: #374151;';
-    controlsContainer.appendChild(controlsTitle);
+    controlsTitle.style.cssText = 'margin: 0; font-size: 14px; font-weight: 600; color: #374151;';
+
+    // Button container for Difference and Wide buttons
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = 'display: flex; gap: 8px;';
+
+    // Difference plot toggle button
+    const differenceButton = document.createElement('button');
+    differenceButton.textContent = 'Difference';
+    const canShowDifference = sources.length >= 2;
+    differenceButton.style.cssText = `
+        padding: 4px 12px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: ${isDifferenceMode ? '#3b82f6' : 'white'};
+        color: ${isDifferenceMode ? 'white' : (canShowDifference ? '#374151' : '#9ca3af')};
+        cursor: ${canShowDifference ? 'pointer' : 'not-allowed'};
+        font-weight: 500;
+        opacity: ${canShowDifference ? '1' : '0.5'};
+    `;
+    if (canShowDifference) {
+        differenceButton.addEventListener('click', () => {
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, !isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+        });
+    } else {
+        differenceButton.title = 'Select 2+ sources to enable';
+    }
+
+    // Width expansion dropdown
+    const widthLabel = document.createElement('span');
+    widthLabel.textContent = 'Width:';
+    widthLabel.style.cssText = 'font-size: 12px; color: #4b5563; font-weight: 500; margin-right: 4px;';
+
+    const widthSelect = document.createElement('select');
+    widthSelect.style.cssText = `
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: white;
+        color: #374151;
+        cursor: pointer;
+        font-weight: 500;
+    `;
+    const widthOptions = [
+        { value: 0, label: 'Normal' },
+        { value: 0.2, label: '+20%' },
+        { value: 0.4, label: '+40%' },
+        { value: 0.6, label: '+60%' },
+        { value: 0.8, label: '+80%' },
+        { value: 1.0, label: '+100%' }
+    ];
+    widthOptions.forEach(opt => {
+        const option = document.createElement('option');
+        option.value = opt.value;
+        option.textContent = opt.label;
+        if (opt.value === widthIncrease) {
+            option.selected = true;
+        }
+        widthSelect.appendChild(option);
+    });
+    widthSelect.addEventListener('change', (e) => {
+        const newWidthIncrease = parseFloat(e.target.value);
+        this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, newWidthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+    });
+
+    // Moving average window dropdown (only enabled in difference mode)
+    const movingAvgLabel = document.createElement('span');
+    movingAvgLabel.textContent = 'Avg Window:';
+    movingAvgLabel.style.cssText = `font-size: 12px; color: ${isDifferenceMode ? '#4b5563' : '#9ca3af'}; font-weight: 500; margin-right: 4px; margin-left: 12px;`;
+
+    const movingAvgSelect = document.createElement('select');
+    movingAvgSelect.style.cssText = `
+        padding: 4px 8px;
+        font-size: 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: ${isDifferenceMode ? 'white' : '#f3f4f6'};
+        color: ${isDifferenceMode ? '#374151' : '#9ca3af'};
+        cursor: ${isDifferenceMode ? 'pointer' : 'not-allowed'};
+        font-weight: 500;
+    `;
+    movingAvgSelect.disabled = !isDifferenceMode;
+
+    const avgWindowOptions = [5, 10, 15, 20, 25, 30];
+    avgWindowOptions.forEach(days => {
+        const option = document.createElement('option');
+        option.value = days;
+        option.textContent = `${days} days`;
+        if (days === movingAvgWindow) {
+            option.selected = true;
+        }
+        movingAvgSelect.appendChild(option);
+    });
+
+    if (isDifferenceMode) {
+        movingAvgSelect.addEventListener('change', (e) => {
+            const newWindow = parseInt(e.target.value);
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, newWindow, heightScale, datasetMovingAvgWindows);
+        });
+    }
+
+    buttonContainer.appendChild(differenceButton);
+    buttonContainer.appendChild(widthLabel);
+    buttonContainer.appendChild(widthSelect);
+    buttonContainer.appendChild(movingAvgLabel);
+    buttonContainer.appendChild(movingAvgSelect);
+
+    titleRow.appendChild(controlsTitle);
+    titleRow.appendChild(buttonContainer);
+    controlsContainer.appendChild(titleRow);
 
     // Create individual sliders for each source
     sources.forEach((source, index) => {
@@ -9066,7 +9799,7 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
             valueDisplay.textContent = e.target.value + '%';
             transparencyValues[index] = parseInt(e.target.value) / 100;
             // Regenerate plot with new transparency values
-            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder);
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
         });
 
         layerSelect.addEventListener('change', (e) => {
@@ -9083,40 +9816,88 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
             });
 
             // Regenerate plot with new layer order
-            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder);
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
+        });
+
+        // Moving average dropdown for this dataset
+        const datasetMovingAvgSelect = document.createElement('select');
+        datasetMovingAvgSelect.style.cssText = 'padding: 2px 4px; font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px; background: white; color: #4b5563;';
+
+        const offOption = document.createElement('option');
+        offOption.value = '0';
+        offOption.textContent = 'Off';
+        datasetMovingAvgSelect.appendChild(offOption);
+
+        const avgWindowOptions = [5, 10, 15, 20, 25, 30];
+        avgWindowOptions.forEach(days => {
+            const option = document.createElement('option');
+            option.value = days;
+            option.textContent = `${days}d`;
+            if (datasetMovingAvgWindows[index] === days) {
+                option.selected = true;
+            }
+            datasetMovingAvgSelect.appendChild(option);
+        });
+
+        datasetMovingAvgSelect.addEventListener('change', (e) => {
+            datasetMovingAvgWindows[index] = parseInt(e.target.value);
+            // Regenerate plot with new moving average settings
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows);
         });
 
         sliderRow.appendChild(label);
         sliderRow.appendChild(slider);
         sliderRow.appendChild(valueDisplay);
         sliderRow.appendChild(layerSelect);
+        sliderRow.appendChild(datasetMovingAvgSelect);
         controlsContainer.appendChild(sliderRow);
     });
 
     mainContainer.appendChild(controlsContainer);
 
+    const containerHeight = isDifferenceMode ? 680 : 400;
     const plotContainer = document.createElement('div');
-    plotContainer.style.cssText = 'width: 100%; height: 400px; position: relative; background: white; border-radius: 6px; padding: 20px;';
+    plotContainer.style.cssText = `width: 100%; height: ${containerHeight}px; position: relative; background: white; border-radius: 6px; padding: 20px;`;
 
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
-    canvas.height = 420;
-    canvas.style.cssText = 'width: 100%; height: 100%;';
+    const scale = window.devicePixelRatio || 2;
+    const baseWidth = 800 + (800 * widthIncrease);
+    const baseHeight = isDifferenceMode ? 700 : 420;
+    canvas.width = baseWidth * scale;
+    canvas.height = baseHeight * scale;
+    canvas.style.cssText = `width: ${baseWidth}px; height: 100%;`;
     plotContainer.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
 
     const journalColors = [
         '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b'
     ];
 
-    const plotArea = {
-        left: 90, right: 700, top: 80, bottom: 325,
-        width: 610, height: 245
+    // Plot dimensions (adjust for width expansion and difference mode)
+    const plotWidth = 610 + (610 * widthIncrease);
+    const mainPlotArea = {
+        left: 90,
+        right: 90 + plotWidth,
+        top: isDifferenceMode ? 60 : 80,
+        bottom: isDifferenceMode ? 310 : 325,
+        width: plotWidth,
+        height: isDifferenceMode ? 250 : 245
     };
 
+    // Difference plot area (only if difference mode enabled)
+    const diffPlotArea = isDifferenceMode ? {
+        left: 90,
+        right: 90 + plotWidth,
+        top: 360,
+        bottom: 610,
+        width: plotWidth,
+        height: 250
+    } : null;
+
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, baseWidth, baseHeight);
 
     // Extract all time points from all sources
     let allTimePoints = new Set();
@@ -9152,23 +9933,94 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     maxDPM = Math.ceil(maxDPM * 1.1);
     const maxPercentage = (maxDPM / 60) * 100;
 
-    // Draw dual axes
-    this.drawPlotAxes(ctx, plotArea, hours, maxDPM, maxPercentage, canvas, "Date");
+    // Draw dual axes (without X-axis labels if difference mode)
+    if (isDifferenceMode) {
+        this.drawPlotAxes(ctx, mainPlotArea, hours, maxDPM, maxPercentage, canvas, null, heightScale); // No x-axis label
+    } else {
+        this.drawPlotAxes(ctx, mainPlotArea, hours, maxDPM, maxPercentage, canvas, "Date", heightScale);
+    }
 
     // Plot data with individual transparency values in layer order
     // Create array of indices sorted by layer order (lower layer number = drawn first = behind)
     const sortedIndices = plotData.map((_, i) => i).sort((a, b) => layerOrder[a] - layerOrder[b]);
 
     sortedIndices.forEach(index => {
-        this.plotSiteDataDPM(ctx, plotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
+        this.plotSiteDataDPM(ctx, mainPlotArea, plotData[index], hours, maxDPM, transparencyValues[index]);
     });
 
-    // Draw legend
-    this.drawDualAxisLegend(ctx, plotData, plotArea);
+    // Calculate and plot moving averages for datasets that have it enabled
+    const movingAverageData = [];
+    sortedIndices.forEach(index => {
+        const windowSize = datasetMovingAvgWindows[index];
+        if (windowSize > 0) {
+            const dpmValues = plotData[index].dpmValues;
+            const movingAvgValues = this.calculateMovingAverage(dpmValues, windowSize);
+            const darkenedColor = this.darkenColor(plotData[index].color, 0.4);
+
+            this.plotDatasetMovingAverage(ctx, mainPlotArea, movingAvgValues, hours, maxDPM, darkenedColor);
+
+            // Store for legend
+            movingAverageData.push({
+                site: plotData[index].site,
+                color: darkenedColor,
+                windowSize: windowSize,
+                isMovingAverage: true
+            });
+        }
+    });
+
+    // Draw legend (use mainPlotArea instead of plotArea)
+    this.drawDualAxisLegend(ctx, plotData, mainPlotArea, movingAverageData);
+
+    // Draw difference plot if enabled and we have 2+ files
+    if (isDifferenceMode && sortedIndices.length >= 2) {
+        // Get Layer 1 and Layer 2 data (lowest two layers)
+        const layer1Index = sortedIndices[0];
+        const layer2Index = sortedIndices[1];
+        const layer1Data = plotData[layer1Index].dpmValues;
+        const layer2Data = plotData[layer2Index].dpmValues;
+
+        // Calculate difference (Layer 1 - Layer 2)
+        const differenceValues = layer1Data.map((val, i) => val - (layer2Data[i] || 0));
+
+        // Calculate 10-day moving average of difference values
+        const movingAverageValues = this.calculateMovingAverage(differenceValues, movingAvgWindow);
+
+        // Find max absolute difference for symmetric Y-axis
+        const maxAbsDiff = Math.max(...differenceValues.map(Math.abs));
+        const maxDiff = Math.ceil(maxAbsDiff * 1.1);
+
+        // Draw difference plot axes
+        this.drawDifferenceAxes(ctx, diffPlotArea, mainPlotArea, hours, maxDiff, canvas);
+
+        // Plot difference line
+        this.plotDifferenceLine(ctx, diffPlotArea, differenceValues, hours, maxDiff);
+
+        // Plot 10-day moving average line (dashed)
+        this.plotMeanLine(ctx, diffPlotArea, movingAverageValues, maxDiff);
+
+        // Draw zero reference line on top layer
+        this.drawZeroLine(ctx, diffPlotArea);
+
+        // Draw difference plot legend
+        const diffLegendData = [
+            { site: `Difference: ${plotData[layer1Index].site} - ${plotData[layer2Index].site}`, color: '#fca5a5' },
+            { site: `${movingAvgWindow}-day Moving Average`, color: '#6b7280' }
+        ];
+        this.drawDifferenceLegend(ctx, diffLegendData, diffPlotArea);
+    }
 
     mainContainer.appendChild(plotContainer);
     outputDiv.innerHTML = '';
     outputDiv.appendChild(mainContainer);
+
+    // Allow parent containers to expand with plot width
+    // Set outputDiv and its parent card to allow horizontal overflow
+    outputDiv.style.overflowX = 'visible';
+    const parentCard = outputDiv.closest('.comparison-card');
+    if (parentCard) {
+        parentCard.style.overflow = 'visible';
+    }
 };
 
 // Plot site data for DPM plots with centered bin positioning
@@ -9199,6 +10051,36 @@ NavigationManager.prototype.plotSiteDataDPM = function(ctx, plotArea, siteData, 
         const x = plotArea.left + (index + 0.5) * xStep;
 
         // Y position: scaled by maxDPM
+        const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
+
+        if (firstPoint) {
+            ctx.moveTo(x, y);
+            firstPoint = false;
+        } else {
+            ctx.lineTo(x, y);
+        }
+    });
+
+    ctx.stroke();
+};
+
+// Plot dataset moving average line (thin, darkened color)
+NavigationManager.prototype.plotDatasetMovingAverage = function(ctx, plotArea, dpmValues, hours, maxDPM, color) {
+    const xStep = plotArea.width / dpmValues.length;
+
+    if (dpmValues.length < 2) return;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    let firstPoint = true;
+
+    dpmValues.forEach((dpm, index) => {
+        const x = plotArea.left + (index + 0.5) * xStep;
         const y = plotArea.bottom - (dpm / maxDPM) * plotArea.height;
 
         if (firstPoint) {
@@ -9450,6 +10332,11 @@ NavigationManager.prototype.initializeFPODPlotPage = function() {
             }
         });
     }
+
+    // Sort files alphabetically
+    fpodFiles24hr.sort((a, b) => a.name.localeCompare(b.name));
+    fpodFilesStd.sort((a, b) => a.name.localeCompare(b.name));
+
     console.log('FPOD availableFiles populated:', this.availableFiles.length, 'files');
 
     // Update 24hr dropdowns
