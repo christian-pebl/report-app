@@ -4686,17 +4686,17 @@ class NavigationManager {
         // Initialize plot settings storage (per plot type)
         this.plotSettings = {
             'std-site-comparison': {
-                widthIncrease: 0,
-                heightScale: 1.0,
-                aggregationScale: 'hourly',
-                isDifferenceMode: false,
+                widthIncrease: 0.6,
+                heightScale: 0.8,
+                aggregationScale: 'daily',
+                isDifferenceMode: true,
                 movingAvgWindow: 10
             },
             'std-source-comparison': {
-                widthIncrease: 0,
-                heightScale: 1.0,
-                aggregationScale: 'hourly',
-                isDifferenceMode: false,
+                widthIncrease: 0.6,
+                heightScale: 0.8,
+                aggregationScale: 'daily',
+                isDifferenceMode: true,
                 movingAvgWindow: 10
             },
             'subcam-site-comparison': {
@@ -8023,6 +8023,7 @@ NavigationManager.prototype.aggregateHourlyToDaily = function(sortedHours, plotD
     console.log('Aggregated to', sortedDates.length, 'days');
 
     // Aggregate DPM values for each dataset
+    // Aggregate DPM values for each dataset
     const dailyPlotData = plotDataArray.map(dataset => {
         const dailyValues = sortedDates.map(date => {
             const hoursInDay = dateGroups[date];
@@ -8031,6 +8032,15 @@ NavigationManager.prototype.aggregateHourlyToDaily = function(sortedHours, plotD
                 const hourIndex = sortedHours.indexOf(hour);
                 return sum + (dataset.dpmValues[hourIndex] || 0);
             }, 0);
+            
+            // Debug logging for first date and first dataset
+            if (date === sortedDates[0] && dataset === plotDataArray[0]) {
+                console.log(`Sample aggregation for ${date}:`);
+                console.log(`  Hours in day: ${hoursInDay.length}`);
+                console.log(`  Hourly values:`, hoursInDay.map(h => dataset.dpmValues[sortedHours.indexOf(h)]));
+                console.log(`  Daily sum: ${dailySum}`);
+            }
+            
             return dailySum;
         });
 
@@ -8039,7 +8049,6 @@ NavigationManager.prototype.aggregateHourlyToDaily = function(sortedHours, plotD
             dpmValues: dailyValues
         };
     });
-
     return {
         sortedTimePoints: sortedDates,
         plotData: dailyPlotData
@@ -9417,44 +9426,49 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
         });
     }
 
-    // Apply std scaling algorithm
+    // Check file types
     const hasStdFiles = aggregatedPlotData.some(site => site.isStdFile);
     const hasNonStdFiles = aggregatedPlotData.some(site => !site.isStdFile);
 
-    if (hasStdFiles) {
-        let stdScaleFactor;
+    // Apply std scaling algorithm (skip for daily mode)
+    if (aggregationScale !== 'daily') {
+        if (hasStdFiles) {
+            let stdScaleFactor;
 
-        if (hasNonStdFiles && maxStdDPM > 0 && maxNonStdDPM > 0) {
-            // Scale std to 80% of non-std range
-            stdScaleFactor = (maxNonStdDPM / maxStdDPM) * 0.8;
-        } else if (maxStdDPM > 50) {
-            // Scale down to 0-50 range
-            stdScaleFactor = 40 / maxStdDPM;
-        } else {
-            stdScaleFactor = 1;
-        }
+            if (hasNonStdFiles && maxStdDPM > 0 && maxNonStdDPM > 0) {
+                // Scale std to 80% of non-std range
+                stdScaleFactor = (maxNonStdDPM / maxStdDPM) * 0.8;
+            } else if (maxStdDPM > 50) {
+                // Scale down to 0-50 range
+                stdScaleFactor = 40 / maxStdDPM;
+            } else {
+                stdScaleFactor = 1;
+            }
 
-        if (stdScaleFactor !== 1) {
-            aggregatedPlotData.forEach(site => {
-                if (site.isStdFile) {
-                    site.dpmValues = site.dpmValues.map(val => val * stdScaleFactor);
-                    // Scaling applied but not shown in legend
-                }
-            });
+            if (stdScaleFactor !== 1) {
+                aggregatedPlotData.forEach(site => {
+                    if (site.isStdFile) {
+                        site.dpmValues = site.dpmValues.map(val => val * stdScaleFactor);
+                        // Scaling applied but not shown in legend
+                    }
+                });
 
-            // Recalculate maxDPM after scaling
-            let newMaxDPM = 0;
-            aggregatedPlotData.forEach(site => {
-                const siteMax = Math.max(...site.dpmValues);
-                newMaxDPM = Math.max(newMaxDPM, siteMax);
-            });
-            maxDPM = newMaxDPM;
+                // Recalculate maxDPM after scaling
+                let newMaxDPM = 0;
+                aggregatedPlotData.forEach(site => {
+                    const siteMax = Math.max(...site.dpmValues);
+                    newMaxDPM = Math.max(newMaxDPM, siteMax);
+                });
+                maxDPM = newMaxDPM;
+            }
         }
     }
-
     // Add 10% headroom
     maxDPM = Math.ceil(maxDPM * 1.1);
-    const maxPercentage = (maxDPM / 60) * 100;
+    
+    // Calculate percentage based on time scale (60 min/hour or 1440 min/day)
+    const minutesInPeriod = aggregationScale === 'daily' ? 1440 : 60;
+    const maxPercentage = (maxDPM / minutesInPeriod) * 100;
 
     // Draw dual axes for main plot (without X-axis labels if difference mode)
     const yAxisLabel = aggregationScale === 'daily' ? (heightScale < 1.0 ? 'Daily DPM' : 'Daily DPM Sum') : (heightScale < 1.0 ? 'DPM' : 'Detection Positive Minutes (DPM)');
@@ -10217,7 +10231,8 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     }
 
     maxDPM = Math.ceil(maxDPM * 1.1);
-    const maxPercentage = (maxDPM / 60) * 100;
+    const minutesInPeriod = aggregationScale === 'daily' ? 1440 : 60;
+    const maxPercentage = (maxDPM / minutesInPeriod) * 100;
 
     // Draw dual axes (without X-axis labels if difference mode)
     const yAxisLabel = aggregationScale === 'daily' ? (heightScale < 1.0 ? 'Daily DPM' : 'Daily DPM Sum') : (heightScale < 1.0 ? 'DPM' : 'Detection Positive Minutes (DPM)');
