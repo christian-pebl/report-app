@@ -4682,6 +4682,41 @@ class NavigationManager {
         this.availableFiles = [];
         this.sites = new Set();
         this.sources = new Set();
+
+        // Initialize plot settings storage (per plot type)
+        this.plotSettings = {
+            'std-site-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0,
+                aggregationScale: 'hourly',
+                isDifferenceMode: false,
+                movingAvgWindow: 10
+            },
+            'std-source-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0,
+                aggregationScale: 'hourly',
+                isDifferenceMode: false,
+                movingAvgWindow: 10
+            },
+            'subcam-site-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0
+            },
+            'subcam-source-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0
+            },
+            'fpod-24hr-site-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0
+            },
+            'fpod-24hr-source-comparison': {
+                widthIncrease: 0,
+                heightScale: 1.0
+            }
+        };
+
         this.initializeNavigation();
         this.initializePlotPage();
 
@@ -8914,9 +8949,20 @@ NavigationManager.prototype.createSourceComparisonPlot = function(siteData, site
 };// FPOD Plot Helper Functions - From FPODreport 0.3
 
 // Create std site comparison plot
-NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = 0, isDifferenceMode = false, movingAvgWindow = 10, heightScale = 1.0, datasetMovingAvgWindows = null, aggregationScale = 'hourly') {
+NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, source, sites, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = null, isDifferenceMode = null, movingAvgWindow = null, heightScale = null, datasetMovingAvgWindows = null, aggregationScale = null) {
     console.log('=== CREATE STD SITE COMPARISON PLOT ===');
-    console.log('Aggregation scale:', aggregationScale);
+
+    // Restore saved settings if not explicitly provided
+    const plotType = 'std-site-comparison';
+    const savedSettings = this.plotSettings[plotType];
+
+    if (widthIncrease === null) widthIncrease = savedSettings.widthIncrease;
+    if (heightScale === null) heightScale = savedSettings.heightScale;
+    if (aggregationScale === null) aggregationScale = savedSettings.aggregationScale;
+    if (isDifferenceMode === null) isDifferenceMode = savedSettings.isDifferenceMode;
+    if (movingAvgWindow === null) movingAvgWindow = savedSettings.movingAvgWindow;
+
+    console.log('Using settings:', { widthIncrease, heightScale, aggregationScale, isDifferenceMode, movingAvgWindow });
 
     // Default transparency values if not provided
     if (!transparencyValues) {
@@ -8971,7 +9017,10 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     `;
     if (canShowDifference) {
         differenceButton.addEventListener('click', () => {
-            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, !isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
+            const newDifferenceMode = !isDifferenceMode;
+            // Save setting
+            this.plotSettings['std-site-comparison'].isDifferenceMode = newDifferenceMode;
+            this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, newDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
         });
     } else {
         differenceButton.title = 'Select 2+ files to enable';
@@ -9012,6 +9061,8 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     });
     widthSelect.addEventListener('change', (e) => {
         const newWidthIncrease = parseFloat(e.target.value);
+        // Save setting
+        this.plotSettings['std-site-comparison'].widthIncrease = newWidthIncrease;
         this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, newWidthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
     });
 
@@ -9047,6 +9098,8 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     if (isDifferenceMode) {
         movingAvgSelect.addEventListener('change', (e) => {
             const newWindow = parseInt(e.target.value);
+            // Save setting
+            this.plotSettings['std-site-comparison'].movingAvgWindow = newWindow;
             this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, newWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
         });
     }
@@ -9085,6 +9138,8 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     });
     heightSelect.addEventListener('change', (e) => {
         const newHeightScale = parseFloat(e.target.value);
+        // Save setting
+        this.plotSettings['std-site-comparison'].heightScale = newHeightScale;
         this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, newHeightScale, datasetMovingAvgWindows, aggregationScale);
     });
 
@@ -9119,6 +9174,8 @@ NavigationManager.prototype.createStdSiteComparisonPlot = function(siteData, sou
     });
     scaleSelect.addEventListener('change', (e) => {
         const newScale = e.target.value;
+        // Save setting
+        this.plotSettings['std-site-comparison'].aggregationScale = newScale;
         this.createStdSiteComparisonPlot(siteData, source, sites, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, newScale);
     });
 
@@ -9767,9 +9824,20 @@ NavigationManager.prototype.drawDifferenceLegend = function(ctx, legendData, plo
 };
 
 // Create std source comparison plot
-NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = 0, isDifferenceMode = false, movingAvgWindow = 10, heightScale = 1.0, datasetMovingAvgWindows = null, aggregationScale = 'hourly') {
+NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, site, sources, outputDiv, transparencyValues = null, layerOrder = null, widthIncrease = null, isDifferenceMode = null, movingAvgWindow = null, heightScale = null, datasetMovingAvgWindows = null, aggregationScale = null) {
     console.log('=== CREATE STD SOURCE COMPARISON PLOT ===');
-    console.log('Aggregation scale:', aggregationScale);
+
+    // Restore saved settings if not explicitly provided
+    const plotType = 'std-source-comparison';
+    const savedSettings = this.plotSettings[plotType];
+
+    if (widthIncrease === null) widthIncrease = savedSettings.widthIncrease;
+    if (heightScale === null) heightScale = savedSettings.heightScale;
+    if (aggregationScale === null) aggregationScale = savedSettings.aggregationScale;
+    if (isDifferenceMode === null) isDifferenceMode = savedSettings.isDifferenceMode;
+    if (movingAvgWindow === null) movingAvgWindow = savedSettings.movingAvgWindow;
+
+    console.log('Using settings:', { widthIncrease, heightScale, aggregationScale, isDifferenceMode, movingAvgWindow });
 
     // Default transparency values if not provided
     if (!transparencyValues) {
@@ -9824,7 +9892,10 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     `;
     if (canShowDifference) {
         differenceButton.addEventListener('click', () => {
-            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, !isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
+            const newDifferenceMode = !isDifferenceMode;
+            // Save setting
+            this.plotSettings['std-source-comparison'].isDifferenceMode = newDifferenceMode;
+            this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, newDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
         });
     } else {
         differenceButton.title = 'Select 2+ sources to enable';
@@ -9865,6 +9936,8 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     });
     widthSelect.addEventListener('change', (e) => {
         const newWidthIncrease = parseFloat(e.target.value);
+        // Save setting
+        this.plotSettings['std-source-comparison'].widthIncrease = newWidthIncrease;
         this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, newWidthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
     });
 
@@ -9900,6 +9973,8 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     if (isDifferenceMode) {
         movingAvgSelect.addEventListener('change', (e) => {
             const newWindow = parseInt(e.target.value);
+            // Save setting
+            this.plotSettings['std-source-comparison'].movingAvgWindow = newWindow;
             this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, newWindow, heightScale, datasetMovingAvgWindows, aggregationScale);
         });
     }
@@ -9935,6 +10010,8 @@ NavigationManager.prototype.createStdSourceComparisonPlot = function(siteData, s
     });
     scaleSelect.addEventListener('change', (e) => {
         const newScale = e.target.value;
+        // Save setting
+        this.plotSettings['std-source-comparison'].aggregationScale = newScale;
         this.createStdSourceComparisonPlot(siteData, site, sources, outputDiv, transparencyValues, layerOrder, widthIncrease, isDifferenceMode, movingAvgWindow, heightScale, datasetMovingAvgWindows, newScale);
     });
 

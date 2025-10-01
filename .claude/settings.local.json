@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd settings persistence for plot controls across file/variable changes\n\nFeatures:\n- Remember plot settings per plot type (std-site, std-source, etc.)\n- Settings persist when changing files or variables\n- Settings saved: width, height, scale, difference mode, moving average window\n- Per-dataset settings reset: transparency, layer order, dataset MA\n- In-memory storage (session-based, not localStorage)\n- Auto-apply saved settings on plot generation\n\nImplementation:\n- Added plotSettings object to NavigationManager constructor\n- Each plot type has separate settings storage\n- All control parameters now nullable with fallback to saved settings\n- Save logic added to all event handlers:\n  * Difference button toggles\n  * Width dropdown changes\n  * Height dropdown changes\n  * Scale dropdown changes (hourly/daily)\n  * Moving average window changes\n- Settings restored on plot generation if not explicitly provided\n\nUser Experience:\n- Configure plot once, settings remembered for session\n- Switch files/variables without reconfiguring\n- Transparency and layer order reset per selection\n- Consistent behavior across all plot types\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
